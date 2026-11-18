@@ -1,10 +1,10 @@
-import { FIELD_NAMES, type CityState } from './state';
+import { EXTRA_FIELD_NAMES, FIELD_NAMES, type CityState } from './state';
 
 /**
  * Save-format version. Bump it whenever the registry or header changes and
  * add a migration in migrate.ts that turns the previous version into this one.
  */
-export const FORMAT_VERSION = 3;
+export const FORMAT_VERSION = 4;
 
 /**
  * Every typed array a city owns, in the fixed order they are written. New
@@ -23,6 +23,8 @@ export function savedArrays(state: CityState): [string, Uint8Array | Uint16Array
     ['fireTicks', state.fireTicks],
     // Version 3: density tiers.
     ['zoneTier', state.zoneTier],
+    // Version 4: water and garbage.
+    ...EXTRA_FIELD_NAMES.map((name): [string, Uint8Array] => [`field:${name}`, state.field(name)]),
   ];
 }
 
@@ -49,6 +51,7 @@ export function savedHeader(state: CityState): Record<string, unknown> {
     evaluation: state.evaluation,
     classReached: state.classReached,
     overcast: state.overcast,
+    utilityGraceUntil: state.utilityGraceUntil,
     lastYearApproval: state.lastYearApproval,
     lastYearScore: state.lastYearScore,
     lastYearPop: state.lastYearPop,

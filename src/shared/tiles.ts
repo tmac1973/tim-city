@@ -49,6 +49,8 @@ export const TileKind = {
   Stadium: 256,
   Seaport: 257,
   Airport: 258,
+  WaterTower: 259,
+  Landfill: 260,
 
   /** Ground poisoned by a meltdown; unbuildable until it decays. */
   Radiation: 320,
@@ -196,5 +198,9 @@ export const AIRPORT_SIZE = 6;
 registerFootprint(TileKind.Stadium, STADIUM_SIZE);
 registerFootprint(TileKind.Seaport, SEAPORT_SIZE);
 registerFootprint(TileKind.Airport, AIRPORT_SIZE);
+export const WATER_TOWER_SIZE = 2;
+export const LANDFILL_SIZE = 4;
+registerFootprint(TileKind.WaterTower, WATER_TOWER_SIZE);
+registerFootprint(TileKind.Landfill, LANDFILL_SIZE);
 
 export const isPark = (kind: number): boolean => kind === TileKind.Park || kind === TileKind.LargePark;

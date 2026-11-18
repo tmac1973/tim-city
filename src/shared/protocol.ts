@@ -48,7 +48,9 @@ export type ToolId =
   | 'largePark'
   | 'stadium'
   | 'seaport'
-  | 'airport';
+  | 'airport'
+  | 'waterTower'
+  | 'landfill';
 /** Anything that can be locked until a city class: a tool, or an option of one. */
 export type UnlockId = ToolId | 'zoneHigh';
 export type BrushSize = 1 | 3 | 5;
@@ -149,6 +151,8 @@ export interface Funding {
   road: number;
   police: number;
   fire: number;
+  transit: number;
+  utilities: number;
 }
 
 export interface Bond {
@@ -168,6 +172,14 @@ export interface Ledger {
   police: number;
   fire: number;
   bonds: number;
+  /** Bus and subway running costs. */
+  transit: number;
+  /** Water towers and landfills. */
+  utilities: number;
+  /** Upkeep of landmarks (no funding slider). */
+  landmarks: number;
+  /** Income from tourists visiting leisure landmarks. */
+  tourism: number;
   /** Spent on building during the year (not part of the estimate). */
   construction: number;
 }
@@ -187,7 +199,7 @@ export interface BudgetInfo {
   bankrupt: boolean;
 }
 
-export type ProblemId = 'crime' | 'pollution' | 'housing' | 'taxes' | 'traffic' | 'unemployment' | 'fires';
+export type ProblemId = 'crime' | 'pollution' | 'housing' | 'taxes' | 'traffic' | 'unemployment' | 'fires' | 'water' | 'garbage';
 
 export interface Problem {
   id: ProblemId;
@@ -273,6 +285,11 @@ export interface Census {
   powerSupply: number;
   powerDemand: number;
   unpoweredZones: number;
+  /** Zone lots without water service, and without garbage pickup. */
+  unwateredLots: number;
+  ungarbagedLots: number;
+  /** Water and garbage rules are in force (after an old save's grace period). */
+  utilityRules: boolean;
 }
 
 /** R, C, I demand, each −2000 … +2000. */
@@ -296,7 +313,7 @@ export interface ChunkSlice {
 }
 
 /** Block fields an overlay can show (power comes from tile flags instead). */
-export const FIELD_OVERLAYS = ['traffic', 'pollution', 'crime', 'landValue', 'popDensity', 'policeCover', 'fireCover', 'growth'] as const;
+export const FIELD_OVERLAYS = ['traffic', 'pollution', 'crime', 'landValue', 'popDensity', 'policeCover', 'fireCover', 'growth', 'waterCover', 'garbageCover'] as const;
 export type FieldName = (typeof FIELD_OVERLAYS)[number];
 
 export type MainToWorker =

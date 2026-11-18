@@ -19,6 +19,8 @@ const KIND_RGB: Partial<Record<number, Rgb>> = {
   [TileKind.WindTurbine]: [235, 235, 235],
   [TileKind.GasPlant]: [215, 215, 205],
   [TileKind.OilPlant]: [120, 105, 90],
+  [TileKind.WaterTower]: [150, 195, 225],
+  [TileKind.Landfill]: [125, 110, 85],
   [TileKind.PoliceStation]: [60, 90, 200],
   [TileKind.FireStation]: [210, 60, 50],
   [TileKind.Stadium]: [230, 230, 225],

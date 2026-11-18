@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TICKS_PER_MONTH } from '@/shared/constants';
-import type { ToolCommand, ToolId } from '@/shared/protocol';
+import type { SimEvent, ToolCommand, ToolId } from '@/shared/protocol';
 import { MAX_DENSITY, TileFlag, TileKind, zoneKind, zoneOf, ZoneTier, ZoneType } from '@/shared/tiles';
 import { Simulation } from '../sim';
 import { CityState } from '../state';
@@ -12,7 +12,11 @@ import { demandTargets } from './demand';
 import { overcastChance, rollClimate } from './climate';
 import { updatePollution } from './pollution';
 import { updatePower, windOnHighGround } from './power';
-import { growthBlock, zoneSystem } from './zones';
+import { updateUtilities } from './coverage';
+import { evaluationSystem } from './evaluation';
+import { updateLandValue } from './landValue';
+import { utilityRulesActive } from './utilityRules';
+import { growthBlock, lotCap, zoneSystem } from './zones';
 
 function flatCity(): CityState {
   const state = new CityState({ name: 'T', seed: 'systems', size: 128 });
@@ -216,6 +220,7 @@ describe('density tiers', () => {
     expect(runTool(s, tool('road', 28, 32, 40, 32)).ok).toBe(true);
     s.valves.r = 5000;
     s.field('landValue').fill(landValue);
+    s.field('waterCover').fill(255);
     return s;
   }
 
@@ -242,6 +247,7 @@ describe('density tiers', () => {
     expect(runTool(s, tool('road', 28, 32, 40, 32)).ok).toBe(true);
     s.valves.r = 5000;
     s.field('landValue').fill(100);
+    s.field('waterCover').fill(255);
     expect(grow(s, 200)).toBe(6);
     expect(growthBlock(s, s.index(30, 30))).toBe('landValue');
   });
@@ -252,6 +258,92 @@ describe('density tiers', () => {
     expect(runTool(s, { ...tool('residential', 30, 30), tier: ZoneTier.Low })).toMatchObject({ ok: true, cost: 50 });
     expect(growthBlock(s, s.index(30, 30))).toBe('tierCap');
     expect(grow(s, 48)).toBe(3);
+  });
+});
+
+describe('water and garbage', () => {
+  it('stops a lot without water at level 4, and lets it grow with a tower in reach', () => {
+    const dry = flatCity();
+    expect(runTool(dry, tool('residential', 30, 30)).ok).toBe(true);
+    expect(runTool(dry, tool('road', 28, 32, 40, 32)).ok).toBe(true);
+    dry.valves.r = 5000;
+    dry.field('landValue').fill(200);
+    const centre = dry.index(30, 30);
+    for (let m = 0; m < 200; m++) {
+      dry.flags[centre] = (dry.flags[centre] ?? 0) | TileFlag.POWERED;
+      zoneSystem.run(dry, centre % TICKS_PER_MONTH);
+    }
+    expect(density(dry, 30, 30)).toBe(4);
+    expect(growthBlock(dry, centre)).toBe('noWater');
+
+    expect(runTool(dry, tool('waterTower', 35, 28)).ok).toBe(true);
+    updateUtilities(dry);
+    for (let m = 0; m < 200; m++) {
+      dry.flags[centre] = (dry.flags[centre] ?? 0) | TileFlag.POWERED;
+      zoneSystem.run(dry, centre % TICKS_PER_MONTH);
+    }
+    expect(density(dry, 30, 30)).toBe(6);
+  });
+
+  it('weakens a tower serving more zone levels than its capacity', () => {
+    const s = flatCity();
+    expect(runTool(s, tool('waterTower', 60, 60)).ok).toBe(true);
+    // Eight lots at level 8 lie in reach: 64 levels, well under 300.
+    for (let k = 0; k < 8; k++) placeFootprint(s, 52 + 3 * (k % 4), 52 + 3 * Math.floor(k / 4), zoneKind(ZoneType.R, 8));
+    for (let k = 0; k < 8; k++) s.flags[s.index(53 + 3 * (k % 4), 53 + 3 * Math.floor(k / 4))] = TileFlag.ZONE_CENTER;
+    updateUtilities(s);
+    const full = s.field('waterCover')[s.blockIndex(60, 60)] ?? 0;
+    // A grid of level-8 lots all round the tower (over 300 levels in reach) overloads it.
+    for (let y = 44; y <= 74; y += 3) {
+      for (let x = 44; x <= 74; x += 3) {
+        if (x + 3 > 59 && x < 63 && y + 3 > 59 && y < 63) continue;
+        placeFootprint(s, x, y, zoneKind(ZoneType.R, 8));
+        s.flags[s.index(x + 1, y + 1)] = TileFlag.ZONE_CENTER;
+      }
+    }
+    updateUtilities(s);
+    const loaded = s.field('waterCover')[s.blockIndex(60, 60)] ?? 0;
+    expect(loaded).toBeLessThan(full);
+    expect(loaded).toBeGreaterThan(0);
+  });
+
+  it('takes land value where people live without garbage pickup, and beside a landfill', () => {
+    const s = flatCity();
+    s.field('popDensity').fill(50);
+    updateLandValue(s);
+    const without = s.field('landValue')[s.blockIndex(64, 64)] ?? 0;
+    s.field('garbageCover').fill(255);
+    updateLandValue(s);
+    expect((s.field('landValue')[s.blockIndex(64, 64)] ?? 0) - without).toBe(40);
+    expect(runTool(s, tool('landfill', 65, 65)).ok).toBe(true);
+    updateLandValue(s);
+    expect(s.field('landValue')[s.blockIndex(62, 62)]).toBeLessThan(without + 40);
+  });
+
+  it('holds the rules back during a grace period', () => {
+    const s = flatCity();
+    s.utilityGraceUntil = s.date.year * 12 + 24;
+    expect(utilityRulesActive(s)).toBe(false);
+    const centre = s.index(30, 30);
+    expect(runTool(s, tool('residential', 30, 30)).ok).toBe(true);
+    expect(lotCap(s, centre, 3)).toBe(6);
+    s.date.year += 2;
+    expect(utilityRulesActive(s)).toBe(true);
+    expect(lotCap(s, centre, 3)).toBe(4);
+  });
+
+  it('announces the end of the grace period in the news', () => {
+    const s = flatCity();
+    s.utilityGraceUntil = s.date.year * 12 + 7;
+    const events: SimEvent[] = [];
+    const system = evaluationSystem((e) => events.push(e));
+    for (let m = 0; m < 8; m++) {
+      s.date.month = m;
+      system.run(s, 13);
+    }
+    const news = events.flatMap((e) => (e.type === 'news' ? [e.headline] : []));
+    expect(news).toHaveLength(3);
+    expect(news[2]).toMatch(/now in force/);
   });
 });
 

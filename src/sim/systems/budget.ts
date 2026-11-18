@@ -1,4 +1,5 @@
 import { MONTHS_PER_YEAR, TICKS_PER_MONTH } from '@/shared/constants';
+import { UPKEEP } from '@/shared/costs';
 import type { Ledger, SimEvent } from '@/shared/protocol';
 import { isRail, isRoad, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
@@ -37,6 +38,10 @@ export function computeLedger(state: CityState): Ledger {
     police: 0,
     fire: 0,
     bonds: 0,
+    transit: 0,
+    utilities: 0,
+    landmarks: 0,
+    tourism: 0,
     construction: 0,
   };
   const landValue = state.field('landValue');
@@ -45,12 +50,15 @@ export function computeLedger(state: CityState): Ledger {
   let railTiles = 0;
   let police = 0;
   let fire = 0;
+  let utilities = 0;
   for (let i = 0; i < size * size; i++) {
     const kind = tiles[i] ?? 0;
     if (isRoad(kind)) roadTiles++;
     if (isRail(kind)) railTiles++;
     if (parts[i] === 1 && kind === TileKind.PoliceStation) police++;
     if (parts[i] === 1 && kind === TileKind.FireStation) fire++;
+    if (parts[i] === 1 && kind === TileKind.WaterTower) utilities += UPKEEP.waterTower;
+    if (parts[i] === 1 && kind === TileKind.Landfill) utilities += UPKEEP.landfill;
     if (!((flags[i] ?? 0) & TileFlag.ZONE_CENTER)) continue;
     const zone = zoneOf(kind);
     if (!zone) continue;
@@ -67,12 +75,14 @@ export function computeLedger(state: CityState): Ledger {
   ledger.roads = Math.round(((roadTiles * ROAD_UPKEEP + railTiles * RAIL_UPKEEP) * state.funding.road) / 100);
   ledger.police = Math.round((police * STATION_UPKEEP * state.funding.police) / 100);
   ledger.fire = Math.round((fire * STATION_UPKEEP * state.funding.fire) / 100);
+  // Utility upkeep is monthly; the ledger is yearly.
+  ledger.utilities = Math.round((utilities * MONTHS_PER_YEAR * state.funding.utilities) / 100);
   ledger.bonds = state.bonds.reduce((sum, b) => sum + bondPayment(b), 0);
   return ledger;
 }
 
-export const ledgerIncome = (l: Ledger): number => l.residentialTax + l.commercialTax + l.industrialTax;
-export const ledgerCosts = (l: Ledger): number => l.roads + l.police + l.fire + l.bonds;
+export const ledgerIncome = (l: Ledger): number => l.residentialTax + l.commercialTax + l.industrialTax + l.tourism;
+export const ledgerCosts = (l: Ledger): number => l.roads + l.police + l.fire + l.bonds + l.transit + l.utilities + l.landmarks;
 
 /** Borrow $10,000; false if five bonds are already out. */
 export function issueBond(state: CityState): boolean {

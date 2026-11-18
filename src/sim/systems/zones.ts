@@ -2,6 +2,7 @@ import { TICKS_PER_MONTH } from '@/shared/constants';
 import { isRoad, MAX_DENSITY, TileFlag, tierCap, ZoneTier, zoneKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { placeFootprint } from '../tools/footprint';
 import type { System } from '../scheduler';
+import { DRY_CAP, hasWater, utilityRulesActive } from './utilityRules';
 import type { CityState } from '../state';
 
 /** A zone needs a road within this many tiles of its 3×3 edge to grow. */
@@ -99,7 +100,7 @@ export const zoneSystem: System = {
         continue;
       }
       // Above its tier's cap (after a downzone, or when land value falls), a lot steps down.
-      const cap = tierCap(state.zoneTier[i] ?? 0, lvClass);
+      const cap = lotCap(state, i, lvClass);
       if (density > cap) {
         if (rng.nextFloat() < CHANGE_CHANCE) setDensity(state, x, y, type, density - 1, lvClass);
         continue;
@@ -118,7 +119,15 @@ export const zoneSystem: System = {
   },
 };
 
-export type GrowthBlock = 'unpowered' | 'noRoad' | 'tripFailed' | 'tierCap' | 'landValue' | 'demand';
+/** The highest level the lot centred on tile `i` may reach: its tier's cap, and 4 without water. */
+export function lotCap(state: CityState, i: number, lvClass: number): number {
+  const cap = tierCap(state.zoneTier[i] ?? 0, lvClass);
+  const x = i % state.size;
+  if (utilityRulesActive(state) && !hasWater(state, x, (i - x) / state.size)) return Math.min(cap, DRY_CAP);
+  return cap;
+}
+
+export type GrowthBlock = 'unpowered' | 'noRoad' | 'tripFailed' | 'noWater' | 'tierCap' | 'landValue' | 'demand';
 
 /**
  * Why the zone centred on tile `i` is not growing, or null if it can: the
@@ -137,6 +146,7 @@ export function growthBlock(state: CityState, i: number): GrowthBlock | null {
   const tier = state.zoneTier[i] ?? 0;
   const lvClass = landValueClass(state, x, y);
   const cap = tierCap(tier, lvClass);
+  if (zone.density >= DRY_CAP && lotCap(state, i, lvClass) < cap) return 'noWater';
   if (zone.density >= cap) {
     return tier === ZoneTier.High && cap < MAX_DENSITY ? 'landValue' : zone.density >= MAX_DENSITY ? null : 'tierCap';
   }

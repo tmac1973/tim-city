@@ -1,5 +1,5 @@
 import type { Funding, Ledger, SimCommand } from '@/shared/protocol';
-import { BOND_PRINCIPAL, MAX_BONDS, bondPayment } from '@/sim/systems/budget';
+import { BOND_PRINCIPAL, MAX_BONDS, bondPayment, ledgerCosts, ledgerIncome } from '@/sim/systems/budget';
 import { autoBudget, budget, budgetOpen, formatMoney, funds } from './store';
 
 interface Props {
@@ -11,21 +11,28 @@ const INCOME: [keyof Ledger, string][] = [
   ['residentialTax', 'Residential taxes'],
   ['commercialTax', 'Commercial taxes'],
   ['industrialTax', 'Industrial taxes'],
+  ['tourism', 'Tourism'],
 ];
 const COSTS: [keyof Ledger, string][] = [
   ['roads', 'Roads and rail'],
   ['police', 'Police'],
   ['fire', 'Fire'],
+  ['transit', 'Transit'],
+  ['utilities', 'Water and garbage'],
+  ['landmarks', 'Landmarks'],
   ['bonds', 'Bond payments'],
 ];
 const SERVICES: [keyof Funding, string][] = [
   ['road', 'Roads and rail'],
   ['police', 'Police'],
   ['fire', 'Fire'],
+  ['transit', 'Transit'],
+  ['utilities', 'Water and garbage'],
 ];
 
-const net = (l: Ledger, withConstruction: boolean) =>
-  l.residentialTax + l.commercialTax + l.industrialTax - l.roads - l.police - l.fire - l.bonds - (withConstruction ? l.construction : 0);
+const net = (l: Ledger, withConstruction: boolean) => ledgerIncome(l) - ledgerCosts(l) - (withConstruction ? l.construction : 0);
+/** Rows that are always shown; the others appear once they carry money. */
+const ALWAYS = new Set<keyof Ledger>(['residentialTax', 'commercialTax', 'industrialTax', 'roads', 'police', 'fire', 'bonds']);
 
 /** Yearly budget: tax rate, service funding, the books, and bonds. */
 export function BudgetWindow({ send, onClose }: Props) {
@@ -34,6 +41,7 @@ export function BudgetWindow({ send, onClose }: Props) {
   const last = b.lastYear;
   const est = b.estimate;
   const cell = (l: Ledger | null, key: keyof Ledger) => (l ? formatMoney(l[key]) : '—');
+  const shown = (key: keyof Ledger) => ALWAYS.has(key) || (last?.[key] ?? 0) !== 0 || est[key] !== 0;
 
   return (
     <div class="modal-backdrop">
@@ -86,14 +94,14 @@ export function BudgetWindow({ send, onClose }: Props) {
               </tr>
             </thead>
             <tbody>
-              {INCOME.map(([key, label]) => (
+              {INCOME.filter(([key]) => shown(key)).map(([key, label]) => (
                 <tr key={key} data-row={key}>
                   <td>{label}</td>
                   <td>{cell(last, key)}</td>
                   <td>{cell(est, key)}</td>
                 </tr>
               ))}
-              {COSTS.map(([key, label]) => (
+              {COSTS.filter(([key]) => shown(key)).map(([key, label]) => (
                 <tr key={key} class="cost">
                   <td>{label}</td>
                   <td>{cell(last, key)}</td>

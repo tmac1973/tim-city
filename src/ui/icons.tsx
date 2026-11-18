@@ -98,6 +98,18 @@ const paths: Record<string, JSX.Element> = {
       <path d="M12 7v10M7 12h10" />
     </>
   ),
+  waterTower: (
+    <>
+      <path d="M7 4h10v6a5 5 0 0 1-10 0z" />
+      <path d="M9 14l-2 7M15 14l2 7M8 18h8" />
+    </>
+  ),
+  landfill: (
+    <>
+      <path d="M3 19c2-5 4-7 6-7s3 2 5 2 4-4 7 5z" />
+      <path d="M3 19h18M8 9l1-3M14 8l2-3" />
+    </>
+  ),
   police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
   fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
   park: (

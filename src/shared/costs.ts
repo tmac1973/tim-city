@@ -30,9 +30,19 @@ export const COSTS = {
   stadium: 5000,
   seaport: 3000,
   airport: 10000,
+  waterTower: 600,
+  landfill: 1000,
 } as const;
 
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */
+/** Running costs a month, at full funding. */
+export const UPKEEP = { waterTower: 20, landfill: 30 } as const;
+/** Reach (tiles) and capacity (zone levels served) of each utility building. */
+export const UTILITY = {
+  waterTower: { radius: 16, capacity: 300 },
+  landfill: { radius: 24, capacity: 500 },
+} as const;
+
 /** Zoning one lot at low, medium and high density. */
 export const ZONE_TIER_COSTS = [100, 200, 400] as const;
 export const zoneCost = (tier: number): number => ZONE_TIER_COSTS[Math.min(2, Math.max(0, tier)) as 0 | 1 | 2];

@@ -2,6 +2,7 @@ import type { ProblemId } from '@/shared/protocol';
 import { isRail, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { CityState } from '../state';
 import { around, blockGeometry, countAround } from './fields';
+import { SERVED } from './utilityRules';
 
 export interface Hotspot {
   x: number | null;
@@ -128,6 +129,13 @@ export function findHotspot(state: CityState, problem: ProblemId): Hotspot {
         if (nearest > worst.d) worst = { i: h, d: nearest };
       }
       return { x: worst.i % state.size, y: Math.floor(worst.i / state.size), cause: 'Not enough jobs nearby' };
+    }
+    case 'water':
+    case 'garbage': {
+      const cover = state.field(problem === 'water' ? 'waterCover' : 'garbageCover');
+      const spot = extremeBlock(state, (b) => density[b] ?? 0, (b) => populated(b) && (cover[b] ?? 0) < SERVED);
+      if (!spot) return none(problem === 'water' ? 'Everyone has water' : 'Garbage is collected everywhere');
+      return at(spot.b, problem === 'water' ? 'No water here: build a water tower' : 'Garbage piling up: build a landfill');
     }
     case 'fires': {
       const fire = state.field('fireCover');

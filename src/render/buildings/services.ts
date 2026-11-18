@@ -82,3 +82,37 @@ export function largePark(): Variant {
   }
   return done(k);
 }
+
+/** 2×2 water tower: a pale blue tank on four legs, banded with the city's name. */
+export function waterTower(): Variant {
+  const k = new Kit();
+  k.ground(-0.95, -0.95, 0.95, 0.95, CONCRETE);
+  for (const [x, z] of [[-0.45, -0.45], [0.45, -0.45], [0.45, 0.45], [-0.45, 0.45]] as const) {
+    k.cylinder(x, z, 0.05, 0, 1.6, 0x8a9097, 6);
+  }
+  k.block(0, 0, 0.9, 0.06, 0.8, 0.05, 0x8a9097);
+  k.block(0, 0, 0.06, 0.9, 0.8, 0.05, 0x8a9097);
+  k.cylinder(0, 0, 0.62, 1.55, 0.75, 0x9fc7e0, 16, undefined, 0.62);
+  // A white band round the tank, then a shallow conical roof.
+  k.cylinder(0, 0, 0.63, 1.85, 0.18, 0xf2f1ec, 16, undefined, 0.63);
+  k.cylinder(0, 0, 0.64, 2.3, 0.25, 0x7aa6c4, 16, undefined, 0.05);
+  return done(k);
+}
+
+/** 4×4 landfill: a fenced, dug-out yard with mounds of rubbish and a small bulldozer. */
+export function landfill(): Variant {
+  const k = new Kit();
+  k.ground(-1.95, -1.95, 1.95, 1.95, 0x8a7a5c);
+  // Fence posts around the edge.
+  for (let s = -1.9; s <= 1.9; s += 0.475) {
+    for (const [x, z] of [[s, -1.9], [s, 1.9], [-1.9, s], [1.9, s]] as const) k.block(x, z, 0.04, 0.04, 0, 0.22, 0x6d6a62);
+  }
+  k.lathe(-0.7, -0.5, 0, [[0.95, 0], [0.75, 0.25], [0.4, 0.5], [0.05, 0.62]], 0x7d6f55, 9);
+  k.lathe(0.75, 0.55, 0, [[0.8, 0], [0.6, 0.22], [0.3, 0.42], [0.04, 0.5]], 0x8f8f86, 8);
+  k.lathe(0.6, -1.0, 0, [[0.5, 0], [0.32, 0.2], [0.04, 0.3]], 0x6f6a58, 7);
+  // The bulldozer.
+  k.block(-0.6, 1.2, 0.45, 0.3, 0, 0.18, 0xe0a526, 0xc18a15);
+  k.block(-0.65, 1.2, 0.18, 0.22, 0.18, 0.14, 0x3b3f44);
+  k.block(-0.3, 1.2, 0.06, 0.36, 0, 0.14, 0x6d6a62);
+  return done(k);
+}

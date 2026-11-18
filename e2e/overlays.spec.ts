@@ -39,8 +39,8 @@ test('every overlay toggles on and off without errors', async ({ page, browserNa
 
   const group = page.getByRole('group', { name: 'Overlay' });
   const buttons = group.getByRole('button');
-  await expect(buttons).toHaveCount(10);
-  for (let i = 0; i < 10; i++) {
+  await expect(buttons).toHaveCount(12);
+  for (let i = 0; i < 12; i++) {
     const button = buttons.nth(i);
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'true');
@@ -51,7 +51,7 @@ test('every overlay toggles on and off without errors', async ({ page, browserNa
     expect(during).toBeLessThan(2 * before + 20);
   }
 
-  await buttons.nth(9).click();
-  await expect(buttons.nth(9)).toHaveAttribute('aria-pressed', 'false');
+  await buttons.nth(11).click();
+  await expect(buttons.nth(11)).toHaveAttribute('aria-pressed', 'false');
   expect(errors).toEqual([]);
 });

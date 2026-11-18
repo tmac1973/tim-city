@@ -22,6 +22,11 @@ test('the budget window opens at year end and tax changes update the estimate', 
   // The estimate rounds the total, so it can differ from an exact double by $1.
   await expect.poll(async () => Math.abs(money(await estimate.textContent()) - before * 2)).toBeLessThanOrEqual(1);
 
+  // The transit and utility lines have their own funding sliders.
+  await expect(dialog.getByLabel('Transit funding')).toBeVisible();
+  await dialog.getByLabel('Water and garbage funding').fill('60');
+  await expect(dialog.getByText('Water and garbage funding 60%')).toBeVisible();
+
   await dialog.getByRole('button', { name: 'Done' }).click();
   await expect(dialog).toBeHidden();
   expect(errors).toEqual([]);

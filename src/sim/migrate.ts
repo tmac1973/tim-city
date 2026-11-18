@@ -1,5 +1,8 @@
 import { ZoneTier, zoneOf } from '@/shared/tiles';
 
+/** Months an old city gets before water and garbage start to matter. */
+export const UTILITY_GRACE_MONTHS = 24;
+
 /** A save as read from disk, before it becomes a CityState. */
 export interface RawSave {
   version: number;
@@ -33,6 +36,20 @@ export const migrations: Record<number, (save: RawSave) => RawSave> = {
     const arrays = new Map(save.arrays);
     arrays.set('zoneTier', tier);
     return { ...save, arrays };
+  },
+  // 3 → 4: water and garbage. New funding lines at full, and two years before the rules apply.
+  3: (save) => {
+    const date = save.header.date as { year: number; month: number };
+    const funding = save.header.funding as Record<string, number>;
+    return {
+      ...save,
+      header: {
+        ...save.header,
+        funding: { ...funding, transit: 100, utilities: 100 },
+        lastYear: save.header.lastYear ? { transit: 0, utilities: 0, landmarks: 0, tourism: 0, ...(save.header.lastYear) } : null,
+        utilityGraceUntil: date.year * 12 + date.month + UTILITY_GRACE_MONTHS,
+      },
+    };
   },
 };
 

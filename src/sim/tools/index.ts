@@ -1,7 +1,7 @@
 import { COSTS } from '@/shared/costs';
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
 import { isUnlocked, lockedMessage } from '@/shared/unlocks';
-import { AIRPORT_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
+import { AIRPORT_SIZE, LANDFILL_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WATER_TOWER_SIZE, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { planBlock } from './block';
@@ -79,6 +79,12 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
       break;
     case 'seaport':
       plan = planBuilding(state, cmd, TileKind.Seaport, SEAPORT_SIZE, COSTS.seaport, { needsWaterEdge: true });
+      break;
+    case 'waterTower':
+      plan = planBuilding(state, cmd, TileKind.WaterTower, WATER_TOWER_SIZE, COSTS.waterTower);
+      break;
+    case 'landfill':
+      plan = planBuilding(state, cmd, TileKind.Landfill, LANDFILL_SIZE, COSTS.landfill);
       break;
     case 'airport':
       // Runways need nearly flat ground.

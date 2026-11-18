@@ -2,6 +2,7 @@ import { TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import { type CityState, emptyCensus } from '../state';
 import { plantName, plantSupply, zoneDemand } from './power';
+import { hasGarbage, hasWater, utilityRulesActive } from './utilityRules';
 import { JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from './zones';
 
 export function takeCensus(state: CityState): void {
@@ -29,6 +30,10 @@ export function takeCensus(state: CityState): void {
     if (!zone) continue;
     census.powerDemand += zoneDemand(zone.density);
     if (!(f & TileFlag.POWERED)) census.unpoweredZones++;
+    const x = i % size;
+    const y = (i - x) / size;
+    if (!hasWater(state, x, y)) census.unwateredLots++;
+    if (!hasGarbage(state, x, y)) census.ungarbagedLots++;
     if (zone.type === ZoneType.R) {
       census.zones.r++;
       census.resPop += zone.density * RESIDENTS_PER_LEVEL;
@@ -40,6 +45,7 @@ export function takeCensus(state: CityState): void {
       census.indJobs += zone.density * JOBS_PER_LEVEL;
     }
   }
+  census.utilityRules = utilityRulesActive(state);
   state.census = census;
 }
 

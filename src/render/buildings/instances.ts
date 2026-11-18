@@ -9,7 +9,7 @@ import { HEIGHT_UNIT } from '../units';
 import { PuffLayer } from './particles';
 import { Kit } from './kit';
 import { coalPlant, gasPlant, nuclearPlant, oilPlant, rotorGeometry, solarFarm, TURBINE_HUB, windTurbine } from './plants';
-import { fireStation, largePark, park, policeStation } from './services';
+import { fireStation, landfill, largePark, park, policeStation, waterTower } from './services';
 import { airport, seaport, stadium } from './specials';
 import { waterSide } from '@/sim/tools/place';
 import { buildVariants, type Variant, variantKey } from './variants';
@@ -30,12 +30,14 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.WindTurbine]: -15,
   [TileKind.GasPlant]: -16,
   [TileKind.OilPlant]: -17,
+  [TileKind.WaterTower]: -18,
+  [TileKind.Landfill]: -19,
 };
 const WIND_KEY = -15;
 /** Turbine blades turn this fast, in radians a second. */
 const ROTOR_SPEED = 0.6;
 const MAX_ROTORS = 512;
-const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9, [AIRPORT_SIZE]: -13 };
+const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9, [AIRPORT_SIZE]: -13, 2: -20 };
 const PLINTH_VALUES = new Set(Object.values(PLINTH_KEYS));
 /** Seaport models face their quay to +z; turns that point it at each water side (N, E, S, W). */
 const QUAY_TURNS = [2, 1, 0, 3];
@@ -127,6 +129,8 @@ export class BuildingLayer {
       [TileKind.WindTurbine]: windTurbine(),
       [TileKind.GasPlant]: gasPlant(),
       [TileKind.OilPlant]: oilPlant(),
+      [TileKind.WaterTower]: waterTower(),
+      [TileKind.Landfill]: landfill(),
     };
     for (const [kind, model] of Object.entries(models)) {
       const key = BUILDING_KEYS[Number(kind)];

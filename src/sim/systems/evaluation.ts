@@ -6,6 +6,7 @@ import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { blockGeometry } from './fields';
 import { findHotspot } from './hotspots';
+import { monthIndex } from './utilityRules';
 
 export { CLASS_THRESHOLDS };
 
@@ -59,6 +60,8 @@ export function problemScores(state: CityState): Record<ProblemId, number> {
     populatedBlocks++;
     if ((fireCover[b] ?? 0) < 64) unprotected++;
   }
+  const lots = state.census.zones.r + state.census.zones.c + state.census.zones.i;
+  const lotShare = (n: number) => (lots === 0 || !state.census.utilityRules ? 0 : (n / lots) * 100);
   const fireGap = populatedBlocks === 0 ? 0 : (unprotected / populatedBlocks) * 100;
 
   return {
@@ -70,6 +73,9 @@ export function problemScores(state: CityState): Record<ProblemId, number> {
     traffic: meanOf(state.field('traffic'), (b) => roadBlocks[b] === 1),
     unemployment: Math.max(0, 1 - employment) * 100,
     fires: Math.min(100, fireGap + 2 * state.burnedThisYear),
+    // Shares of zone lots without service, once the rules apply.
+    water: lotShare(state.census.unwateredLots),
+    garbage: lotShare(state.census.ungarbagedLots),
   };
 }
 
@@ -120,6 +126,18 @@ export function evaluate(state: CityState): Evaluation {
   };
 }
 
+/** For a city saved before utilities: warn as the grace period runs out, then say the rules apply. */
+function announceUtilityRules(state: CityState, emit: (event: SimEvent) => void): void {
+  if (state.utilityGraceUntil === 0) return;
+  const left = state.utilityGraceUntil - monthIndex(state);
+  const news = (headline: string) => {
+    emit({ type: 'news', headline, x: null, y: null });
+  };
+  if (left === 6 || left === 1) {
+    news(`Water and garbage service will matter in ${left === 1 ? 'a month' : 'six months'}: build water towers and landfills near your neighbourhoods`);
+  } else if (left === 0) news('Water and garbage rules are now in force: homes and shops without water stop at level 4');
+}
+
 /**
  * Monthly evaluation (so advisors are current), with promotions announced
  * as they happen and the yearly verdict at year end.
@@ -139,6 +157,7 @@ export function evaluationSystem(emit: (event: SimEvent) => void): System {
         state.classReached = reached;
         emit({ type: 'milestone', cityClass: evaluation.cityClass, population: evaluation.population, unlocked });
       }
+      announceUtilityRules(state, emit);
       if (state.date.month !== MONTHS_PER_YEAR - 1) return;
       emit({
         type: 'evaluation',

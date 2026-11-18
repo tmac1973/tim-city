@@ -94,6 +94,7 @@ export function deserialize(bytes: Uint8Array): CityState {
   state.evaluation = h.evaluation as Evaluation | null;
   state.classReached = h.classReached as number;
   state.overcast = (h.overcast as boolean | undefined) ?? false;
+  state.utilityGraceUntil = h.utilityGraceUntil as number;
   state.lastYearApproval = h.lastYearApproval as number | null;
   state.lastYearScore = h.lastYearScore as number;
   state.lastYearPop = h.lastYearPop as number;

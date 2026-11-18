@@ -78,6 +78,16 @@ describe('save format', () => {
     expect(zones).toBeGreaterThan(0);
   });
 
+  it('gives a migrated city full new funding lines and two years before water and garbage matter', () => {
+    const bytes = new Uint8Array(gunzipSync(readFileSync(new URL('./fixtures/city-v1.timcity', import.meta.url))));
+    const state = deserialize(bytes);
+    expect(state.funding.transit).toBe(100);
+    expect(state.funding.utilities).toBe(100);
+    expect(state.utilityGraceUntil).toBe(state.date.year * 12 + state.date.month + 24);
+    const back = deserialize(serialize(state));
+    expect(back.utilityGraceUntil).toBe(state.utilityGraceUntil);
+  });
+
   it('keeps density tiers through a save', () => {
     const { sim } = runScript(INFO, [], 1);
     sim.state.zoneTier[5] = ZoneTier.Low;

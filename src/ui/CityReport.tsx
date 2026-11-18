@@ -9,6 +9,8 @@ export const PROBLEM_LABELS: Record<ProblemId, string> = {
   traffic: 'Traffic',
   unemployment: 'Unemployment',
   fires: 'Fire risk',
+  water: 'Water',
+  garbage: 'Garbage',
 };
 
 /** Problems below this score are not worth an advisor's time. */

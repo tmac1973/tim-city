@@ -1,7 +1,8 @@
-import { POWER_SUPPLY } from '@/shared/costs';
+import { POWER_SUPPLY, UTILITY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
 import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, MAX_DENSITY, TIER_CAP, TIER_NAMES, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { COVERAGE_RADIUS } from '../systems/coverage';
+import { hasGarbage, hasWater, utilityRulesActive } from '../systems/utilityRules';
 import { HIGH_GROUND_STEPS, plantName, plantSupply, windOnHighGround } from '../systems/power';
 import type { CityState } from '../state';
 import { type GrowthBlock, growthBlock, hasRoadAccess, JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from '../systems/zones';
@@ -37,6 +38,8 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.Stadium]: 'Stadium',
   [TileKind.Seaport]: 'Seaport',
   [TileKind.Airport]: 'Airport',
+  [TileKind.WaterTower]: 'Water tower',
+  [TileKind.Landfill]: 'Landfill',
 };
 
 const UNLOCKS: Partial<Record<number, string>> = {
@@ -67,10 +70,15 @@ const BLOCK_WORDS: Record<GrowthBlock, (tier: number) => string> = {
   unpowered: () => "Can't grow: no power",
   noRoad: () => "Can't grow: no road nearby",
   tripFailed: () => "Can't grow: people can't reach where they need to go",
+  noWater: () => "Can't grow past level 4: no water. Build a water tower nearby",
   tierCap: (tier) => `Can't grow: ${(TIER_NAMES[tier] ?? '').toLowerCase()} density allows up to level ${String(TIER_CAP[tier] ?? MAX_DENSITY)}`,
   landValue: () => "Can't grow: high density needs good land value past level 6",
   demand: () => 'Waiting for demand',
 };
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+/** "Mar 2003": the month an old save's grace period ends. */
+const utilityStart = (state: CityState) => `${MONTH_NAMES[state.utilityGraceUntil % 12] ?? ''} ${String(Math.floor(state.utilityGraceUntil / 12))}`;
 
 const ZONE_NAMES = ['Residential zone', 'Commercial zone', 'Industrial zone'] as const;
 
@@ -105,6 +113,9 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
     details.push(['Commute', failed ? `No route to ${goal}` : 'OK']);
     const block = growthBlock(state, center);
     if (block) details.push(['Growth', BLOCK_WORDS[block](tier)]);
+    details.push(['Water', hasWater(state, lot.x + 1, lot.y + 1) ? 'Yes' : 'No']);
+    details.push(['Garbage', hasGarbage(state, lot.x + 1, lot.y + 1) ? 'Collected' : 'Not collected']);
+    if (!utilityRulesActive(state)) details.push(['Utilities', `Water and garbage matter from ${utilityStart(state)}`]);
     details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
     details.push(...fieldDetails(state, x, y));
     return result;
@@ -128,6 +139,12 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
   } else if (UNLOCKS[kind]) {
     details.push(['Unlocks', UNLOCKS[kind] ?? '']);
     details.push(['Power', powered ? 'On' : 'Off — has no effect until powered']);
+  } else if (kind === TileKind.WaterTower || kind === TileKind.Landfill) {
+    const spec = kind === TileKind.WaterTower ? UTILITY.waterTower : UTILITY.landfill;
+    details.push(['Covers', `${String(spec.radius)} tiles around`]);
+    details.push(['Capacity', `${String(spec.capacity)} zone levels`]);
+    details.push(['Funding', `${String(state.funding.utilities)}%`]);
+    details.push(['Power', powered ? 'On' : 'Off — half strength']);
   } else if (kind === TileKind.PoliceStation || kind === TileKind.FireStation) {
     const funding = kind === TileKind.PoliceStation ? state.funding.police : state.funding.fire;
     details.push(['Covers', `${String(COVERAGE_RADIUS)} tiles around`]);

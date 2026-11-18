@@ -29,6 +29,8 @@ export const FIELD_NAMES = [
   'policeCover',
   'fireCover',
 ] as const;
+/** Fields added after the first save format; saved at the end, so older array order holds. */
+export const EXTRA_FIELD_NAMES = ['waterCover', 'garbageCover'] as const;
 
 export function emptyCensus(): Census {
   return {
@@ -43,6 +45,9 @@ export function emptyCensus(): Census {
     powerSupply: 0,
     powerDemand: 0,
     unpoweredZones: 0,
+    unwateredLots: 0,
+    ungarbagedLots: 0,
+    utilityRules: true,
   };
 }
 
@@ -118,7 +123,12 @@ export class CityState {
   /** Year each demand cap was last announced, so it repeats only yearly. */
   readonly capNotified: Record<'r' | 'c' | 'i', number> = { r: -1, c: -1, i: -1 };
   /** Service funding, percent of full. */
-  readonly funding: Funding = { road: 100, police: 100, fire: 100 };
+  readonly funding: Funding = { road: 100, police: 100, fire: 100, transit: 100, utilities: 100 };
+  /**
+   * Month index (year · 12 + month) when water and garbage start to matter.
+   * 0 for new cities; saves from before utilities existed get two years' grace.
+   */
+  utilityGraceUntil = 0;
 
   get taxSensitivity(): number {
     return DIFFICULTY[this.difficulty].taxSensitivity;
@@ -144,7 +154,7 @@ export class CityState {
     this.serviceMap = new Uint8Array(size * size);
     this.fireTicks = new Uint8Array(size * size);
     const blocks = (size / 2) * (size / 2);
-    for (const name of FIELD_NAMES) this.blockFields[name] = new Uint8Array(blocks);
+    for (const name of [...FIELD_NAMES, ...EXTRA_FIELD_NAMES]) this.blockFields[name] = new Uint8Array(blocks);
     this.rootRng = new Rng(seed);
   }
 

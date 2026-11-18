@@ -93,6 +93,22 @@ export const OVERLAYS: OverlayDef[] = [
     high: 'Strong',
   },
   {
+    id: 'waterCover',
+    label: 'Water',
+    columns: false,
+    ramp: stops([[0, [150, 220, 255]], [1, [20, 120, 220]]], (t) => Math.min(0.8, t * 1.6)),
+    low: 'None',
+    high: 'Full',
+  },
+  {
+    id: 'garbageCover',
+    label: 'Garbage',
+    columns: false,
+    ramp: stops([[0, [200, 230, 150]], [1, [90, 150, 40]]], (t) => Math.min(0.8, t * 1.6)),
+    low: 'None',
+    high: 'Collected',
+  },
+  {
     id: 'growth',
     label: 'Growth',
     columns: false,

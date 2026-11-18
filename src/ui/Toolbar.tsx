@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { COSTS, POWER_SUPPLY, zoneCost } from '@/shared/costs';
+import { COSTS, POWER_SUPPLY, UTILITY, zoneCost } from '@/shared/costs';
 import type { BrushSize, ToolId } from '@/shared/protocol';
 import { isUnlocked, lockedMessage, unlockLabel } from '@/shared/unlocks';
 import { TIER_CAP, TIER_NAMES, ZoneTier, ZoneType } from '@/shared/tiles';
@@ -77,6 +77,13 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
       { id: 'fire', name: 'Fire station', key: 'F', code: 'KeyF', cost: price(COSTS.fireStation), hint: 'Protects buildings within 20 tiles from fire.' },
       { id: 'park', name: 'Park', key: 'K', code: 'KeyK', cost: price(COSTS.park, '/tile'), hint: 'Drag a box of small parks. Raises land value and cleans the air.' },
       { id: 'largePark', name: 'Large park', key: '⇧K', code: 'KeyK', shift: true, cost: price(COSTS.largePark), hint: 'A 3×3 park with a pond. A bigger boost to land value.' },
+    ],
+  },
+  {
+    label: 'Utilities',
+    tools: [
+      { id: 'waterTower', name: 'Water tower', key: '', code: '', cost: price(COSTS.waterTower), hint: `Water within ${String(UTILITY.waterTower.radius)} tiles, for up to ${String(UTILITY.waterTower.capacity)} zone levels. Without water a lot stops at level 4. 2×2.` },
+      { id: 'landfill', name: 'Landfill', key: '', code: '', cost: price(COSTS.landfill), hint: `Collects garbage within ${String(UTILITY.landfill.radius)} tiles, for up to ${String(UTILITY.landfill.capacity)} zone levels. Uncollected garbage lowers land value; so does living next to one. 4×4.` },
     ],
   },
   {
