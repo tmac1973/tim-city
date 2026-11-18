@@ -47,7 +47,10 @@ function checkLot(
     const kind = state.tiles[i] ?? 0;
     if (kind === TileKind.Water) return { reason: 'Not on water' };
     if (kind === TileKind.Radiation) return { reason: 'Radioactive' };
-    if (kind !== TileKind.Empty && kind !== TileKind.Tree && kind !== TileKind.Rubble) return { reason: 'Tile occupied' };
+    // A plain power line can be built over: every building tile conducts, so the line stays connected.
+    if (kind !== TileKind.Empty && kind !== TileKind.Tree && kind !== TileKind.Rubble && kind !== TileKind.PowerLine) {
+      return { reason: 'Tile occupied' };
+    }
     if (taken.has(i)) return { reason: 'Overlaps another lot' };
     if (kind !== TileKind.Empty) clearing += COSTS.bulldoze;
   }

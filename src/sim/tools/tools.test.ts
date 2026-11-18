@@ -144,6 +144,22 @@ describe('road, rail and power', () => {
     expect(kindAt(s, 12, 12)).not.toBe(TileKind.PowerLine);
   });
 
+  it('zones over a power line, which stays connected through the zone', () => {
+    const s = flatCity();
+    runTool(s, tool('power', 5, 11, 20, 11));
+    // A 3×3 lot centred on (11, 11) covers three line tiles.
+    const zoned = runTool(s, tool('residential', 11, 11));
+    expect(zoned).toMatchObject({ ok: true, cost: 103 });
+    for (const x of [10, 11, 12]) expect(kindAt(s, x, 11)).not.toBe(TileKind.PowerLine);
+    // The line on either side now touches the zone, which conducts.
+    for (const x of [9, 13]) expect(kindAt(s, x, 11)).toBe(TileKind.PowerLine);
+    for (const x of [9, 10, 12, 13]) expect((s.flags[s.index(x, 11)] ?? 0) & TileFlag.CONDUCTIVE).toBeTruthy();
+    // Crossings still block a lot.
+    runTool(s, tool('road', 30, 5, 30, 20));
+    runTool(s, tool('power', 25, 12, 35, 12));
+    expect(runTool(s, tool('residential', 30, 12))).toMatchObject({ ok: false, reason: 'Tile occupied' });
+  });
+
   it('fails without changing anything when funds are short', () => {
     const s = flatCity();
     s.funds = 15;
