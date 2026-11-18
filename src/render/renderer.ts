@@ -2,11 +2,13 @@ import { Color, Fog, Raycaster, Scene, Vector2, WebGLRenderer, PCFShadowMap } fr
 import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
+import { NetworkLayer } from './networks';
 import type { CityMirror } from './mirror';
 import { PALETTE } from './palette';
 import { pickTile, type PickResult } from './picking';
 import { PostFx } from './post';
 import { TerrainLayer } from './terrain';
+import { ToolPreview } from './toolPreview';
 import { TreeLayer } from './trees';
 import { WaterLayer } from './water';
 
@@ -16,6 +18,7 @@ export class Renderer {
   readonly cityCamera: CityCamera;
   /** Tile under the mouse, or null. */
   hovered: PickResult | null = null;
+  readonly preview: ToolPreview;
 
   private readonly webgl: WebGLRenderer;
   private readonly post: PostFx;
@@ -23,6 +26,8 @@ export class Renderer {
   private readonly terrain: TerrainLayer;
   private readonly water: WaterLayer;
   private readonly trees: TreeLayer;
+  private readonly networks: NetworkLayer;
+  private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
   private readonly dirty = new Set<number>();
   private readonly raycaster = new Raycaster();
@@ -57,8 +62,17 @@ export class Renderer {
     this.terrain = new TerrainLayer(mirror);
     this.water = new WaterLayer(mirror);
     this.trees = new TreeLayer(mirror);
+    this.networks = new NetworkLayer(mirror);
     this.cursor = new TileCursor(mirror);
-    this.scene.add(this.terrain.group, this.water.group, this.trees.group, this.cursor.line);
+    this.preview = new ToolPreview(mirror);
+    this.scene.add(
+      this.terrain.group,
+      this.water.group,
+      this.trees.group,
+      this.networks.group,
+      this.cursor.line,
+      this.preview.mesh,
+    );
     this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera);
 
     mirror.onChunkChanged((id) => this.dirty.add(id));
@@ -67,6 +81,11 @@ export class Renderer {
     window.addEventListener('resize', () => {
       this.resize();
     });
+  }
+
+  /** Called whenever the hovered tile changes (null when off the map). */
+  onHoverChange(listener: (tile: PickResult | null) => void): void {
+    this.hoverListeners.push(listener);
   }
 
   /** Called once, after the first frame that shows terrain. */
@@ -90,6 +109,7 @@ export class Renderer {
       this.terrain.rebuild(id);
       this.water.rebuild(id);
       this.trees.rebuild(id);
+      this.networks.rebuild(id);
     }
     this.dirty.clear();
     this.trees.flush();
@@ -109,6 +129,7 @@ export class Renderer {
   }
 
   private updateHover(): void {
+    const before = this.hovered;
     if (!this.pointerInside) {
       this.hovered = null;
     } else {
@@ -117,6 +138,10 @@ export class Renderer {
       this.hovered = pickTile((x, y) => this.mirror.corner(x, y), this.mirror.size, origin, direction);
     }
     this.cursor.show(this.hovered);
+    const after = this.hovered;
+    if (before?.x !== after?.x || before?.y !== after?.y) {
+      for (const listener of this.hoverListeners) listener(after);
+    }
   }
 
   private listenPointer(): void {

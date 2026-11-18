@@ -18,6 +18,11 @@ export class CityState {
   readonly flags: Uint8Array;
   /** Integer height per tile corner, (size+1)². */
   readonly heights: Uint8Array;
+  /**
+   * Position of a tile inside a multi-tile footprint, size²: 0 = not part of
+   * one, otherwise 1 + dx + 16·dy from the footprint's top-left tile.
+   */
+  readonly parts: Uint8Array;
   /** Named 2×2-block fields ((size/2)²), filled by later phases. */
   readonly blockFields: Record<string, Uint8Array> = {};
 
@@ -38,6 +43,7 @@ export class CityState {
     this.tiles = new Uint16Array(size * size);
     this.flags = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
+    this.parts = new Uint8Array(size * size);
     this.rootRng = new Rng(seed);
   }
 
@@ -76,6 +82,15 @@ export class CityState {
 
   markDirty(x: number, y: number): void {
     this.dirtyChunks.add(this.chunkId(x, y));
+  }
+
+  /** A tile and its four neighbours, whose connections may change with it. */
+  markDirtyAround(x: number, y: number): void {
+    this.markDirty(x, y);
+    if (x > 0) this.markDirty(x - 1, y);
+    if (y > 0) this.markDirty(x, y - 1);
+    if (x < this.size - 1) this.markDirty(x + 1, y);
+    if (y < this.size - 1) this.markDirty(x, y + 1);
   }
 
   /** A corner touches up to four tiles, which may sit in four chunks. */

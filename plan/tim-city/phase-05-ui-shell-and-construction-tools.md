@@ -27,7 +27,7 @@ Give the player a HUD and the first construction tools. The player can build roa
 
 ## Steps
 1. Write `costs.ts` and extend `tiles.ts` with network kinds in the reserved 16–79 range.
-2. Write the `tools` modules in the sim. Validation rules: roads and rail allow slopes of 1 step along their direction and 0 across (a tile with a cross slope fails with "Too steep"); power lines allow any slope; nothing builds on water except bridges.
+2. Write the `tools` modules in the sim. Validation rules: roads and rail allow slopes of 1 step along their direction and 0 across; a tile with a cross slope is **auto-graded** (levelled across the line, cut down to the lower corner, or filled up at the shore) at the terraform price of $20 per corner step, refusing with "Can't grade next to buildings" or "Too close to the water" when grading would touch built tiles or flood/drain a tile; tunnel portals are never graded; power lines allow any slope; nothing builds on water except bridges. *(Changed during implementation: the strict rule rejected ~40% of tiles on default terrain.)* Tunnel interiors need ground above the road (highest corner ≥ portal height + 1) and a hill peak ≥ portal height + 2, since the 1-step smoothing makes "lowest corner ≥ +2" impossible next to a portal.
 3. Return a structured result from every tool: `{ ok, cost, reason? }`. The UI uses it for toasts and for preview cost.
 4. Write `store.ts` and the UI components. Panels use `pointer-events: auto`; the canvas gets all other input.
 5. Write `networks.ts`. Pick the mesh variant from the 4-bit neighbor mask (straight, corner, T, cross, end). Build road and rail geometry once per variant and slope, then merge per chunk.

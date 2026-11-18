@@ -1,6 +1,7 @@
-import { BufferAttribute, BufferGeometry, Color, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { type BufferGeometry, Color, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { CHUNK_SIZE, SEA_LEVEL } from '@/shared/constants';
 import { TileKind } from '@/shared/tiles';
+import { TriangleBuilder } from './geometry';
 import { hash3 } from './hash';
 import type { CityMirror } from './mirror';
 import { PALETTE } from './palette';
@@ -17,38 +18,6 @@ const C = {
   skirt: new Color(PALETTE.skirt),
   skirtDark: new Color(PALETTE.skirtDark),
 };
-
-/** Collects flat-shaded triangles with one color per vertex. */
-class TriangleBuilder {
-  readonly positions: number[] = [];
-  readonly colors: number[] = [];
-
-  tri(a: Vector3, b: Vector3, c: Vector3, ca: Color, cb: Color = ca, cc: Color = ca): void {
-    this.positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
-    this.colors.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b, cc.r, cc.g, cc.b);
-  }
-
-  /** Quad a-b-c-d (in order around its edge), wound so its normal faces `outward`. */
-  quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, outward: Vector3, top: Color, bottom: Color): void {
-    const normal = new Vector3().subVectors(b, a).cross(new Vector3().subVectors(c, a));
-    if (normal.dot(outward) < 0) {
-      this.tri(a, c, b, top, bottom, top);
-      this.tri(a, d, c, top, bottom, bottom);
-    } else {
-      this.tri(a, b, c, top, top, bottom);
-      this.tri(a, c, d, top, bottom, bottom);
-    }
-  }
-
-  build(): BufferGeometry {
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new BufferAttribute(new Float32Array(this.positions), 3));
-    geometry.setAttribute('color', new BufferAttribute(new Float32Array(this.colors), 3));
-    geometry.computeVertexNormals();
-    geometry.computeBoundingSphere();
-    return geometry;
-  }
-}
 
 /** Chunked, flat-shaded terrain meshes with a soil skirt around the map edge. */
 export class TerrainLayer {

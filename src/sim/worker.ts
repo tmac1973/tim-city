@@ -4,6 +4,7 @@ import type { MainToWorker, WorkerToMain } from '@/shared/protocol';
 import { takeDirtyChunks } from './chunks';
 import { Simulation } from './sim';
 import { generateTerrain } from './terrain/generate';
+import { runTool } from './tools';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -56,6 +57,12 @@ function handle(message: MainToWorker): void {
       return;
     case 'command':
       if (!sim) throw new Error('Command received before init');
+      // Dry runs change nothing, so they answer at once instead of waiting
+      // for a tick; that keeps the build preview responsive at any speed.
+      if (message.command.type === 'tool' && message.command.dryRun) {
+        post({ type: 'event', event: runTool(sim.state, message.command) });
+        return;
+      }
       sim.enqueue(message.command);
       // While paused, apply at once so building still works.
       if (speed === 'paused') {

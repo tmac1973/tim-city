@@ -3,6 +3,7 @@ import type { CityInfo, SimCommand, SimEvent } from '@/shared/protocol';
 import { CommandQueue, registerCoreCommands } from './commands';
 import { Scheduler } from './scheduler';
 import { CityState } from './state';
+import { registerToolCommands } from './tools';
 
 /** The headless simulation. Runs in the worker and, for tests, in Node. */
 export class Simulation {
@@ -14,6 +15,7 @@ export class Simulation {
   constructor(info: CityInfo) {
     this.state = new CityState(info);
     registerCoreCommands(this.commands);
+    registerToolCommands(this.commands, (event) => this.events.push(event));
   }
 
   enqueue(command: SimCommand): void {

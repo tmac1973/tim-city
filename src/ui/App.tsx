@@ -1,11 +1,22 @@
+import type { Speed } from '@/shared/constants';
+import { SpeedControls } from './SpeedControls';
+import { CostTag, Toasts } from './Toasts';
+import { Toolbar } from './Toolbar';
+import { TopBar } from './TopBar';
+
 interface AppProps {
   webglError: string | null;
+  onSpeed: (speed: Speed) => void;
 }
 
-export function App({ webglError }: AppProps) {
+export function App({ webglError, onSpeed }: AppProps) {
   return (
     <>
-      <h1 class="title">Tim City</h1>
+      <TopBar />
+      <Toolbar />
+      <SpeedControls onSpeed={onSpeed} />
+      <Toasts />
+      <CostTag />
       {webglError !== null && (
         <p class="panel notice" role="alert">
           Tim City needs WebGL2, and this browser could not start it. Try a current

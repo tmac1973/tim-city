@@ -92,3 +92,4 @@ The player is a desktop browser user who enjoys city builders. They open a publi
 - **Difficulty and disasters** → Easy/Medium/Hard, a toggle for random disasters, and a menu to trigger any disaster by hand.
 - **Camera** → Free orbit (pan, zoom, rotate, tilt) plus a street-level follow mode.
 - **Originality** → Original name, art, sound, UI and creature. Classic genre mechanics only, no copied content.
+- **Roads on slopes** (decided in phase 05) → Auto-grade: road and rail tools level each tile across the line and charge the terraform price, instead of refusing sloped tiles.

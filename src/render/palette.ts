@@ -27,5 +27,20 @@ export const PALETTE = {
   leaf: 0x4f8f3a,
   leafLight: 0x77a843,
 
+  asphalt: 0x4a4e55,
+  sidewalk: 0xb8b3a6,
+  marking: 0xe9d57e,
+  ballast: 0x8b8379,
+  sleeper: 0x6b4a32,
+  steel: 0xa3a9b0,
+  concrete: 0xaaa69c,
+  pylon: 0xa7adb3,
+  wire: 0x2c2f33,
+  tunnelMouth: 0x141414,
+
+  previewOk: 0x5ee07a,
+  previewBad: 0xff5a5a,
+  previewBlocked: 0xffb347,
+
   cursor: 0xffffff,
 } as const;

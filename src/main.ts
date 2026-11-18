@@ -1,10 +1,12 @@
 import { h, render } from 'preact';
-import type { MapSize } from './shared/constants';
+import type { MapSize, Speed } from './shared/constants';
 import { DEFAULT_TERRAIN, type TerrainOptions } from './shared/protocol';
 import { CityMirror } from './render/mirror';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
+import { cityInfo, date, funds, speed } from './ui/store';
+import { ToolController } from './ui/toolController';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const appRoot = document.querySelector<HTMLDivElement>('#app');
@@ -23,6 +25,13 @@ const slider = (key: keyof TerrainOptions): number => {
 const terrain: TerrainOptions = { water: slider('water'), forest: slider('forest'), hills: slider('hills') };
 
 const mirror = new CityMirror(size);
+const sim = new SimBridge();
+sim.onTick((tick) => {
+  mirror.apply(tick.chunks);
+  date.value = tick.date;
+  funds.value = tick.funds;
+  speed.value = tick.speed;
+});
 
 // Mount the UI even if WebGL fails, so the failure can be reported on screen.
 let webglError: string | null = null;
@@ -32,29 +41,29 @@ try {
     // Tests and tooling wait for this marker.
     document.documentElement.dataset.rendered = 'true';
   });
+  new ToolController(canvas, renderer, sim);
   renderer.start();
+  if (import.meta.env.DEV) {
+    // Debug handle for scripted checks in the dev server only.
+    (window as unknown as { __tim: unknown }).__tim = { sim, mirror, renderer };
+  }
 } catch (err) {
   webglError = err instanceof Error ? err.message : String(err);
   console.error('WebGL renderer failed to start:', webglError);
 }
-render(h(App, { webglError }), appRoot);
+const onSpeed = (next: Speed) => {
+  sim.setSpeed(next);
+};
+render(h(App, { webglError, onSpeed }), appRoot);
 
-const sim = new SimBridge();
-sim.onTick(({ chunks }) => {
-  mirror.apply(chunks);
-});
 if (import.meta.env.DEV) {
-  sim.onTick(({ date, chunks }) => {
-    if (date.tick === 0) {
-      console.log(`[sim] ${String(date.year)}-${String(date.month + 1).padStart(2, '0')} · ${String(chunks.length)} dirty chunks`);
-    }
-  });
   sim.onEvent((event) => {
-    console.log('[sim event]', event);
+    if (event.type !== 'toolResult') console.log('[sim event]', event);
   });
 }
 
-void sim.init({ name: 'New City', seed, size }, terrain).then(() => {
+void sim.init({ name: 'New City', seed, size }, terrain).then((info) => {
+  cityInfo.value = info;
   document.documentElement.dataset.sim = 'ready';
   sim.setSpeed('normal');
 });

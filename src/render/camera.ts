@@ -60,6 +60,13 @@ export class CityCamera {
     return this.view.distance;
   }
 
+  /** Ease the view to centre on world (x, z), optionally at a new distance. */
+  focus(x: number, z: number, distance?: number): void {
+    this.goal.x = x;
+    this.goal.z = z;
+    if (distance !== undefined) this.goal.distance = Math.min(this.maxDistance, Math.max(MIN_DISTANCE, distance));
+  }
+
   setAspect(aspect: number): void {
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();

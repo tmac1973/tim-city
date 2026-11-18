@@ -1,6 +1,6 @@
 import { CHUNK_SHIFT, CHUNK_SIZE, type MapSize } from '@/shared/constants';
 import type { ChunkSlice } from '@/shared/protocol';
-import { HEIGHT_UNIT } from './units';
+import { HEIGHT_UNIT, tileHeight } from './units';
 
 type ChunkListener = (id: number) => void;
 
@@ -52,14 +52,23 @@ export class CityMirror {
     return this.heights[y * (this.size + 1) + x] ?? 0;
   }
 
-  /** World Y of the terrain at world (x, z), bilinear between tile corners. */
+  /**
+   * World Y of the terrain surface at world (x, z), exact on the same two
+   * triangles per tile that the terrain mesh draws.
+   */
   heightAt(x: number, z: number): number {
     const cx = Math.min(this.size - 1, Math.max(0, Math.floor(x)));
     const cz = Math.min(this.size - 1, Math.max(0, Math.floor(z)));
     const fx = Math.min(1, Math.max(0, x - cx));
     const fz = Math.min(1, Math.max(0, z - cz));
-    const top = this.corner(cx, cz) * (1 - fx) + this.corner(cx + 1, cz) * fx;
-    const bottom = this.corner(cx, cz + 1) * (1 - fx) + this.corner(cx + 1, cz + 1) * fx;
-    return (top * (1 - fz) + bottom * fz) * HEIGHT_UNIT;
+    const h = tileHeight(
+      this.corner(cx, cz),
+      this.corner(cx + 1, cz),
+      this.corner(cx + 1, cz + 1),
+      this.corner(cx, cz + 1),
+      fx,
+      fz,
+    );
+    return h * HEIGHT_UNIT;
   }
 }

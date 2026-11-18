@@ -22,3 +22,14 @@ export function splitsNwSe(nw: number, ne: number, se: number, sw: number): bool
   if (ne === sw) return false;
   return Math.abs(nw - se) <= Math.abs(ne - sw);
 }
+
+/**
+ * Height inside a tile at fraction (fx, fz), on the same two triangles the
+ * terrain mesh draws for corners nw, ne, se, sw.
+ */
+export function tileHeight(nw: number, ne: number, se: number, sw: number, fx: number, fz: number): number {
+  if (splitsNwSe(nw, ne, se, sw)) {
+    return fz > fx ? nw + (se - sw) * fx + (sw - nw) * fz : nw + (ne - nw) * fx + (se - ne) * fz;
+  }
+  return fx + fz <= 1 ? nw + (ne - nw) * fx + (sw - nw) * fz : se + (sw - se) * (1 - fx) + (ne - se) * (1 - fz);
+}
