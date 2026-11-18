@@ -67,6 +67,10 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
       break;
   }
   if (plan.ok && plan.cost > state.funds) return fail('Not enough funds', plan.tiles);
+  // Explain a refusal caused by contaminated ground.
+  if (!plan.ok && plan.bad.some((i) => state.tiles[i] === TileKind.Radiation)) {
+    return fail('Radioactive', plan.tiles, plan.bad);
+  }
   return plan;
 }
 

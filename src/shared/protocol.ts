@@ -80,6 +80,7 @@ export type SimCommand =
   | { type: 'issueBond' }
   | { type: 'repayBond'; index: number }
   | { type: 'setRandomDisasters'; enabled: boolean }
+  | { type: 'triggerDisaster'; disaster: DisasterType }
   | ToolCommand
   /** Read-only: answered at once, never queued. */
   | { type: 'query'; x: number; y: number; requestId: number };
@@ -121,6 +122,9 @@ export type SimEvent =
   | { type: 'milestone'; cityClass: CityClass; population: number }
   /** Yearly verdict: approval and score, with the change since last year. */
   | { type: 'evaluation'; year: number; approval: number; approvalChange: number; score: number; scoreChange: number }
+  /** A disaster began (or could not begin, with the reason). */
+  | { type: 'disaster'; disaster: DisasterType; x: number; y: number }
+  | { type: 'disasterRefused'; disaster: DisasterType; reason: string }
   /** A headline for the news ticker, optionally about one place. */
   | { type: 'news'; headline: string; x: number | null; y: number | null }
   /** A zone type stopped growing until the city builds a special building. */
@@ -217,6 +221,27 @@ export interface HistorySample {
   score: number;
 }
 
+export const DISASTERS = ['fire', 'flood', 'tornado', 'earthquake', 'planeCrash', 'shipwreck', 'meltdown', 'mirebeast'] as const;
+export type DisasterType = (typeof DISASTERS)[number];
+
+/** A disaster in progress, for the renderer and the menu. */
+export interface ActiveDisaster {
+  id: number;
+  type: DisasterType;
+  /** Current position (tile); for tornado and Mirebeast it moves. */
+  x: number;
+  y: number;
+  /** Ticks since it started. */
+  age: number;
+  /** Ticks it will last, or until done. */
+  duration: number;
+  /** Direction of travel for movers (0 N, 1 E, 2 S, 3 W). */
+  heading: number;
+  /** Mirebeast's target block, as a tile. */
+  targetX: number;
+  targetY: number;
+}
+
 export interface Census {
   /** Residents, from residential density. */
   resPop: number;
@@ -226,6 +251,10 @@ export interface Census {
   plants: { coal: number; nuclear: number };
   /** Powered special buildings. */
   specials: { stadium: number; seaport: number; airport: number };
+  /** Landmarks built, powered or not (for disasters that need them). */
+  landmarks: { airport: number; seaport: number };
+  /** Water tiles on the map. */
+  water: number;
   powerSupply: number;
   powerDemand: number;
   unpoweredZones: number;
@@ -273,6 +302,8 @@ export interface TickMessage {
   valves: Valves;
   budget: BudgetInfo;
   evaluation: Evaluation | null;
+  /** Disasters in progress (empty most of the time). */
+  disasters: ActiveDisaster[];
   /** The subscribed block field, when it changed (at month end, or on subscribing). */
   field?: { name: FieldName; data: Uint8Array };
   chunks: ChunkSlice[];

@@ -35,6 +35,17 @@ Add all eight disasters as sim systems: fire, flood, tornado, earthquake, plane 
 4. Write `disasterBasic.ts` and `DisasterMenu.tsx`; add a toolbar button for the menu.
 5. Write tests.
 
+## Implementation notes (changed during build)
+- **Flooding is a tile flag, not a `Flood` kind.** `TileFlag.FLOODED` (1<<7) marks water over a tile, so the building under it survives and keeps its kind; the flood loses one density level on zones it reaches and clears the flag as it recedes. Only `Radiation` (320) was added as a kind.
+- **Fire lives in `state.fireTicks`** (a per-tile `Uint8Array`, saved) with the phase-02 `BURNING` flag, not in the disaster list. A fire disaster ignites tiles and ends at once; fires started by quakes, crashes and the Mirebeast use the same path. Tiles that burn out add to `burnedThisYear`, which the evaluation reads.
+- The modules share `common.ts` (`destroy`, `ignite`, `begin`, `randomTile`) and register in `disasters/index.ts` (`DEFS`, `triggerDisaster`, `rollRandomDisaster`, `disasterSystem`) instead of a separate `scheduler.ts`. Plane crash and shipwreck share `impacts.ts`.
+- `triggerDisaster` takes only the type; the disaster picks its own spot. A refused trigger emits `disasterRefused` with the menu's reason ("Needs a nuclear plant"), shown as a toast. A started one emits `disaster`, and the camera flies to it.
+- Save format version 2 appends `fireTicks`, the disaster list, the radiation map and the oil spills; `migrate.ts` fills them empty for version-1 saves and the v1 fixture test covers it.
+- The census counts landmarks (airport, seaport, nuclear plant), which the menu uses to enable or disable triggers.
+- `disasterBasic.ts` also draws rubble as low gray heaps, since disasters made rubble common for the first time.
+- Bulldozing radioactive ground is a silent no-op inside a drag (and "Nothing to bulldoze" on a single tile); building on it fails with "Radioactive".
+- CI now uploads Playwright traces and screenshots (`test-results/`) when e2e fails, to debug Chromium-only failures that do not reproduce locally.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

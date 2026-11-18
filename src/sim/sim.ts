@@ -3,6 +3,7 @@ import type { CityInfo, SimCommand, SimEvent } from '@/shared/protocol';
 import { CommandQueue, registerCoreCommands } from './commands';
 import { Scheduler } from './scheduler';
 import { CityState } from './state';
+import { triggerDisaster } from './disasters';
 import { registerSystems } from './systems';
 import { headlineFor } from './systems/news';
 import { registerToolCommands } from './tools';
@@ -28,6 +29,9 @@ export class Simulation {
     registerToolCommands(this.commands, emit);
     // Queries are answered at once by the worker; a queued one (from a replay) still answers.
     this.commands.on('query', (state, { x, y, requestId }) => { emit(queryTile(state, x, y, requestId)); });
+    this.commands.on('triggerDisaster', (state, { disaster }) => {
+      triggerDisaster(state, disaster, emit);
+    });
     registerSystems(this.scheduler, emit);
   }
 

@@ -45,6 +45,7 @@ function publish(current: Simulation): void {
       valves: { ...current.state.valves },
       budget: budgetInfo(current),
       evaluation: current.state.evaluation,
+      disasters: current.state.disasters,
       ...(field ? { field } : {}),
       chunks,
     },

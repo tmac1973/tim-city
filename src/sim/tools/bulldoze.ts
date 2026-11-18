@@ -33,7 +33,8 @@ export function planBulldoze(state: CityState, cmd: ToolCommand): ToolPlan {
       }
 
       const kind = state.tiles[index] ?? 0;
-      if (kind === TileKind.Empty || kind === TileKind.Water) continue;
+      // Radioactive ground can't be cleared, only waited out.
+      if (kind === TileKind.Empty || kind === TileKind.Water || kind === TileKind.Radiation) continue;
       if (isNetwork(kind)) {
         result.set(index, isBridge(kind) ? TileKind.Water : TileKind.Empty);
         cost += COSTS.bulldoze;

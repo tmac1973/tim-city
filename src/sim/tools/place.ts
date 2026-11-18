@@ -46,6 +46,7 @@ function checkLot(
   for (const i of lot.tiles) {
     const kind = state.tiles[i] ?? 0;
     if (kind === TileKind.Water) return { reason: 'Not on water' };
+    if (kind === TileKind.Radiation) return { reason: 'Radioactive' };
     if (kind !== TileKind.Empty && kind !== TileKind.Tree && kind !== TileKind.Rubble) return { reason: 'Tile occupied' };
     if (taken.has(i)) return { reason: 'Overlaps another lot' };
     if (kind !== TileKind.Empty) clearing += COSTS.bulldoze;

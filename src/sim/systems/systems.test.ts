@@ -93,6 +93,7 @@ describe('power grid', () => {
 describe('zone growth', () => {
   it('grows a powered residential zone beside a road', () => {
     const sim = new Simulation({ name: 'T', seed: 'grow', size: 128 });
+    sim.state.randomDisasters = false;
     sim.state.heights.fill(3);
     sim.state.funds = 1_000_000;
     sim.enqueue(tool('coal', 11, 11));

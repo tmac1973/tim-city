@@ -45,6 +45,9 @@ export const TileKind = {
   Stadium: 256,
   Seaport: 257,
   Airport: 258,
+
+  /** Ground poisoned by a meltdown; unbuildable until it decays. */
+  Radiation: 320,
 } as const;
 export type TileKind = (typeof TileKind)[keyof typeof TileKind];
 
@@ -59,6 +62,8 @@ export const TileFlag = {
   POTHOLED: 1 << 5,
   /** On a zone centre: last month's trip found no destination. */
   TRIP_FAILED: 1 << 6,
+  /** Under flood water (the building underneath survives). */
+  FLOODED: 1 << 7,
 } as const;
 
 export type Network = 'road' | 'rail' | 'power';

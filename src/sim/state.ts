@@ -1,6 +1,17 @@
 import { CHUNK_SHIFT, DEFAULT_FUNDS, type MapSize, START_YEAR } from '@/shared/constants';
 import { DIFFICULTY, type DifficultyName } from '@/shared/difficulty';
-import type { Bond, Census, CityInfo, Evaluation, Funding, GameDate, HistorySample, Ledger, Valves } from '@/shared/protocol';
+import type {
+  ActiveDisaster,
+  Bond,
+  Census,
+  CityInfo,
+  Evaluation,
+  Funding,
+  GameDate,
+  HistorySample,
+  Ledger,
+  Valves,
+} from '@/shared/protocol';
 import { Rng } from './rng';
 
 /**
@@ -27,6 +38,8 @@ export function emptyCensus(): Census {
     zones: { r: 0, c: 0, i: 0 },
     plants: { coal: 0, nuclear: 0 },
     specials: { stadium: 0, seaport: 0, airport: 0 },
+    landmarks: { airport: 0, seaport: 0 },
+    water: 0,
     powerSupply: 0,
     powerDemand: 0,
     unpoweredZones: 0,
@@ -86,6 +99,14 @@ export class CityState {
    * with the city so a game loaded mid-month continues exactly as it would have.
    */
   readonly serviceMap: Uint8Array;
+  /** Per tile: ticks of fire left (0 = not burning). */
+  readonly fireTicks: Uint8Array;
+  disasters: ActiveDisaster[] = [];
+  nextDisasterId = 1;
+  /** Radioactive tiles (land or water) → years of contamination left. */
+  radiation = new Map<number, number>();
+  /** Oil spills polluting the water around a wreck. */
+  pollutionSpills: { x: number; y: number; monthsLeft: number }[] = [];
   census: Census = emptyCensus();
   readonly valves: Valves = { r: 0, c: 0, i: 0 };
   /** True while some zones are unpowered because plants are at capacity. */
@@ -116,6 +137,7 @@ export class CityState {
     this.parts = new Uint8Array(size * size);
     this.densityAtYearStart = new Uint8Array(size * size);
     this.serviceMap = new Uint8Array(size * size);
+    this.fireTicks = new Uint8Array(size * size);
     const blocks = (size / 2) * (size / 2);
     for (const name of FIELD_NAMES) this.blockFields[name] = new Uint8Array(blocks);
     this.rootRng = new Rng(seed);

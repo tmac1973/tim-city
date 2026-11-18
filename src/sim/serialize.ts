@@ -1,6 +1,6 @@
 import type { MapSize } from '@/shared/constants';
 import type { DifficultyName } from '@/shared/difficulty';
-import type { Bond, Census, Evaluation, Funding, GameDate, HistorySample, Ledger, Valves } from '@/shared/protocol';
+import type { ActiveDisaster, Bond, Census, Evaluation, Funding, GameDate, HistorySample, Ledger, Valves } from '@/shared/protocol';
 import { migrate, type RawSave } from './migrate';
 import type { RngState } from './rng';
 import { FORMAT_VERSION, savedArrays, savedHeader } from './serializeRegistry';
@@ -99,6 +99,10 @@ export function deserialize(bytes: Uint8Array): CityState {
   state.history.monthly.push(...history.monthly);
   state.history.yearly.push(...history.yearly);
   state.restoreRandom(h.random as [string, RngState][]);
+  state.disasters = h.disasters as ActiveDisaster[];
+  state.nextDisasterId = h.nextDisasterId as number;
+  state.radiation = new Map(h.radiation as [number, number][]);
+  state.pollutionSpills = h.pollutionSpills as CityState['pollutionSpills'];
   state.markAllDirty();
   return state;
 }

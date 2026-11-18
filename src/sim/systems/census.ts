@@ -12,6 +12,8 @@ export function takeCensus(state: CityState): void {
     const kind = tiles[i] ?? 0;
     if (parts[i] === 1) {
       const lit = ((flags[i] ?? 0) & TileFlag.POWERED) !== 0;
+      if (kind === TileKind.Airport) census.landmarks.airport++;
+      if (kind === TileKind.Seaport) census.landmarks.seaport++;
       if (lit && kind === TileKind.Stadium) census.specials.stadium++;
       else if (lit && kind === TileKind.Seaport) census.specials.seaport++;
       else if (lit && kind === TileKind.Airport) census.specials.airport++;
@@ -23,6 +25,7 @@ export function takeCensus(state: CityState): void {
         census.powerSupply += POWER_SUPPLY.nuclear;
       }
     }
+    if (kind === TileKind.Water) census.water++;
     const f = flags[i] ?? 0;
     if (!(f & TileFlag.ZONE_CENTER)) continue;
     const zone = zoneOf(kind);

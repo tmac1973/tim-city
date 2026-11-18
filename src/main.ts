@@ -10,6 +10,7 @@ import { SimBridge } from './sim/bridge';
 import { peekSave } from './sim/serialize';
 import { App } from './ui/App';
 import {
+  activeDisasters,
   addHeadline,
   autoBudget,
   budget,
@@ -87,6 +88,7 @@ async function start(): Promise<void> {
     valves.value = tick.valves;
     budget.value = tick.budget;
     evaluation.value = tick.evaluation;
+    activeDisasters.value = tick.disasters;
     if (tick.field) fieldListener?.(tick.field.name, tick.field.data);
   });
 
@@ -103,6 +105,9 @@ async function start(): Promise<void> {
     fieldListener = (name, data) => {
       r.overlay.setField(name, data);
     };
+    activeDisasters.subscribe((list) => {
+      r.disasters.setActive(list);
+    });
     overlay.subscribe((name) => {
       r.setOverlay(name);
       // Power comes from tile flags; every other overlay needs its field streamed.
@@ -212,6 +217,8 @@ async function start(): Promise<void> {
       else toast(`${String(event.year)} closed: ${event.net >= 0 ? 'surplus' : 'deficit'} of ${formatMoney(Math.abs(event.net))}`, 'info', 5000);
     }
     if (event.type === 'bankrupt') gameOver.value = true;
+    if (event.type === 'disaster') renderer?.cityCamera.flyTo(event.x, event.y);
+    if (event.type === 'disasterRefused') toast(event.reason);
     if (event.type === 'demandCap') {
       const what = { r: 'Homes', c: 'Commerce', i: 'Industry' }[event.zone];
       toast(`${what} have stopped growing. The city needs a powered ${event.needs}.`, 'error', 7000);

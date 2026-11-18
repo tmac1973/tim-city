@@ -1096,3 +1096,50 @@ button {
 .saves footer {
   justify-content: flex-start;
 }
+
+/* Disasters */
+.disasters {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.disasters > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.disasters .close {
+  font-size: 22px;
+  background: none;
+}
+
+.disaster-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.disaster {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 5%);
+}
+
+.disaster p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.modal-backdrop button.danger:not(:disabled) {
+  background: #c0392b;
+  color: #fff;
+}

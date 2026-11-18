@@ -1,5 +1,8 @@
 import type { SimEvent } from '@/shared/protocol';
 import type { Scheduler } from '../scheduler';
+import { disasterSystem } from '../disasters';
+import { fireSystem } from '../disasters/fire';
+import { radiationSystem } from '../disasters/meltdown';
 import { budgetSystem } from './budget';
 import { censusSystem } from './census';
 import { coverageSystem } from './coverage';
@@ -28,6 +31,9 @@ export function registerSystems(scheduler: Scheduler, emit: (event: SimEvent) =>
   scheduler.register(popDensitySystem);
   scheduler.register(growthSystem);
   scheduler.register(roadsSystem);
+  scheduler.register(disasterSystem(emit));
+  scheduler.register(fireSystem);
+  scheduler.register(radiationSystem);
   scheduler.register(censusSystem);
   scheduler.register(evaluationSystem(emit));
   scheduler.register(budgetSystem(emit));

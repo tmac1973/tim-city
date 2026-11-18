@@ -4,6 +4,7 @@ import {
   census,
   cityInfo,
   date,
+  disastersOpen,
   evaluation,
   formatCount,
   formatDate,
@@ -54,6 +55,9 @@ export function TopBar() {
       </button>
       <button class="topbar-button" type="button" onClick={() => (savesOpen.value = true)}>
         Save
+      </button>
+      <button class="topbar-button" type="button" onClick={() => (disastersOpen.value = true)}>
+        Disasters
       </button>
       <span class="spacer" />
       {info && (

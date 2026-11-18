@@ -1,6 +1,7 @@
 import { isPark, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
+import { SPILL_POLLUTION } from '../disasters/impacts';
 import { blockGeometry, blur, store } from './fields';
 
 /** Pollution a coal plant puts into its block before spreading. */
@@ -46,6 +47,25 @@ export function updatePollution(state: CityState): void {
       acc[b] = (acc[b] ?? 0) - TREE_CLEANING;
     }
   }
+  // Radioactive tiles poison their block outright.
+  for (const i of state.radiation.keys()) {
+    const b = state.blockIndex(i % size, Math.floor(i / size));
+    acc[b] = Math.max(acc[b] ?? 0, 255);
+  }
+  // Oil spills foul the 3×3 blocks around a wreck, for a year.
+  for (const spill of state.pollutionSpills) {
+    const bx = spill.x >> 1;
+    const by = spill.y >> 1;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (bx + dx < 0 || by + dy < 0 || bx + dx >= side || by + dy >= side) continue;
+        const b = (by + dy) * side + bx + dx;
+        acc[b] = (acc[b] ?? 0) + SPILL_POLLUTION;
+      }
+    }
+    spill.monthsLeft--;
+  }
+  state.pollutionSpills = state.pollutionSpills.filter((s) => s.monthsLeft > 0);
   for (let b = 0; b < acc.length; b++) acc[b] = Math.max(0, acc[b] ?? 0);
   store(state.field('pollution'), blur(acc, side));
 }

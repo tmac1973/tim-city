@@ -21,6 +21,8 @@ const build = (tool: ToolCommand['tool'], x0: number, y0: number, x1 = x0, y1 = 
  */
 export const FIXTURE_CITY: ScriptAction[] = [
   { atTick: 0, command: { type: 'setFunds', amount: 50_000 } },
+  // Tests built on this town are about growth and saving, not disasters.
+  { atTick: 0, command: { type: 'setRandomDisasters', enabled: false } },
   { atTick: 0, command: build('coal', 20, 20) },
   { atTick: 0, command: build('power', 23, 20, 25, 20) },
   { atTick: 0, command: build('road', 26, 24, 60, 24) },

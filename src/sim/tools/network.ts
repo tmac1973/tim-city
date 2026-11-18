@@ -97,6 +97,7 @@ export function placeOnLand(state: CityState, tile: PathTile, network: Network, 
     return ok ? placed : { ...placed, grade: single ? new Set<Axis>(['x']) : axes };
   }
 
+  if (kind === TileKind.Radiation) return { reason: 'Radioactive' };
   const existing = SINGLE_NETWORK[kind];
   if (!existing || isBridge(kind) || isTunnel(kind)) return { reason: 'Tile occupied' };
   if (axes.size !== 1) return { reason: "Can't cross on a bend" };

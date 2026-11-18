@@ -2,6 +2,7 @@ import type { Speed } from '@/shared/constants';
 import type { SimCommand } from '@/shared/protocol';
 import { BudgetWindow } from './BudgetWindow';
 import { CityReport } from './CityReport';
+import { DisasterMenu } from './DisasterMenu';
 import { GraphsWindow } from './GraphsWindow';
 import { OverlayPanel } from './OverlayPanel';
 import { type SaveActions, SaveLoadWindow } from './SaveLoadWindow';
@@ -41,6 +42,7 @@ export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMi
       <CityReport onShowMe={onShowMe} />
       <GraphsWindow request={requestHistory} />
       <SaveLoadWindow actions={saves} />
+      <DisasterMenu send={send} />
       <GameOver />
       {webglError !== null && (
         <p class="panel notice" role="alert">

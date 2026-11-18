@@ -9,7 +9,20 @@ export interface RawSave {
  * migrations[v] turns a version-v save into version v + 1. Each phase that
  * changes the save format adds one entry here.
  */
-export const migrations: Record<number, (save: RawSave) => RawSave> = {};
+export const migrations: Record<number, (save: RawSave) => RawSave> = {
+  // 1 → 2: disasters. Nothing was burning or contaminated in version 1.
+  1: (save) => ({
+    ...save,
+    header: {
+      ...save.header,
+      disasters: [],
+      nextDisasterId: 1,
+      radiation: [],
+      pollutionSpills: [],
+      census: { landmarks: { airport: 0, seaport: 0 }, water: 0, ...(save.header.census as object) },
+    },
+  }),
+};
 
 export function migrate(save: RawSave, target: number): RawSave {
   let current = save;

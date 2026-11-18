@@ -3,6 +3,7 @@ import { BuildingLayer } from './buildings/instances';
 import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
+import { DisasterLayer } from './disasterBasic';
 import { NetworkLayer } from './networks';
 import { OverlayLayer, type OverlayName } from './overlays';
 import type { CityMirror } from './mirror';
@@ -31,6 +32,7 @@ export class Renderer {
   private readonly networks: NetworkLayer;
   private readonly buildings: BuildingLayer;
   readonly overlay: OverlayLayer;
+  readonly disasters: DisasterLayer;
   private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
   private readonly dirty = new Set<number>();
@@ -69,6 +71,7 @@ export class Renderer {
     this.trees = new TreeLayer(mirror);
     this.networks = new NetworkLayer(mirror);
     this.buildings = new BuildingLayer(mirror);
+    this.disasters = new DisasterLayer(mirror);
     this.cursor = new TileCursor(mirror);
     this.preview = new ToolPreview(mirror);
     this.scene.add(
@@ -77,6 +80,7 @@ export class Renderer {
       this.trees.group,
       this.networks.group,
       this.buildings.group,
+      this.disasters.group,
       this.overlay.group,
       this.terrain.drapes,
       this.cursor.line,
@@ -159,6 +163,7 @@ export class Renderer {
       this.trees.rebuild(id);
       this.networks.rebuild(id);
       this.buildings.rebuild(id);
+      this.disasters.rebuild(id);
     }
     if (hadDirty) this.overlay.refreshPower();
     this.dirty.clear();
@@ -169,6 +174,7 @@ export class Renderer {
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
     this.water.update(this.elapsed, this.lighting.sunDir);
     this.buildings.update(dt);
+    this.disasters.update(dt);
     this.post.setView(cam.zoom, cam.topDown);
     this.updateHover();
     this.post.render(dt);
