@@ -1,5 +1,7 @@
 import { h, render } from 'preact';
+import type { MapSize } from './shared/constants';
 import { Renderer } from './render/renderer';
+import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -17,3 +19,25 @@ try {
   console.error('WebGL renderer failed to start:', webglError);
 }
 render(h(App, { webglError }), appRoot);
+
+const params = new URLSearchParams(location.search);
+const seed = params.get('seed') ?? 'tim';
+const size: MapSize = params.get('size') === '256' ? 256 : 128;
+
+const sim = new SimBridge();
+if (import.meta.env.DEV) {
+  sim.onTick(({ date, chunks }) => {
+    if (date.tick === 0) {
+      console.log(`[sim] ${String(date.year)}-${String(date.month + 1).padStart(2, '0')} · ${String(chunks.length)} dirty chunks`);
+    }
+  });
+  sim.onEvent((event) => {
+    console.log('[sim event]', event);
+  });
+}
+
+void sim.init({ name: 'New City', seed, size }).then(() => {
+  // Tests and tooling wait for this marker before driving the sim.
+  document.documentElement.dataset.sim = 'ready';
+  sim.setSpeed('normal');
+});
