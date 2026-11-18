@@ -24,6 +24,8 @@ const SKY = {
   grey: new Color(0x8f969c),
 };
 
+const WINDOW_LIGHT = new Color(1, 0.78, 0.45);
+
 const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
@@ -157,6 +159,8 @@ export class Atmosphere {
 
     const season = seasonBlend(this.month, this.through, this.firstYear);
     ATMOSPHERE.uNight.value = this.night;
+    // Zoomed far out, thousands of lit windows add up under bloom: dim them.
+    ATMOSPHERE.uWindowColor.value.copy(WINDOW_LIGHT).multiplyScalar(1 - 0.55 * smooth(40, 170, distance));
     ATMOSPHERE.uSnow.value = season.snow;
     ATMOSPHERE.uAutumn.value = season.autumn;
     ATMOSPHERE.uClock.value = this.time;

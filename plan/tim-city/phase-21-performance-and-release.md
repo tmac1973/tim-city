@@ -52,6 +52,7 @@ Prove and meet every success criterion. Build a repeatable benchmark, then tune 
 - The 50-year determinism test runs the fixture town plus every other tool and a tornado and a fire, twice, and compares all state, history and evaluation.
 - Release tags run the full CI; deploys still come from `main` (the Pages environment only allows `main`), and the tagged commit is the one `main` deployed.
 - The optimizations landed in one commit rather than one each; their before/after numbers are above.
+- A night check of the 256 city zoomed out showed a beige wash: thousands of street-lamp pools and lit windows adding up under bloom. Lamp pools now fade out past ~110 units, and window light dims by up to 55% as the camera pulls back.
 
 - **Benchmark results** (`pnpm bench`, 60 s each, fast speed, night, rain, High quality, 1920×1080), measured on a desktop with an AMD Radeon RX 9070 XT (Vulkan, headless). **The reference laptop (Iris Xe / M1 class) was not available, so the laptop criteria are not yet verified**; run `pnpm bench` on one and attach the JSON.
 

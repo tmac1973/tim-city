@@ -30,18 +30,24 @@ function poleGeometry(): BufferGeometry {
 
 const glowVertex = /* glsl */ `
   varying vec2 vUv;
+  varying float vFade;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+    vec4 mv = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+    // Pools of light are a close-up detail: far away, thousands of them
+    // overlap into a wash, so they fade out with distance.
+    vFade = clamp(1.6 - length(mv.xyz) / 70.0, 0.0, 1.0);
+    gl_Position = projectionMatrix * mv;
   }
 `;
 const glowFragment = /* glsl */ `
   uniform float uNight;
   varying vec2 vUv;
+  varying float vFade;
   void main() {
     float d = length(vUv - 0.5) * 2.0;
     float a = smoothstep(1.0, 0.0, d);
-    gl_FragColor = vec4(vec3(1.0, 0.8, 0.5) * a * a * 0.45 * uNight, 1.0);
+    gl_FragColor = vec4(vec3(1.0, 0.8, 0.5) * a * a * 0.32 * uNight * vFade, 1.0);
   }
 `;
 
