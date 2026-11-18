@@ -1,8 +1,13 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { OVERLAYS, overlayDef } from '@/render/overlays';
+import { OVERLAYS, overlayDef, TIER_COLOURS } from '@/render/overlays';
 import { overlay } from './store';
 
-/** Minimap, overlay buttons (F1–F9) and the active overlay's legend. */
+const TIER_LEGEND = `linear-gradient(90deg, ${TIER_COLOURS.map((c, i) => {
+  const rgb = `rgb(${String(c[0])} ${String(c[1])} ${String(c[2])})`;
+  return `${rgb} ${String((i * 100) / 3)}% ${String(((i + 1) * 100) / 3)}%`;
+}).join(', ')})`;
+
+/** Minimap, overlay buttons (F1–F10) and the active overlay's legend. */
 export function OverlayPanel({ bindMinimap }: { bindMinimap: (canvas: HTMLCanvasElement) => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -11,7 +16,7 @@ export function OverlayPanel({ bindMinimap }: { bindMinimap: (canvas: HTMLCanvas
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const n = /^F([1-9])$/.exec(e.key);
+      const n = /^F(10|[1-9])$/.exec(e.key);
       if (!n || e.ctrlKey || e.metaKey || e.altKey) return;
       e.preventDefault();
       const def = OVERLAYS[Number(n[1]) - 1];
@@ -55,7 +60,7 @@ export function OverlayPanel({ bindMinimap }: { bindMinimap: (canvas: HTMLCanvas
       </div>
       {active && (
         <div class="legend">
-          <div class="legend-bar" style={{ background: active.id === 'power' ? 'linear-gradient(90deg, #ffd73c 50%, #e63232 50%)' : legend }} />
+          <div class="legend-bar" style={{ background: active.id === 'power' ? 'linear-gradient(90deg, #ffd73c 50%, #e63232 50%)' : active.id === 'zoneTier' ? TIER_LEGEND : legend }} />
           <div class="legend-labels">
             <span>{active.low}</span>
             <span>{active.high}</span>

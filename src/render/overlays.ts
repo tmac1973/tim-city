@@ -17,7 +17,10 @@ import type { FieldName } from '@/shared/protocol';
 import { TileFlag, zoneOf } from '@/shared/tiles';
 import type { CityMirror } from './mirror';
 
-export type OverlayName = FieldName | 'power';
+/** Overlays drawn from the tile mirror instead of a streamed block field. */
+export const TILE_OVERLAYS = ['power', 'zoneTier'] as const;
+export type OverlayName = FieldName | (typeof TILE_OVERLAYS)[number];
+export const isTileOverlay = (name: OverlayName | null): boolean => name === 'power' || name === 'zoneTier';
 type Rgba = [number, number, number, number];
 type Ramp = (v: number) => Rgba;
 
@@ -64,6 +67,7 @@ export const OVERLAYS: OverlayDef[] = [
     low: 'Low',
     high: 'Prime',
   },
+  { id: 'zoneTier', label: 'Zoning', columns: false, ramp: badRamp, low: 'Low density', high: 'High density' },
   {
     id: 'popDensity',
     label: 'Density',
@@ -126,6 +130,12 @@ const drapeFragment = /* glsl */ `
 const IDENTITY = new Quaternion();
 const POWER_ON: Rgba = [255, 215, 60, 170];
 const POWER_OFF: Rgba = [230, 50, 50, 220];
+/** Low, medium and high density. */
+export const TIER_COLOURS: [Rgba, Rgba, Rgba] = [
+  [150, 225, 255, 150],
+  [70, 150, 240, 190],
+  [45, 60, 205, 225],
+];
 
 /**
  * Data overlays: a colour texture over the whole map that the terrain
@@ -182,7 +192,7 @@ export class OverlayLayer {
     this.columns.count = 0;
     this.values = null;
     this.pixels = null;
-    if (name === 'power') this.refreshPower();
+    this.refreshTiles();
   }
 
   /** New values for a block field; ignored unless it is the active overlay. */
@@ -198,9 +208,31 @@ export class OverlayLayer {
     this.updateColumns(def, data);
   }
 
-  /** Rebuild the power overlay from tile flags (call when chunks change). */
-  refreshPower(): void {
-    if (this.active !== 'power') return;
+  /** Rebuild the active tile overlay from the mirror (call when chunks change). */
+  refreshTiles(): void {
+    if (this.active === 'power') this.refreshPower();
+    else if (this.active === 'zoneTier') this.refreshZoneTier();
+  }
+
+  /** Zone lots shaded light to dark by density tier. */
+  private refreshZoneTier(): void {
+    const m = this.mirror;
+    const pixels = this.tileTexture.image.data as Uint8Array;
+    const values = new Uint8Array(m.size * m.size);
+    for (let i = 0; i < m.size * m.size; i++) {
+      const zoned = zoneOf(m.tiles[i] ?? 0) !== null;
+      const tier = m.zoneTier[i] ?? 0;
+      pixels.set(zoned ? (TIER_COLOURS[tier] ?? TIER_COLOURS[0]) : [0, 0, 0, 0], i * 4);
+      values[i] = zoned ? tier + 1 : 0;
+    }
+    this.tileTexture.needsUpdate = true;
+    this.uniforms.uOverlay.value = this.tileTexture;
+    this.values = values;
+    this.pixels = pixels;
+  }
+
+  /** Powered tiles in yellow, dark zones in red. */
+  private refreshPower(): void {
     const m = this.mirror;
     const pixels = this.tileTexture.image.data as Uint8Array;
     const values = new Uint8Array(m.size * m.size);

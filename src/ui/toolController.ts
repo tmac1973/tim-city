@@ -2,9 +2,11 @@ import type { ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
 import type { PickResult } from '@/render/picking';
 import type { Renderer } from '@/render/renderer';
 import type { SimBridge } from '@/sim/bridge';
-import { activeTool, brush, costTag, formatMoney, queryResult, toast, type UiTool } from './store';
+import { TIER_NAMES } from '@/shared/tiles';
+import { activeTool, brush, costTag, formatMoney, queryResult, toast, type UiTool, zoneTier } from './store';
 
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
+const ZONES = new Set<UiTool>(['residential', 'commercial', 'industrial']);
 const REPEAT_MS = 250;
 
 /**
@@ -40,6 +42,7 @@ export class ToolController {
     };
     activeTool.subscribe(reset);
     brush.subscribe(reset);
+    zoneTier.subscribe(reset);
     this.listen();
   }
 
@@ -62,6 +65,7 @@ export class ToolController {
       y1: end.y,
       brush: brush.value,
       tunnel: this.shift,
+      ...(ZONES.has(tool) ? { tier: zoneTier.value } : {}),
       dryRun,
       requestId: this.requestId,
     };
@@ -98,7 +102,9 @@ export class ToolController {
     costTag.value = {
       x: this.mouse.x,
       y: this.mouse.y,
-      text: result.ok ? `${label ? `${label} ` : ''}${formatMoney(result.cost)}` : (result.reason ?? "Can't build"),
+      text: result.ok
+        ? `${label ? `${label} ` : ''}${formatMoney(result.cost)}${ZONES.has(activeTool.value) ? ` · ${TIER_NAMES[zoneTier.value] ?? ''}` : ''}`
+        : (result.reason ?? "Can't build"),
       ok: result.ok,
     };
   }

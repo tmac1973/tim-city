@@ -14,6 +14,8 @@ export const COSTS = {
   /** Per corner, per height step. */
   terraform: 20,
   zone: 100,
+  /** Changing a lot's density tier. */
+  rezone: 50,
   coalPlant: 3000,
   nuclearPlant: 5000,
   policeStation: 500,

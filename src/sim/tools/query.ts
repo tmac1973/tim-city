@@ -1,9 +1,9 @@
 import { POWER_SUPPLY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
-import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, MAX_DENSITY, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, MAX_DENSITY, TIER_CAP, TIER_NAMES, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { COVERAGE_RADIUS } from '../systems/coverage';
 import type { CityState } from '../state';
-import { hasRoadAccess, JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from '../systems/zones';
+import { type GrowthBlock, growthBlock, hasRoadAccess, JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from '../systems/zones';
 import { footprintAt } from './footprint';
 import { corners } from './plan';
 
@@ -58,6 +58,15 @@ function fieldDetails(state: CityState, x: number, y: number): [string, string][
   ];
 }
 
+const BLOCK_WORDS: Record<GrowthBlock, (tier: number) => string> = {
+  unpowered: () => "Can't grow: no power",
+  noRoad: () => "Can't grow: no road nearby",
+  tripFailed: () => "Can't grow: people can't reach where they need to go",
+  tierCap: (tier) => `Can't grow: ${(TIER_NAMES[tier] ?? '').toLowerCase()} density allows up to level ${String(TIER_CAP[tier] ?? MAX_DENSITY)}`,
+  landValue: () => "Can't grow: high density needs good land value past level 6",
+  demand: () => 'Waiting for demand',
+};
+
 const ZONE_NAMES = ['Residential zone', 'Commercial zone', 'Industrial zone'] as const;
 
 function trafficLabel(value: number): string {
@@ -78,15 +87,19 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
   const lot = footprintAt(state, x, y);
   if (zone && lot) {
     result.title = ZONE_NAMES[zone.type];
-    details.push(['Density', zone.density === 0 ? 'Empty lot' : `${String(zone.density)} of ${String(MAX_DENSITY)}`]);
+    const center = state.index(lot.x + 1, lot.y + 1);
+    const tier = state.zoneTier[center] ?? 0;
+    details.push(['Density', `${TIER_NAMES[tier] ?? ''} (up to level ${String(TIER_CAP[tier] ?? MAX_DENSITY)})`]);
+    details.push(['Level', zone.density === 0 ? 'Empty lot' : `${String(zone.density)} of ${String(MAX_DENSITY)}`]);
     if (zone.type === ZoneType.R) details.push(['Residents', String(zone.density * RESIDENTS_PER_LEVEL)]);
     else details.push(['Jobs', String(zone.density * JOBS_PER_LEVEL)]);
     details.push(['Power', powered ? 'On' : 'Off']);
     details.push(['Road access', hasRoadAccess(state, lot.x + 1, lot.y + 1) ? 'Yes' : 'No — build a road within 3 tiles']);
-    const center = state.index(lot.x + 1, lot.y + 1);
     const failed = ((state.flags[center] ?? 0) & TileFlag.TRIP_FAILED) !== 0;
     const goal = zone.type === ZoneType.R ? 'jobs or shops' : zone.type === ZoneType.C ? 'customers' : 'workers or the map edge';
     details.push(['Commute', failed ? `No route to ${goal}` : 'OK']);
+    const block = growthBlock(state, center);
+    if (block) details.push(['Growth', BLOCK_WORDS[block](tier)]);
     details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
     details.push(...fieldDetails(state, x, y));
     return result;

@@ -1,8 +1,9 @@
 import { COSTS } from '@/shared/costs';
 import type { ToolCommand } from '@/shared/protocol';
-import { TileFlag, TileKind, ZONE_SIZE, zoneKind, type ZoneType } from '@/shared/tiles';
+import { isUnlocked, lockedMessage } from '@/shared/unlocks';
+import { TIER_NAMES, TileFlag, TileKind, ZONE_SIZE, zoneKind, zoneOf, ZoneTier, type ZoneType } from '@/shared/tiles';
 import type { CityState } from '../state';
-import { placeFootprint } from './footprint';
+import { footprintAt, placeFootprint } from './footprint';
 import { fail, type ToolPlan } from './plan';
 
 interface Lot {
@@ -63,9 +64,12 @@ function checkLot(
 /**
  * Paint zones: one 3×3 lot centred on the start tile, then more every three
  * tiles towards the end of the drag. Lots that can't be used are skipped
- * (and shown red); the rest are built.
+ * (and shown red); the rest are built. Dragging over lots of the same type
+ * at another density changes their tier and keeps their buildings.
  */
 export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): ToolPlan {
+  const tier = Math.min(ZoneTier.High, Math.max(ZoneTier.Low, cmd.tier ?? ZoneTier.Medium));
+  if (tier === ZoneTier.High && !isUnlocked('zoneHigh', state.classReached)) return fail(lockedMessage('zoneHigh'));
   const stepX = Math.sign(cmd.x1 - cmd.x0) * ZONE_SIZE;
   const stepY = Math.sign(cmd.y1 - cmd.y0) * ZONE_SIZE;
   const countX = stepX === 0 ? 1 : Math.floor(Math.abs(cmd.x1 - cmd.x0) / ZONE_SIZE) + 1;
@@ -73,6 +77,7 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
 
   const taken = new Set<number>();
   const accepted: Lot[] = [];
+  const rezoned: Lot[] = [];
   const tiles: number[] = [];
   const bad: number[] = [];
   let reason: string | undefined;
@@ -82,6 +87,21 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
     for (let i = 0; i < countX; i++) {
       const cx = cmd.x0 + i * stepX;
       const cy = cmd.y0 + j * stepY;
+      // An existing lot of this type under the point: change its tier.
+      const existing = state.inBounds(cx, cy) ? footprintAt(state, cx, cy) : null;
+      if (existing && zoneOf(state.tiles[state.index(cx, cy)] ?? 0)?.type === type) {
+        const lot = lotAt(state, existing.x, existing.y, ZONE_SIZE);
+        if (!lot || lot.tiles.some((t) => taken.has(t))) continue;
+        for (const t of lot.tiles) taken.add(t);
+        tiles.push(...lot.tiles);
+        if (state.zoneTier[lot.tiles[0] ?? 0] === tier) {
+          reason ??= `Already ${(TIER_NAMES[tier] ?? "").toLowerCase()} density`;
+          continue;
+        }
+        rezoned.push(lot);
+        cost += COSTS.rezone;
+        continue;
+      }
       const lot = lotAt(state, cx - 1, cy - 1, ZONE_SIZE);
       if (!lot) {
         if (state.inBounds(cx, cy)) bad.push(state.index(cx, cy));
@@ -99,7 +119,7 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
       cost += COSTS.zone + checked.clearing;
     }
   }
-  if (accepted.length === 0) return fail(reason ?? 'Nothing to zone', tiles, bad);
+  if (accepted.length === 0 && rezoned.length === 0) return fail(reason ?? 'Nothing to zone', tiles, bad);
 
   return {
     ok: true,
@@ -112,6 +132,10 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
         markBuilt(state, lot);
         const center = state.index(lot.x + 1, lot.y + 1);
         state.flags[center] = (state.flags[center] ?? 0) | TileFlag.ZONE_CENTER;
+      }
+      for (const lot of [...accepted, ...rezoned]) {
+        for (const t of lot.tiles) state.zoneTier[t] = tier;
+        state.markDirtyAround(lot.x + 1, lot.y + 1);
       }
     },
   };

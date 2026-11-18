@@ -7,6 +7,7 @@ import { gunzip } from './save/compress';
 import { QUALITY, type QualityName } from './shared/settings';
 import { isPower, isRoad, TileKind, zoneOf } from './shared/tiles';
 import { CityMirror } from './render/mirror';
+import { isTileOverlay } from './render/overlays';
 import { AutoQuality, lowerQuality } from './render/quality';
 import { MinimapPainter } from './render/minimap';
 import { Renderer } from './render/renderer';
@@ -215,8 +216,8 @@ async function start(): Promise<void> {
     });
     overlay.subscribe((name) => {
       r.setOverlay(name);
-      // Power comes from tile flags; every other overlay needs its field streamed.
-      sim.subscribeField(name && name !== 'power' ? name : null);
+      // Power and zoning come from the tile mirror; every other overlay needs its field streamed.
+      sim.subscribeField(name && !isTileOverlay(name) ? (name as FieldName) : null);
     });
     r.onTerrainShown(() => {
       // Tests and tooling wait for this marker.

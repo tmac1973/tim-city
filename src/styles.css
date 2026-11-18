@@ -270,6 +270,63 @@ button {
   background: rgb(255 255 255 / 12%);
 }
 
+/* Density tiers in the Zones flyout and on its button. */
+.tier-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 0 4px 6px;
+}
+
+.tier-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--panel-text);
+  background: rgb(255 255 255 / 6%);
+}
+
+.tier-chip.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.tier-chip.locked {
+  opacity: 0.5;
+}
+
+.tier-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 9px;
+}
+
+.tier-bars span {
+  width: 3px;
+  border-radius: 1px;
+  background: currentcolor;
+  opacity: 0.3;
+}
+
+.tier-bars span:nth-child(1) { height: 4px; }
+.tier-bars span:nth-child(2) { height: 6px; }
+.tier-bars span:nth-child(3) { height: 9px; }
+
+.tier-bars span.on {
+  opacity: 1;
+}
+
+.tool .tier-bars {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+}
+
 .tooltip-cost {
   grid-column: 2 / -1;
   color: var(--accent);

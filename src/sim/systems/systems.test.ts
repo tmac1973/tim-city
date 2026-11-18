@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TICKS_PER_MONTH } from '@/shared/constants';
 import type { ToolCommand, ToolId } from '@/shared/protocol';
-import { TileFlag, TileKind, zoneKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { MAX_DENSITY, TileFlag, TileKind, zoneKind, zoneOf, ZoneTier, ZoneType } from '@/shared/tiles';
 import { Simulation } from '../sim';
 import { CityState } from '../state';
 import { placeFootprint } from '../tools/footprint';
@@ -10,6 +10,7 @@ import { queryTile } from '../tools/query';
 import { takeCensus } from './census';
 import { demandTargets } from './demand';
 import { updatePower } from './power';
+import { growthBlock, zoneSystem } from './zones';
 
 function flatCity(): CityState {
   const state = new CityState({ name: 'T', seed: 'systems', size: 128 });
@@ -119,6 +120,54 @@ describe('zone growth', () => {
     sim.enqueue(tool('residential', 22, 12));
     for (let t = 0; t < 24 * TICKS_PER_MONTH; t++) sim.step();
     expect(density(sim.state, 22, 12)).toBe(0);
+  });
+});
+
+describe('density tiers', () => {
+  /** A lot of `tier` centred on (30, 30), powered, beside a road, with strong demand and the given land value. */
+  function tierLot(tier: number, landValue: number): CityState {
+    const s = flatCity();
+    s.classReached = 1;
+    expect(runTool(s, { ...tool('residential', 30, 30), tier }).ok).toBe(true);
+    expect(runTool(s, tool('road', 28, 32, 40, 32)).ok).toBe(true);
+    s.valves.r = 5000;
+    s.field('landValue').fill(landValue);
+    return s;
+  }
+
+  /** Run the zone system's slot for the lot centre for `months` months. */
+  function grow(s: CityState, months: number): number {
+    const centre = s.index(30, 30);
+    for (let m = 0; m < months; m++) {
+      s.flags[centre] = (s.flags[centre] ?? 0) | TileFlag.POWERED;
+      zoneSystem.run(s, centre % TICKS_PER_MONTH);
+    }
+    return density(s, 30, 30) ?? -1;
+  }
+
+  it('caps low at 3, medium at 6 and high at 8 on good land', () => {
+    expect(grow(tierLot(ZoneTier.Low, 200), 200)).toBe(3);
+    expect(grow(tierLot(ZoneTier.Medium, 200), 200)).toBe(6);
+    expect(grow(tierLot(ZoneTier.High, 200), 200)).toBe(MAX_DENSITY);
+  });
+
+  it('holds high density at 6 on land-value class 1, and says why', () => {
+    const s = flatCity();
+    s.classReached = 1;
+    expect(runTool(s, { ...tool('residential', 30, 30), tier: ZoneTier.High }).ok).toBe(true);
+    expect(runTool(s, tool('road', 28, 32, 40, 32)).ok).toBe(true);
+    s.valves.r = 5000;
+    s.field('landValue').fill(100);
+    expect(grow(s, 200)).toBe(6);
+    expect(growthBlock(s, s.index(30, 30))).toBe('landValue');
+  });
+
+  it('shrinks a downzoned lot to its new cap', () => {
+    const s = tierLot(ZoneTier.Medium, 200);
+    expect(grow(s, 200)).toBe(6);
+    expect(runTool(s, { ...tool('residential', 30, 30), tier: ZoneTier.Low })).toMatchObject({ ok: true, cost: 50 });
+    expect(growthBlock(s, s.index(30, 30))).toBe('tierCap');
+    expect(grow(s, 48)).toBe(3);
   });
 });
 

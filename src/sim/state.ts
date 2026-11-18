@@ -67,6 +67,8 @@ export class CityState {
    * one, otherwise 1 + dx + 16·dy from the footprint's top-left tile.
    */
   readonly parts: Uint8Array;
+  /** ZoneTier on every tile of a zone lot, 0 elsewhere. */
+  readonly zoneTier: Uint8Array;
   /** Named 2×2-block fields ((size/2)²), filled by later phases. */
   readonly blockFields: Record<string, Uint8Array> = {};
 
@@ -135,6 +137,7 @@ export class CityState {
     this.flags = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
     this.parts = new Uint8Array(size * size);
+    this.zoneTier = new Uint8Array(size * size);
     this.densityAtYearStart = new Uint8Array(size * size);
     this.serviceMap = new Uint8Array(size * size);
     this.fireTicks = new Uint8Array(size * size);

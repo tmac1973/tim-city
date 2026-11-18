@@ -90,6 +90,14 @@ export class LotLayer {
             lineColors.push(color.r, color.g, color.b, color.r, color.g, color.b);
           }
         }
+        // One, two or three stripes in the lot's north-west corner: low, medium or high density.
+        const tier = m.zoneTier[ty * m.size + tx] ?? 0;
+        for (let s = 0; s <= tier; s++) {
+          const sx = tx + 0.35 + s * 0.22;
+          const za = ty + 0.3, zb = ty + 0.9;
+          lines.push(sx, m.heightAt(sx, za) + EDGE_LIFT, za, sx, m.heightAt(sx, zb) + EDGE_LIFT, zb);
+          lineColors.push(color.r, color.g, color.b, color.r, color.g, color.b);
+        }
       }
     }
     if (tris.length === 0) return;

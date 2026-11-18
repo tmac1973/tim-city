@@ -28,6 +28,7 @@ export class CityMirror {
   readonly tiles: Uint16Array;
   readonly flags: Uint8Array;
   readonly parts: Uint8Array;
+  readonly zoneTier: Uint8Array;
   readonly heights: Uint8Array;
   private readonly listeners = new Set<ChunkListener>();
 
@@ -36,6 +37,7 @@ export class CityMirror {
     this.tiles = new Uint16Array(size * size);
     this.flags = new Uint8Array(size * size);
     this.parts = new Uint8Array(size * size);
+    this.zoneTier = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
   }
 
@@ -59,6 +61,7 @@ export class CityMirror {
           const tile = chunk.tiles[j] ?? 0;
           const flag = chunk.flags[j] ?? 0;
           const part = chunk.parts[j] ?? 0;
+          const tier = chunk.zoneTier[j] ?? 0;
           const oldFlag = this.flags[i] ?? 0;
           const old = this.tiles[i] ?? 0;
           if (old !== tile) {
@@ -70,10 +73,12 @@ export class CityMirror {
             changed |= Changed.FLAGS;
             if ((oldFlag ^ flag) & TileFlag.POTHOLED) changed |= Changed.POTHOLES;
           }
-          if (this.parts[i] !== part) changed |= Changed.PARTS;
+          // A tier change redraws the lot markers, like a new footprint.
+          if (this.parts[i] !== part || this.zoneTier[i] !== tier) changed |= Changed.PARTS;
           this.tiles[i] = tile;
           this.flags[i] = flag;
           this.parts[i] = part;
+          this.zoneTier[i] = tier;
         }
       }
       const side = CHUNK_SIZE + 1;

@@ -1,3 +1,5 @@
+import { ZoneTier, zoneOf } from '@/shared/tiles';
+
 /** A save as read from disk, before it becomes a CityState. */
 export interface RawSave {
   version: number;
@@ -22,6 +24,16 @@ export const migrations: Record<number, (save: RawSave) => RawSave> = {
       census: { landmarks: { airport: 0, seaport: 0 }, water: 0, ...(save.header.census as object) },
     },
   }),
+  // 2 → 3: density tiers. Every existing zone becomes high density, so nothing shrinks.
+  2: (save) => {
+    const bytes = save.arrays.get('tiles') ?? new Uint8Array(0);
+    const tiles = new Uint16Array(bytes.slice().buffer, 0, bytes.length >> 1);
+    const tier = new Uint8Array(tiles.length);
+    for (let i = 0; i < tiles.length; i++) if (zoneOf(tiles[i] ?? 0)) tier[i] = ZoneTier.High;
+    const arrays = new Map(save.arrays);
+    arrays.set('zoneTier', tier);
+    return { ...save, arrays };
+  },
 };
 
 export function migrate(save: RawSave, target: number): RawSave {

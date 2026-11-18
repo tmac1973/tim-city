@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { COSTS, POWER_SUPPLY } from '@/shared/costs';
 import type { BrushSize, ToolId } from '@/shared/protocol';
 import { isUnlocked, lockedMessage, unlockLabel } from '@/shared/unlocks';
+import { TIER_CAP, TIER_NAMES, ZoneTier } from '@/shared/tiles';
 import { Icon } from './icons';
 import {
   activeTool,
@@ -19,6 +20,7 @@ import {
   effectiveUiScale,
   settingsOpen,
   toast,
+  zoneTier,
   type UiTool,
   uiScale,
 } from './store';
@@ -125,14 +127,76 @@ function useFitHeight(interfaceScale: number) {
  * Pick a tool (or put it down if it is already active). A locked tool only
  * explains when it unlocks. Returns whether the tool was picked or dropped.
  */
-function choose(category: string, def: ToolDef): boolean {
+function choose(category: string, def: ToolDef, fromKey = false): boolean {
   if (def.id !== 'query' && !isUnlocked(def.id, classReached.value)) {
     toast(lockedMessage(def.id));
     return false;
   }
+  // Pressing an active zone tool's key again cycles its density instead.
+  if (fromKey && ZONE_TOOLS.has(def.id) && activeTool.value === def.id) {
+    cycleTier();
+    return true;
+  }
   lastToolByCategory.value = { ...lastToolByCategory.value, [category]: def.id };
   activeTool.value = activeTool.value === def.id ? null : def.id;
   return true;
+}
+
+const ZONE_TOOLS = new Set<UiTool>(['residential', 'commercial', 'industrial']);
+const TIERS = [ZoneTier.Low, ZoneTier.Medium, ZoneTier.High];
+const tierLocked = (tier: number) => tier === ZoneTier.High && !isUnlocked('zoneHigh', classReached.value);
+
+/** Next density tier, skipping locked ones. */
+function cycleTier(): void {
+  for (let step = 1; step <= TIERS.length; step++) {
+    const next = (zoneTier.value + step) % TIERS.length;
+    if (!tierLocked(next)) {
+      zoneTier.value = next;
+      return;
+    }
+  }
+}
+
+/** Low / Medium / High chips at the top of the Zones flyout. */
+function TierPicker() {
+  return (
+    <div class="tier-picker" role="group" aria-label="Density">
+      {TIERS.map((tier) => {
+        const locked = tierLocked(tier);
+        return (
+          <button
+            key={tier}
+            type="button"
+            class={`tier-chip${zoneTier.value === tier ? ' active' : ''}${locked ? ' locked' : ''}`}
+            aria-pressed={zoneTier.value === tier}
+            aria-disabled={locked}
+            title={locked ? lockedMessage('zoneHigh') : `${TIER_NAMES[tier]} density: up to level ${String(TIER_CAP[tier])}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+            }}
+            onClick={() => {
+              if (locked) toast(lockedMessage('zoneHigh'));
+              else zoneTier.value = tier;
+            }}
+          >
+            <TierBars tier={tier} />
+            {TIER_NAMES[tier]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** One to three bars showing a density tier. */
+function TierBars({ tier }: { tier: number }) {
+  return (
+    <span class="tier-bars" aria-hidden="true">
+      {TIERS.map((t) => (
+        <span key={t} class={t <= tier ? 'on' : ''} />
+      ))}
+    </span>
+  );
 }
 
 export function Toolbar() {
@@ -165,7 +229,7 @@ export function Toolbar() {
       }
       for (const group of GROUPS) {
         const def = group.tools.find((t) => t.code !== '' && t.code === e.code && (t.shift ?? false) === e.shiftKey);
-        if (def) choose(group.label, def);
+        if (def) choose(group.label, def, true);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -221,11 +285,13 @@ export function Toolbar() {
               }}
             >
               <Icon name={shown.id} />
+              {group.label === 'Zones' && <TierBars tier={zoneTier.value} />}
               <span class="tool-caption">{group.label}</span>
             </button>
             {isOpen && (
               <div class="flyout panel" role="menu" aria-label={group.label}>
                 <span class="group-label">{group.label}</span>
+                {group.label === 'Zones' && <TierPicker />}
                 {group.tools.map((t) => {
                   const locked = !isUnlocked(t.id as ToolId, classReached.value);
                   return (

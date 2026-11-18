@@ -82,7 +82,7 @@ describe('city class', () => {
     const milestones = events.flatMap((e) => (e.type === 'milestone' ? [e.cityClass] : []));
     expect(milestones).toEqual(['Town', 'City']);
     const headline = headlineFor(events.find((e) => e.type === 'milestone') ?? { type: 'bankrupt' }, s);
-    expect(headline?.headline).toBe('Testville is now a Town! Population passes 2,500');
+    expect(headline?.headline).toBe('Testville is now a Town! Population passes 2,500. Now available: High-density zones');
   });
 
   it('lists the tools each passed class unlocks, even when a jump skips a class', () => {

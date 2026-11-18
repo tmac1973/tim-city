@@ -10,7 +10,7 @@ afterEach(() => {
 describe('unlocks', () => {
   it('leaves a tool missing from the table available from the start', () => {
     expect(isUnlocked('road', 0)).toBe(true);
-    expect(unlocksAt(1)).toEqual([]);
+    expect(unlocksAt(4)).toEqual([]);
   });
 
   it('locks a tool until its class and lists unlocks in table order', () => {

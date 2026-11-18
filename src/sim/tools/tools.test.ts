@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BrushSize, ToolCommand, ToolId } from '@/shared/protocol';
-import { registerFootprint, TileFlag, TileKind } from '@/shared/tiles';
+import { registerFootprint, TileFlag, TileKind, ZoneTier } from '@/shared/tiles';
 import { setUnlockTableForTest } from '@/shared/unlocks';
 import { CityState } from '../state';
 import { placeFootprint } from './footprint';
@@ -311,5 +311,33 @@ describe('unlocks', () => {
     } finally {
       restore();
     }
+  });
+});
+
+describe('density tiers', () => {
+  it('paints medium by default and rezones only lots whose tier changes', () => {
+    const s = flatCity();
+    expect(runTool(s, tool('residential', 20, 20))).toMatchObject({ ok: true, cost: 100 });
+    expect(s.zoneTier[s.index(19, 19)]).toBe(ZoneTier.Medium);
+    expect(runTool(s, { ...tool('residential', 20, 20), tier: ZoneTier.Medium })).toMatchObject({ ok: false, reason: 'Already medium density' });
+    expect(runTool(s, { ...tool('residential', 21, 21), tier: ZoneTier.Low })).toMatchObject({ ok: true, cost: 50 });
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) expect(s.zoneTier[s.index(20 + dx, 20 + dy)]).toBe(ZoneTier.Low);
+    // Another zone type is still in the way.
+    expect(runTool(s, tool('commercial', 20, 20))).toMatchObject({ ok: false });
+  });
+
+  it('locks high density until Town', () => {
+    const s = flatCity();
+    expect(runTool(s, { ...tool('residential', 20, 20), tier: ZoneTier.High })).toMatchObject({ ok: false, reason: 'Unlocks at Town (2,000 people)' });
+    s.classReached = 1;
+    expect(runTool(s, { ...tool('residential', 20, 20), tier: ZoneTier.High })).toMatchObject({ ok: true });
+  });
+
+  it('forgets the tier when the lot is bulldozed', () => {
+    const s = flatCity();
+    runTool(s, { ...tool('residential', 20, 20), tier: ZoneTier.Low });
+    runTool(s, tool('bulldoze', 19, 19, 21, 21));
+    expect(s.zoneTier[s.index(20, 20)]).toBe(0);
+    expect(s.zoneTier.every((v) => v === 0)).toBe(true);
   });
 });

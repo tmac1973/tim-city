@@ -44,6 +44,8 @@ export type ToolId =
   | 'stadium'
   | 'seaport'
   | 'airport';
+/** Anything that can be locked until a city class: a tool, or an option of one. */
+export type UnlockId = ToolId | 'zoneHigh';
 export type BrushSize = 1 | 3 | 5;
 
 /**
@@ -60,6 +62,8 @@ export interface ToolCommand {
   brush: BrushSize;
   /** Shift held: road/rail drags bore a tunnel. */
   tunnel: boolean;
+  /** Zone tools: the density tier to paint (ZoneTier; medium when absent). */
+  tier?: number;
   /** Plan and report cost only; never queued, never changes state. */
   dryRun: boolean;
   /** Echoed in the result so the UI can match answers to requests. */
@@ -119,7 +123,7 @@ export type SimEvent =
   /** Out of money with no bonds left to issue. */
   | { type: 'bankrupt' }
   /** The city reached a new class. */
-  | { type: 'milestone'; cityClass: CityClass; population: number; unlocked: ToolId[] }
+  | { type: 'milestone'; cityClass: CityClass; population: number; unlocked: UnlockId[] }
   /** Yearly verdict: approval and score, with the change since last year. */
   | { type: 'evaluation'; year: number; approval: number; approvalChange: number; score: number; scoreChange: number }
   /** A disaster began (or could not begin, with the reason). */
@@ -276,6 +280,8 @@ export interface ChunkSlice {
   flags: Uint8Array;
   /** Footprint positions (see CityState.parts); 1 marks a building's top-left tile. */
   parts: Uint8Array;
+  /** ZoneTier per tile (see CityState.zoneTier). */
+  zoneTier: Uint8Array;
   /** 33×33 corner heights covering the chunk's tiles. */
   heights: Uint8Array;
 }

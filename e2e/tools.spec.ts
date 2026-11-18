@@ -99,3 +99,30 @@ test('toolbar flyouts open by category, keys pick tools directly and Escape clos
   // Escape closed only the flyout: the road is still picked.
   await expect(page.locator('[data-category="Transport"]')).toHaveAttribute('data-active', 'true');
 });
+
+test('the Zones flyout picks a density tier, and the zone key cycles it', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    localStorage.setItem('timcity.settings', JSON.stringify({ tips: false }));
+  });
+  await page.goto('./?seed=e2e&water=0&forest=0&hills=0&quality=low');
+  await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
+
+  await page.locator('[data-category="Zones"]').click();
+  const chips = page.getByRole('group', { name: 'Density' });
+  // High density is locked in a new city.
+  await expect(chips.getByRole('button', { name: 'High' })).toHaveAttribute('aria-disabled', 'true');
+  await chips.getByRole('button', { name: 'Low' }).click();
+  await expect(chips.getByRole('button', { name: 'Low' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('menuitem', { name: 'Residential zone', exact: true }).click();
+
+  // Z again cycles Low → Medium → (High is locked) → Low.
+  await page.keyboard.press('z');
+  await page.locator('[data-category="Zones"]').click();
+  await expect(chips.getByRole('button', { name: 'Medium' })).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('z');
+  await page.locator('[data-category="Zones"]').click();
+  await expect(chips.getByRole('button', { name: 'Low' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-category="Zones"]')).toHaveAttribute('data-active', 'true');
+});

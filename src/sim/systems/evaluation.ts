@@ -1,5 +1,5 @@
 import { MONTHS_PER_YEAR } from '@/shared/constants';
-import { CITY_CLASSES, CLASS_THRESHOLDS, type CityClass, type Evaluation, type Problem, type ProblemId, type SimEvent, type ToolId } from '@/shared/protocol';
+import { CITY_CLASSES, CLASS_THRESHOLDS, type CityClass, type Evaluation, type Problem, type ProblemId, type SimEvent, type UnlockId } from '@/shared/protocol';
 import { unlocksAt } from '@/shared/unlocks';
 import { isRoad, TileFlag, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
@@ -134,7 +134,7 @@ export function evaluationSystem(emit: (event: SimEvent) => void): System {
       const reached = cityClassFor(evaluation.population);
       if (reached > state.classReached) {
         // Every class passed this month unlocks its tools.
-        const unlocked: ToolId[] = [];
+        const unlocked: UnlockId[] = [];
         for (let c = state.classReached + 1; c <= reached; c++) unlocked.push(...unlocksAt(c));
         state.classReached = reached;
         emit({ type: 'milestone', cityClass: evaluation.cityClass, population: evaluation.population, unlocked });

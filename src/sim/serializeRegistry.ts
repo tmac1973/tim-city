@@ -4,7 +4,7 @@ import { FIELD_NAMES, type CityState } from './state';
  * Save-format version. Bump it whenever the registry or header changes and
  * add a migration in migrate.ts that turns the previous version into this one.
  */
-export const FORMAT_VERSION = 2;
+export const FORMAT_VERSION = 3;
 
 /**
  * Every typed array a city owns, in the fixed order they are written. New
@@ -21,6 +21,8 @@ export function savedArrays(state: CityState): [string, Uint8Array | Uint16Array
     ...FIELD_NAMES.map((name): [string, Uint8Array] => [`field:${name}`, state.field(name)]),
     // Version 2: disasters.
     ['fireTicks', state.fireTicks],
+    // Version 3: density tiers.
+    ['zoneTier', state.zoneTier],
   ];
 }
 

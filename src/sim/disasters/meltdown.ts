@@ -3,7 +3,7 @@ import { PLANT_SIZE, TileKind } from '@/shared/tiles';
 import type { Rng } from '../rng';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
-import { footprintAt } from '../tools/footprint';
+import { clearPart, footprintAt } from '../tools/footprint';
 import { begin, originsOf } from './common';
 
 export const MELTDOWN_RADIUS = 8;
@@ -32,7 +32,7 @@ export function startMeltdown(state: CityState, rng: Rng): ActiveDisaster | null
           for (let dx = 0; dx < lot.size; dx++) {
             const t = state.index(lot.x + dx, lot.y + dy);
             state.tiles[t] = TileKind.Rubble;
-            state.parts[t] = 0;
+            clearPart(state, t);
             state.flags[t] = 0;
             state.fireTicks[t] = 0;
             state.markDirtyAround(lot.x + dx, lot.y + dy);

@@ -2,7 +2,7 @@ import type { ActiveDisaster, DisasterType } from '@/shared/protocol';
 import { isBridge, isNetwork, isPower, TileFlag, TileKind } from '@/shared/tiles';
 import type { Rng } from '../rng';
 import type { CityState } from '../state';
-import { footprintAt } from '../tools/footprint';
+import { clearPart, footprintAt } from '../tools/footprint';
 
 /** Trees, power lines and every building burn; roads, rail, water, rubble and bare land do not. */
 export function isFlammable(kind: number): boolean {
@@ -31,7 +31,7 @@ export function destroy(state: CityState, x: number, y: number): number {
     // A wrecked bridge falls into the water it spanned.
     state.tiles[t] = isBridge(k) ? TileKind.Water : TileKind.Rubble;
     state.flags[t] = (state.flags[t] ?? 0) & TileFlag.FLOODED;
-    state.parts[t] = 0;
+    clearPart(state, t);
     state.fireTicks[t] = 0;
     state.markDirtyAround(tx, ty);
   }

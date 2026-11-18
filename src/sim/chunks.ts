@@ -10,11 +10,13 @@ export function extractChunk(state: CityState, id: number): ChunkSlice {
   const tiles = new Uint16Array(CHUNK_SIZE * CHUNK_SIZE);
   const flags = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
   const parts = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
+  const zoneTier = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE);
   for (let row = 0; row < CHUNK_SIZE; row++) {
     const from = state.index(x0, y0 + row);
     tiles.set(state.tiles.subarray(from, from + CHUNK_SIZE), row * CHUNK_SIZE);
     flags.set(state.flags.subarray(from, from + CHUNK_SIZE), row * CHUNK_SIZE);
     parts.set(state.parts.subarray(from, from + CHUNK_SIZE), row * CHUNK_SIZE);
+    zoneTier.set(state.zoneTier.subarray(from, from + CHUNK_SIZE), row * CHUNK_SIZE);
   }
 
   const side = CHUNK_SIZE + 1;
@@ -24,7 +26,7 @@ export function extractChunk(state: CityState, id: number): ChunkSlice {
     heights.set(state.heights.subarray(from, from + side), row * side);
   }
 
-  return { id, tiles, flags, parts, heights };
+  return { id, tiles, flags, parts, zoneTier, heights };
 }
 
 /** Extract and clear every dirty chunk, in ascending id order. */

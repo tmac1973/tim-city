@@ -255,9 +255,9 @@ export class Renderer {
       if (changed & (Changed.NETWORK | Changed.HEIGHTS | Changed.POTHOLES)) this.networks.rebuild(id);
       this.buildings.rebuild(id);
       if (changed & (Changed.TILES | Changed.FLAGS | Changed.HEIGHTS)) this.fx.rebuild(id);
-      if (changed & Changed.FLAGS) flagsChanged = true;
+      if (changed & (Changed.FLAGS | Changed.PARTS)) flagsChanged = true;
     }
-    if (flagsChanged) this.overlay.refreshPower();
+    if (flagsChanged) this.overlay.refreshTiles();
     this.trees.flush();
 
     const cam = this.cityCamera;

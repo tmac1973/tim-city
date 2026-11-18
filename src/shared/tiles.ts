@@ -142,6 +142,20 @@ export function zoneOf(kind: number): { type: ZoneType; density: number; landVal
   };
 }
 
+/** How tall a lot may grow: low, medium or high density. */
+export const ZoneTier = { Low: 0, Medium: 1, High: 2 } as const;
+export type ZoneTier = (typeof ZoneTier)[keyof typeof ZoneTier];
+export const TIER_NAMES = ['Low', 'Medium', 'High'] as const;
+/** Highest level each tier allows. */
+export const TIER_CAP = [3, 6, 8] as const;
+/** High-density lots grow past level 6 only on land-value class 2 or better. */
+export const HIGH_LV_GATE = 2;
+/** The highest level a lot of `tier` may reach on land-value class `lvClass`. */
+export function tierCap(tier: number, lvClass: number): number {
+  if (tier >= ZoneTier.High) return lvClass >= HIGH_LV_GATE ? TIER_CAP[2] : TIER_CAP[1];
+  return TIER_CAP[tier as 0 | 1];
+}
+
 export const ZONE_SIZE = 3;
 export const PLANT_SIZE = 4;
 

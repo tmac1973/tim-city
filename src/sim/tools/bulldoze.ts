@@ -2,7 +2,7 @@ import { COSTS } from '@/shared/costs';
 import type { ToolCommand } from '@/shared/protocol';
 import { isBridge, isNetwork, TileKind } from '@/shared/tiles';
 import type { CityState } from '../state';
-import { footprintAt } from './footprint';
+import { clearPart, footprintAt } from './footprint';
 import { fail, type ToolPlan } from './plan';
 
 /** Clear everything in the dragged rectangle. Buildings go to rubble. */
@@ -58,7 +58,7 @@ export function planBulldoze(state: CityState, cmd: ToolCommand): ToolPlan {
       for (const [index, kind] of result) {
         state.tiles[index] = kind;
         state.flags[index] = 0;
-        state.parts[index] = 0;
+        clearPart(state, index);
         state.markDirtyAround(index % state.size, Math.floor(index / state.size));
       }
     },

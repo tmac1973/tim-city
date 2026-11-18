@@ -1,5 +1,5 @@
 import { TICKS_PER_MONTH } from '@/shared/constants';
-import { isRoad, MAX_DENSITY, TileFlag, zoneKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { isRoad, MAX_DENSITY, TileFlag, tierCap, ZoneTier, zoneKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { placeFootprint } from '../tools/footprint';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
@@ -98,12 +98,18 @@ export const zoneSystem: System = {
         }
         continue;
       }
+      // Above its tier's cap (after a downzone, or when land value falls), a lot steps down.
+      const cap = tierCap(state.zoneTier[i] ?? 0, lvClass);
+      if (density > cap) {
+        if (rng.nextFloat() < CHANGE_CHANCE) setDensity(state, x, y, type, density - 1, lvClass);
+        continue;
+      }
       // A zone grows only if its people can reach work, shops or homes.
       if (f & TileFlag.TRIP_FAILED || !hasRoadAccess(state, x, y)) continue;
 
       const score = zoneScore(state, x, y, type);
       const roll = rng.nextFloat();
-      if (density < MAX_DENSITY && score > growThreshold(density) && roll < CHANGE_CHANCE) {
+      if (density < Math.min(MAX_DENSITY, cap) && score > growThreshold(density) && roll < CHANGE_CHANCE) {
         setDensity(state, x, y, type, density + 1, lvClass);
       } else if (density > 0 && score < -shrinkThreshold(density) && roll < CHANGE_CHANCE) {
         setDensity(state, x, y, type, density - 1, lvClass);
@@ -111,3 +117,28 @@ export const zoneSystem: System = {
     }
   },
 };
+
+export type GrowthBlock = 'unpowered' | 'noRoad' | 'tripFailed' | 'tierCap' | 'landValue' | 'demand';
+
+/**
+ * Why the zone centred on tile `i` is not growing, or null if it can: the
+ * first of no power, no road, no reachable trip, its density tier's cap,
+ * land value too low for high density, or too little demand.
+ */
+export function growthBlock(state: CityState, i: number): GrowthBlock | null {
+  const zone = zoneOf(state.tiles[i] ?? 0);
+  if (!zone) return null;
+  const f = state.flags[i] ?? 0;
+  const x = i % state.size;
+  const y = (i - x) / state.size;
+  if (!(f & TileFlag.POWERED)) return 'unpowered';
+  if (!hasRoadAccess(state, x, y)) return 'noRoad';
+  if (f & TileFlag.TRIP_FAILED) return 'tripFailed';
+  const tier = state.zoneTier[i] ?? 0;
+  const lvClass = landValueClass(state, x, y);
+  const cap = tierCap(tier, lvClass);
+  if (zone.density >= cap) {
+    return tier === ZoneTier.High && cap < MAX_DENSITY ? 'landValue' : zone.density >= MAX_DENSITY ? null : 'tierCap';
+  }
+  return zoneScore(state, x, y, zone.type) > growThreshold(zone.density) ? null : 'demand';
+}

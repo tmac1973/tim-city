@@ -146,6 +146,8 @@ export const queryResult = signal<QueryResult | null>(null);
 export type UiTool = ToolId | 'query';
 export const activeTool = signal<UiTool | null>(null);
 export const brush = signal<BrushSize>(3);
+/** Density tier the zone tools paint (ZoneTier). */
+export const zoneTier = signal(1);
 /** The toolbar category whose flyout is open. */
 export const openCategory = signal<string | null>(null);
 /** The tool last picked in each toolbar category, shown on its button. */
