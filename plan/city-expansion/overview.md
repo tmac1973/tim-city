@@ -164,7 +164,8 @@ The player is someone who already plays Tim City in a desktop browser.
   Lots stay 3×3.
 - **Extra cost of high density** → No new upkeep. Higher levels already bring
   more traffic, pollution and power draw. Levels 7–8 need land-value class 2
-  or higher.
+  or higher. Changed after phase 03: zoning costs $100, $200 or $400 per lot
+  by tier, and rezoning up pays the difference.
 - **New power plants** → Solar farm, wind turbine, oil plant and gas plant.
 - **Solar and wind variability** → A monthly average. Wind gets a bonus on high
   ground, and solar loses output in overcast months.
