@@ -6,7 +6,23 @@ import { CityMirror } from './render/mirror';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
-import { autoBudget, budget, budgetOpen, census, cityInfo, date, formatMoney, funds, gameOver, speed, toast, valves } from './ui/store';
+import {
+  addHeadline,
+  autoBudget,
+  budget,
+  budgetOpen,
+  census,
+  cityInfo,
+  date,
+  evaluation,
+  formatDate,
+  formatMoney,
+  funds,
+  gameOver,
+  speed,
+  toast,
+  valves,
+} from './ui/store';
 import { ToolController } from './ui/toolController';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -37,12 +53,18 @@ sim.onTick((tick) => {
   census.value = tick.census;
   valves.value = tick.valves;
   budget.value = tick.budget;
+  evaluation.value = tick.evaluation;
 });
 
 // Mount the UI even if WebGL fails, so the failure can be reported on screen.
 let webglError: string | null = null;
+/** Points the camera at a tile; a no-op until the renderer exists. */
+let flyTo: (x: number, y: number) => void = () => undefined;
 try {
   const renderer = new Renderer(canvas, mirror);
+  flyTo = (x, y) => {
+    renderer.cityCamera.flyTo(x, y);
+  };
   renderer.onTerrainShown(() => {
     // Tests and tooling wait for this marker.
     document.documentElement.dataset.rendered = 'true';
@@ -85,11 +107,16 @@ render(
       sim.command(command);
     },
     onBudgetClose,
+    onShowMe: (x, y) => {
+      flyTo(x, y);
+    },
   }),
   appRoot,
 );
 
 sim.onEvent((event) => {
+  if (event.type === 'news') addHeadline(event.headline, formatDate(date.value), event.x, event.y);
+  if (event.type === 'milestone') toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}`, 'info', 6000);
   if (event.type === 'yearBudget') {
     if (autoBudget.value) openBudget();
     else toast(`${String(event.year)} closed: ${event.net >= 0 ? 'surplus' : 'deficit'} of ${formatMoney(Math.abs(event.net))}`, 'info', 5000);

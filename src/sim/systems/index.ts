@@ -9,6 +9,8 @@ import { pollutionSystem } from './pollution';
 import { growthSystem, popDensitySystem } from './popDensity';
 import { roadsSystem } from './roads';
 import { demandSystem } from './demand';
+import { evaluationSystem } from './evaluation';
+import { historySystem } from './history';
 import { powerSystem } from './power';
 import { trafficSystem } from './traffic';
 import { zoneSystem } from './zones';
@@ -27,5 +29,7 @@ export function registerSystems(scheduler: Scheduler, emit: (event: SimEvent) =>
   scheduler.register(growthSystem);
   scheduler.register(roadsSystem);
   scheduler.register(censusSystem);
+  scheduler.register(evaluationSystem(emit));
   scheduler.register(budgetSystem(emit));
+  scheduler.register(historySystem);
 }

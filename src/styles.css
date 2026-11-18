@@ -657,3 +657,204 @@ button {
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* City report */
+.report {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.report > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.report > header button {
+  font-size: 22px;
+  height: auto;
+  background: none;
+}
+
+.report h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 16px 0 8px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 24px;
+}
+
+@media (max-width: 700px) {
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gauge {
+  width: 180px;
+  display: block;
+  margin: 0 auto;
+}
+
+.gauge-value {
+  fill: var(--panel-text);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.report-caption {
+  text-align: center;
+  color: var(--muted);
+  margin: 2px 0 10px;
+  font-size: 13px;
+}
+
+.report-stats {
+  margin: 0;
+  display: grid;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.report-stats div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.report-stats dt {
+  color: var(--muted);
+}
+
+.report-stats dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.report-stats .up {
+  color: var(--ok);
+  font-size: 12px;
+}
+
+.report-stats .down {
+  color: var(--bad);
+  font-size: 12px;
+}
+
+.poll {
+  display: grid;
+  grid-template-columns: 110px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.poll-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 10%);
+  overflow: hidden;
+}
+
+.poll-bar div {
+  height: 100%;
+  background: var(--bad);
+}
+
+.poll-pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.advice {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 5%);
+  margin-bottom: 8px;
+}
+
+.advice header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.advice .severity {
+  height: 4px;
+  max-width: 120px;
+  border-radius: 2px;
+  background: var(--bad);
+}
+
+.advice p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.advice button {
+  height: 28px;
+  font-size: 13px;
+}
+
+/* News ticker */
+.ticker {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 480px));
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.headline {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  padding: 3px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.headline.link {
+  cursor: pointer;
+}
+
+.headline.link:hover {
+  color: var(--accent);
+}
+
+.headline-date {
+  color: var(--muted);
+  margin-right: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticker-older {
+  display: none;
+}
+
+.ticker:hover {
+  border-radius: 14px;
+}
+
+.ticker:hover .ticker-older {
+  display: block;
+  border-bottom: 1px solid var(--panel-border);
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  opacity: 0.8;
+}

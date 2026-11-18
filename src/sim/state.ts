@@ -1,6 +1,6 @@
 import { CHUNK_SHIFT, DEFAULT_FUNDS, type MapSize, START_YEAR } from '@/shared/constants';
 import { DIFFICULTY, type DifficultyName } from '@/shared/difficulty';
-import type { Bond, Census, CityInfo, Funding, GameDate, Ledger, Valves } from '@/shared/protocol';
+import type { Bond, Census, CityInfo, Evaluation, Funding, GameDate, HistorySample, Ledger, Valves } from '@/shared/protocol';
 import { Rng } from './rng';
 
 /**
@@ -69,6 +69,18 @@ export class CityState {
   lastYear: Ledger | null = null;
   /** Out of money with no bonds left; building stops. */
   bankrupt = false;
+  evaluation: Evaluation | null = null;
+  /** Highest city class reached (index into CITY_CLASSES), so promotions announce once. */
+  classReached = 0;
+  /** Approval and population at the last year end, for yearly changes. */
+  lastYearApproval: number | null = null;
+  lastYearScore = 0;
+  lastYearPop = 0;
+  /** Tiles burned by fire this year (phase 15 fills it in). */
+  burnedThisYear = 0;
+  readonly history: { monthly: HistorySample[]; yearly: HistorySample[] } = { monthly: [], yearly: [] };
+  /** Zone-centre densities at the start of the year, to find zones people are leaving. */
+  densityAtYearStart: Uint8Array;
   census: Census = emptyCensus();
   readonly valves: Valves = { r: 0, c: 0, i: 0 };
   /** True while some zones are unpowered because plants are at capacity. */
@@ -97,6 +109,7 @@ export class CityState {
     this.flags = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
     this.parts = new Uint8Array(size * size);
+    this.densityAtYearStart = new Uint8Array(size * size);
     const blocks = (size / 2) * (size / 2);
     for (const name of FIELD_NAMES) this.blockFields[name] = new Uint8Array(blocks);
     this.rootRng = new Rng(seed);

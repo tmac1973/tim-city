@@ -1,5 +1,5 @@
 import { Icon } from './icons';
-import { budgetOpen, census, cityInfo, date, formatCount, formatDate, formatMoney, funds, toast } from './store';
+import { budgetOpen, census, cityInfo, date, evaluation, formatCount, formatDate, formatMoney, funds, reportOpen, toast } from './store';
 
 export function TopBar() {
   const info = cityInfo.value;
@@ -31,6 +31,9 @@ export function TopBar() {
       </span>
       <button class="topbar-button" type="button" onClick={() => (budgetOpen.value = true)}>
         Budget
+      </button>
+      <button class="topbar-button" type="button" onClick={() => (reportOpen.value = true)}>
+        City{evaluation.value ? ` · ${String(evaluation.value.approval)}%` : ''}
       </button>
       <span class="spacer" />
       {info && (

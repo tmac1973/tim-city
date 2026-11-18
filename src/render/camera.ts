@@ -67,6 +67,11 @@ export class CityCamera {
     if (distance !== undefined) this.goal.distance = Math.min(this.maxDistance, Math.max(MIN_DISTANCE, distance));
   }
 
+  /** Glide to a tile and zoom in close enough to see what is there. */
+  flyTo(x: number, z: number): void {
+    this.focus(x + 0.5, z + 0.5, Math.min(this.goal.distance, 26));
+  }
+
   setAspect(aspect: number): void {
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();

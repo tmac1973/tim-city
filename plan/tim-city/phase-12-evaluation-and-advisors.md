@@ -40,6 +40,13 @@ Tell the player how the city is doing and why. The sim computes mayor approval, 
 3. Write the three UI components; add top-bar buttons for Evaluation and Advisors.
 4. Write tests.
 
+## Implementation notes (changed during build)
+- **Monthly evaluation.** Problems, hotspots, approval and score are computed every month (tick 13) so advisors help from the first month; the yearly `evaluation` event, approval-swing news, and last-year baselines still happen at year end. Promotions are announced the month they happen.
+- **Housing cost rescaled.** The planned "mean land value ÷ 2.55" made any land value a complaint (a village with fair land value rated it its #2 problem). It is now `max(0, mean − 96) ÷ 1.59`: no complaint at or below average land value, 100 at the maximum. The tax score is clamped to 100.
+- **Unemployment hotspot** uses straight-line distance to the nearest job zone instead of path distance (cheaper; same intent).
+- Problems with no place (e.g. "Taxes are fair") have no "Show me" button.
+- The evaluation window and advisor panel are one "City report" dialog (top-bar "City · approval%" button); "Show me" closes it and flies the camera to the hotspot. News headlines come from sim events via `news.ts` as they are emitted.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

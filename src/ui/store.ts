@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import { type Speed, START_YEAR } from '@/shared/constants';
-import type { BrushSize, BudgetInfo, Census, CityInfo, GameDate, QueryResult, ToolId, Valves } from '@/shared/protocol';
+import type { BrushSize, BudgetInfo, Census, CityInfo, Evaluation, GameDate, QueryResult, ToolId, Valves } from '@/shared/protocol';
 
 /** UI state shared by components and the input controllers. */
 export const cityInfo = signal<CityInfo | null>(null);
@@ -10,6 +10,22 @@ export const speed = signal<Speed>('paused');
 export const census = signal<Census | null>(null);
 export const valves = signal<Valves>({ r: 0, c: 0, i: 0 });
 export const budget = signal<BudgetInfo | null>(null);
+export const evaluation = signal<Evaluation | null>(null);
+export const reportOpen = signal(false);
+
+export interface Headline {
+  id: number;
+  text: string;
+  date: string;
+  x: number | null;
+  y: number | null;
+}
+/** Newest first, at most 30. */
+export const headlines = signal<Headline[]>([]);
+let nextHeadline = 1;
+export function addHeadline(text: string, date: string, x: number | null, y: number | null): void {
+  headlines.value = [{ id: nextHeadline++, text, date, x, y }, ...headlines.value].slice(0, 30);
+}
 export const budgetOpen = signal(false);
 /** Shown once the city goes bankrupt, until dismissed. */
 export const gameOver = signal(false);

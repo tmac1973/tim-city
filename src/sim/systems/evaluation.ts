@@ -1,0 +1,160 @@
+import { MONTHS_PER_YEAR } from '@/shared/constants';
+import { CITY_CLASSES, type CityClass, type Evaluation, type Problem, type ProblemId, type SimEvent } from '@/shared/protocol';
+import { isRoad, TileFlag, zoneOf, ZoneType } from '@/shared/tiles';
+import type { System } from '../scheduler';
+import type { CityState } from '../state';
+import { blockGeometry } from './fields';
+import { findHotspot } from './hotspots';
+
+/** Population at which each class starts. */
+export const CLASS_THRESHOLDS = [0, 2_000, 10_000, 50_000, 100_000, 500_000] as const;
+
+export function cityClassFor(population: number): number {
+  let index = 0;
+  CLASS_THRESHOLDS.forEach((threshold, i) => {
+    if (population >= threshold) index = i;
+  });
+  return index;
+}
+
+/** Mean of a block field over the blocks matching `include`, as 0–100. */
+function meanOf(field: Uint8Array, include: (b: number) => boolean): number {
+  let sum = 0;
+  let n = 0;
+  for (let b = 0; b < field.length; b++) {
+    if (!include(b)) continue;
+    sum += field[b] ?? 0;
+    n++;
+  }
+  return n === 0 ? 0 : sum / n / 2.55;
+}
+
+/** Each problem's 0–100 score, from the city as it is now. */
+export function problemScores(state: CityState): Record<ProblemId, number> {
+  const density = state.field('popDensity');
+  const populated = (b: number) => (density[b] ?? 0) > 0;
+  const { side } = blockGeometry(state);
+
+  // Blocks holding road, and blocks holding dense homes.
+  const roadBlocks = new Uint8Array(side * side);
+  const denseHomes = new Uint8Array(side * side);
+  const { size, tiles, flags } = state;
+  for (let i = 0; i < size * size; i++) {
+    const kind = tiles[i] ?? 0;
+    const b = state.blockIndex(i % size, Math.floor(i / size));
+    if (isRoad(kind)) roadBlocks[b] = 1;
+    if ((flags[i] ?? 0) & TileFlag.ZONE_CENTER) {
+      const zone = zoneOf(kind);
+      if (zone?.type === ZoneType.R && zone.density >= 5) denseHomes[b] = 1;
+    }
+  }
+
+  const { resPop, comJobs, indJobs } = state.census;
+  const employment = resPop === 0 ? 1 : (comJobs + indJobs) / resPop;
+  const fireCover = state.field('fireCover');
+  let populatedBlocks = 0;
+  let unprotected = 0;
+  for (let b = 0; b < density.length; b++) {
+    if (!populated(b)) continue;
+    populatedBlocks++;
+    if ((fireCover[b] ?? 0) < 64) unprotected++;
+  }
+  const fireGap = populatedBlocks === 0 ? 0 : (unprotected / populatedBlocks) * 100;
+
+  return {
+    crime: meanOf(state.field('crime'), populated),
+    pollution: meanOf(state.field('pollution'), populated),
+    // Housing only becomes a complaint above average land value (96 of 255).
+    housing: Math.max(0, (meanOf(state.field('landValue'), (b) => denseHomes[b] === 1) * 2.55 - 96) / 1.59),
+    taxes: Math.min(100, Math.max(0, state.taxRate - 7) * 8),
+    traffic: meanOf(state.field('traffic'), (b) => roadBlocks[b] === 1),
+    unemployment: Math.max(0, 1 - employment) * 100,
+    fires: Math.min(100, fireGap + 2 * state.burnedThisYear),
+  };
+}
+
+/** Approval from the three worst problems: 100 − (0.5 · 1st + 0.3 · 2nd + 0.2 · 3rd). */
+export function approvalFrom(sorted: readonly number[]): number {
+  const [a = 0, b = 0, c = 0] = sorted;
+  return Math.round(Math.min(100, Math.max(0, 100 - (0.5 * a + 0.3 * b + 0.2 * c))));
+}
+
+/** The full evaluation: problems (worst first, with poll shares and hotspots), approval, score, class. */
+export function evaluate(state: CityState): Evaluation {
+  const scores = problemScores(state);
+  const ranked = (Object.entries(scores) as [ProblemId, number][]).sort((a, b) => b[1] - a[1]);
+  const pollTotal = ranked.slice(0, 4).reduce((sum, [, s]) => sum + s, 0);
+  const problems: Problem[] = ranked.map(([id, score], i) => {
+    const spot = findHotspot(state, id);
+    return {
+      id,
+      score: Math.round(score),
+      percent: i < 4 && pollTotal > 0 ? Math.round((score / pollTotal) * 100) : 0,
+      x: spot.x,
+      y: spot.y,
+      cause: spot.cause,
+    };
+  });
+  const approval = approvalFrom(ranked.map(([, s]) => s));
+
+  const density = state.field('popDensity');
+  const police = state.field('policeCover');
+  const fire = state.field('fireCover');
+  let cover = 0;
+  let n = 0;
+  for (let b = 0; b < density.length; b++) {
+    if ((density[b] ?? 0) === 0) continue;
+    cover += ((police[b] ?? 0) + (fire[b] ?? 0)) / 2;
+    n++;
+  }
+  const population = state.census.resPop;
+  const growth = state.lastYearPop > 0 ? ((population - state.lastYearPop) / state.lastYearPop) * 100 : 0;
+  const score = Math.round(approval * 5 + Math.min(250, Math.max(0, growth) * 25) + (n === 0 ? 0 : cover / n / 255) * 250);
+  return {
+    approval,
+    score,
+    scoreChange: score - state.lastYearScore,
+    cityClass: CITY_CLASSES[cityClassFor(population)] as CityClass,
+    population,
+    problems,
+  };
+}
+
+/**
+ * Monthly evaluation (so advisors are current), with promotions announced
+ * as they happen and the yearly verdict at year end.
+ */
+export function evaluationSystem(emit: (event: SimEvent) => void): System {
+  return {
+    name: 'evaluation',
+    phaseTicks: [13],
+    run(state) {
+      const evaluation = evaluate(state);
+      state.evaluation = evaluation;
+      const reached = cityClassFor(evaluation.population);
+      if (reached > state.classReached) {
+        state.classReached = reached;
+        emit({ type: 'milestone', cityClass: evaluation.cityClass, population: evaluation.population });
+      }
+      if (state.date.month !== MONTHS_PER_YEAR - 1) return;
+      emit({
+        type: 'evaluation',
+        year: state.date.year,
+        approval: evaluation.approval,
+        approvalChange: state.lastYearApproval === null ? 0 : evaluation.approval - state.lastYearApproval,
+        score: evaluation.score,
+        scoreChange: evaluation.scoreChange,
+      });
+      state.lastYearApproval = evaluation.approval;
+      state.lastYearScore = evaluation.score;
+      state.lastYearPop = evaluation.population;
+      state.burnedThisYear = 0;
+      // Remember each zone's density, to spot where people leave next year.
+      for (let i = 0; i < state.size * state.size; i++) {
+        const zone = (state.flags[i] ?? 0) & TileFlag.ZONE_CENTER ? zoneOf(state.tiles[i] ?? 0) : null;
+        state.densityAtYearStart[i] = zone?.density ?? 0;
+      }
+    },
+  };
+}
+

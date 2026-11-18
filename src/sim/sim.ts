@@ -4,6 +4,7 @@ import { CommandQueue, registerCoreCommands } from './commands';
 import { Scheduler } from './scheduler';
 import { CityState } from './state';
 import { registerSystems } from './systems';
+import { headlineFor } from './systems/news';
 import { registerToolCommands } from './tools';
 import { queryTile } from './tools/query';
 
@@ -17,10 +18,15 @@ export class Simulation {
   constructor(info: CityInfo) {
     this.state = new CityState(info);
     registerCoreCommands(this.commands);
-    const emit = (event: SimEvent) => this.events.push(event);
+    // Every event may also make the news.
+    const emit = (event: SimEvent) => {
+      this.events.push(event);
+      const news = headlineFor(event, this.state);
+      if (news) this.events.push(news);
+    };
     registerToolCommands(this.commands, emit);
     // Queries are answered at once by the worker; a queued one (from a replay) still answers.
-    this.commands.on('query', (state, { x, y, requestId }) => emit(queryTile(state, x, y, requestId)));
+    this.commands.on('query', (state, { x, y, requestId }) => { emit(queryTile(state, x, y, requestId)); });
     registerSystems(this.scheduler, emit);
   }
 

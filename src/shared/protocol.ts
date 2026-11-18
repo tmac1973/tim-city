@@ -117,6 +117,12 @@ export type SimEvent =
   | { type: 'yearBudget'; year: number; ledger: Ledger; net: number }
   /** Out of money with no bonds left to issue. */
   | { type: 'bankrupt' }
+  /** The city reached a new class. */
+  | { type: 'milestone'; cityClass: CityClass; population: number }
+  /** Yearly verdict: approval and score, with the change since last year. */
+  | { type: 'evaluation'; year: number; approval: number; approvalChange: number; score: number; scoreChange: number }
+  /** A headline for the news ticker, optionally about one place. */
+  | { type: 'news'; headline: string; x: number | null; y: number | null }
   /** A zone type stopped growing until the city builds a special building. */
   | { type: 'demandCap'; zone: 'r' | 'c' | 'i'; needs: 'stadium' | 'seaport' | 'airport' }
   | ToolResult
@@ -164,6 +170,53 @@ export interface BudgetInfo {
   bankrupt: boolean;
 }
 
+export type ProblemId = 'crime' | 'pollution' | 'housing' | 'taxes' | 'traffic' | 'unemployment' | 'fires';
+
+export interface Problem {
+  id: ProblemId;
+  /** 0–100; higher is worse. */
+  score: number;
+  /** Share of citizens naming it in the poll, percent (top four only). */
+  percent: number;
+  /** Where it is worst, as a tile, when there is such a place. */
+  x: number | null;
+  y: number | null;
+  /** One plain sentence on what causes it there. */
+  cause: string;
+}
+
+export const CITY_CLASSES = ['Village', 'Town', 'City', 'Capital', 'Metropolis', 'Megalopolis'] as const;
+export type CityClass = (typeof CITY_CLASSES)[number];
+
+export interface Evaluation {
+  /** 0–100. */
+  approval: number;
+  /** 0–1000. */
+  score: number;
+  /** Change since the last year end. */
+  scoreChange: number;
+  cityClass: CityClass;
+  population: number;
+  /** Every problem, worst first; the first four form the poll. */
+  problems: Problem[];
+}
+
+/** One history sample (monthly or yearly). */
+export interface HistorySample {
+  year: number;
+  month: number;
+  population: number;
+  comJobs: number;
+  indJobs: number;
+  funds: number;
+  crime: number;
+  pollution: number;
+  traffic: number;
+  landValue: number;
+  approval: number;
+  score: number;
+}
+
 export interface Census {
   /** Residents, from residential density. */
   resPop: number;
@@ -209,6 +262,7 @@ export interface TickMessage {
   census: Census;
   valves: Valves;
   budget: BudgetInfo;
+  evaluation: Evaluation | null;
   chunks: ChunkSlice[];
 }
 

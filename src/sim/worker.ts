@@ -33,6 +33,7 @@ function publish(current: Simulation): void {
       census: current.state.census,
       valves: { ...current.state.valves },
       budget: budgetInfo(current),
+      evaluation: current.state.evaluation,
       chunks,
     },
     transfer,
