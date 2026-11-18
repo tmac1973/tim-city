@@ -1,4 +1,4 @@
-import { isRail, isRoad, TileFlag } from '@/shared/tiles';
+import { isRail, isRoad, isTransportKind, TileFlag } from '@/shared/tiles';
 import type { CityState } from './state';
 
 /** Cost of moving one tile by road. */
@@ -29,6 +29,5 @@ export function stepCost(state: CityState, a: number, b: number): number {
 }
 
 export function isTransport(state: CityState, i: number): boolean {
-  const k = state.tiles[i] ?? 0;
-  return isRoad(k) || isRail(k);
+  return isTransportKind(state.tiles[i] ?? 0);
 }

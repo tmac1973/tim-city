@@ -67,11 +67,27 @@ class TripSearch {
   private heapNode = new Int32Array(1024);
   private heapCost = new Float32Array(1024);
   private heapSize = 0;
+  /** Per 2×2 block: the trip that last loaded it, to load each block once per trip. */
+  private readonly blockStamp: Uint32Array;
+  private trip = 0;
 
   constructor(private readonly size: number) {
     this.dist = new Float32Array(size * size);
     this.parent = new Int32Array(size * size);
     this.stamp = new Uint32Array(size * size);
+    this.blockStamp = new Uint32Array((size >> 1) * (size >> 1));
+  }
+
+  /** Add `load` once to every block holding a road tile of the path. */
+  loadPath(state: CityState, path: readonly number[], load: number, traffic: Uint8Array): void {
+    this.trip++;
+    for (const t of path) {
+      if (!isRoad(state.tiles[t] ?? 0)) continue;
+      const b = state.blockIndex(t % state.size, Math.floor(t / state.size));
+      if (this.blockStamp[b] === this.trip) continue;
+      this.blockStamp[b] = this.trip;
+      traffic[b] = Math.min(255, (traffic[b] ?? 0) + load);
+    }
   }
 
   /** Path (tile indices, start first) to the nearest tile serving `want`, or null. */
@@ -85,10 +101,12 @@ class TripSearch {
       if (cost > (this.dist[node] ?? Infinity)) continue;
       expansions++;
       if ((service[node] ?? 0) & want) return this.path(node);
+      // Four neighbours, without allocating: west, east, north, south.
       const x = node % this.size;
-      const neighbours = [x > 0 ? node - 1 : -1, x < this.size - 1 ? node + 1 : -1, node - this.size, node + this.size];
-      for (const n of neighbours) {
-        if (n < 0 || n >= this.size * this.size || !isTransport(state, n)) continue;
+      const total = this.size * this.size;
+      for (let d = 0; d < 4; d++) {
+        const n = d === 0 ? (x > 0 ? node - 1 : -1) : d === 1 ? (x < this.size - 1 ? node + 1 : -1) : d === 2 ? node - this.size : node + this.size;
+        if (n < 0 || n >= total || !isTransport(state, n)) continue;
         const next = cost + stepCost(state, node, n);
         if (next <= MAX_TRIP_COST) this.visit(n, next, node);
       }
@@ -177,14 +195,8 @@ export function runTrip(state: CityState, i: number): boolean {
   if (!path) return false;
   const traffic = state.field('traffic');
   const load = zone.density * TRAFFIC_PER_LEVEL;
-  if (load > 0) {
-    // Each block the trip drives through takes its load once.
-    const blocks = new Set<number>();
-    for (const t of path) {
-      if (isRoad(state.tiles[t] ?? 0)) blocks.add(state.blockIndex(t % state.size, Math.floor(t / state.size)));
-    }
-    for (const b of blocks) traffic[b] = Math.min(255, (traffic[b] ?? 0) + load);
-  }
+  // Each block the trip drives through takes its load once.
+  if (load > 0) search.loadPath(state, path, load, traffic);
   return true;
 }
 
