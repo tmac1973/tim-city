@@ -10,6 +10,7 @@ test('loads the canvas and title without console errors', async ({ page }) => {
   await page.goto('./');
 
   await expect(page.locator('canvas#scene')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Tim City' })).toBeVisible();
+  await expect.soft(page.getByRole('heading', { name: 'Tim City' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

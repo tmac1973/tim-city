@@ -8,6 +8,12 @@ if (!canvas || !appRoot) {
   throw new Error('index.html is missing #scene or #app');
 }
 
-const renderer = new Renderer(canvas);
-renderer.start();
-render(h(App, null), appRoot);
+// Mount the UI first so a WebGL failure can still be reported on screen.
+let webglError: string | null = null;
+try {
+  new Renderer(canvas).start();
+} catch (err) {
+  webglError = err instanceof Error ? err.message : String(err);
+  console.error('WebGL renderer failed to start:', webglError);
+}
+render(h(App, { webglError }), appRoot);
