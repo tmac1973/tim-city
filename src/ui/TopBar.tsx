@@ -1,5 +1,5 @@
 import { Icon } from './icons';
-import { cityInfo, date, formatDate, formatMoney, funds, toast } from './store';
+import { census, cityInfo, date, formatCount, formatDate, formatMoney, funds, toast } from './store';
 
 export function TopBar() {
   const info = cityInfo.value;
@@ -22,6 +22,9 @@ export function TopBar() {
       <span class="city-name">{info?.name ?? '…'}</span>
       <span class="stat" title="Date">
         {formatDate(date.value)}
+      </span>
+      <span class="stat population" title="Population" data-testid="population">
+        Pop. {formatCount(census.value?.resPop ?? 0)}
       </span>
       <span class={funds.value < 0 ? 'stat money negative' : 'stat money'} title="City funds" data-testid="funds">
         {formatMoney(funds.value)}

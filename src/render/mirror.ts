@@ -9,6 +9,7 @@ export class CityMirror {
   readonly chunksPerSide: number;
   readonly tiles: Uint16Array;
   readonly flags: Uint8Array;
+  readonly parts: Uint8Array;
   readonly heights: Uint8Array;
   private readonly listeners = new Set<ChunkListener>();
 
@@ -16,6 +17,7 @@ export class CityMirror {
     this.chunksPerSide = size >> CHUNK_SHIFT;
     this.tiles = new Uint16Array(size * size);
     this.flags = new Uint8Array(size * size);
+    this.parts = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
   }
 
@@ -33,6 +35,7 @@ export class CityMirror {
         const from = row * CHUNK_SIZE;
         this.tiles.set(chunk.tiles.subarray(from, from + CHUNK_SIZE), to);
         this.flags.set(chunk.flags.subarray(from, from + CHUNK_SIZE), to);
+        this.parts.set(chunk.parts.subarray(from, from + CHUNK_SIZE), to);
       }
       const side = CHUNK_SIZE + 1;
       for (let row = 0; row < side; row++) {
@@ -45,6 +48,10 @@ export class CityMirror {
 
   tile(x: number, y: number): number {
     return this.tiles[y * this.size + x] ?? 0;
+  }
+
+  flag(x: number, y: number): number {
+    return this.flags[y * this.size + x] ?? 0;
   }
 
   /** Height step of corner (x, y). */

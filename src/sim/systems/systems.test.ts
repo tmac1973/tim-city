@@ -157,21 +157,21 @@ describe('census', () => {
 });
 
 describe('placing zones and plants', () => {
-  it('levels a gentle lot and charges for the earthwork', () => {
+  it('builds on a gentle slope without earthwork', () => {
     const s = flatCity();
     s.heights[s.cornerIndex(41, 41)] = 4;
-    const r = runTool(s, tool('industrial', 41, 41));
-    expect(r).toMatchObject({ ok: true, cost: 100 + 20 });
-    expect(s.heights[s.cornerIndex(41, 41)]).toBe(3);
+    s.heights[s.cornerIndex(42, 41)] = 5;
+    expect(runTool(s, tool('industrial', 41, 41))).toMatchObject({ ok: true, cost: 100 });
+    expect(s.heights[s.cornerIndex(42, 41)]).toBe(5);
   });
 
   it('refuses a steep lot but still builds the good ones in a drag', () => {
     const s = flatCity();
-    // Make the lot centred on (46, 40) steep: corners rise 2 steps across it.
+    // The lot centred on (46, 40) spans corners 45–48, rising 3 steps.
     for (let y = 0; y <= 128; y++) {
       s.heights[s.cornerIndex(46, y)] = 4;
       s.heights[s.cornerIndex(47, y)] = 5;
-      s.heights[s.cornerIndex(48, y)] = 4;
+      s.heights[s.cornerIndex(48, y)] = 6;
     }
     const r = runTool(s, tool('residential', 40, 40, 49, 40));
     expect(r.ok).toBe(true);

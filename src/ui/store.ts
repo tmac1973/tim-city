@@ -1,12 +1,16 @@
 import { signal } from '@preact/signals';
 import { type Speed, START_YEAR } from '@/shared/constants';
-import type { BrushSize, CityInfo, GameDate, ToolId } from '@/shared/protocol';
+import type { BrushSize, Census, CityInfo, GameDate, QueryResult, ToolId, Valves } from '@/shared/protocol';
 
 /** UI state shared by components and the input controllers. */
 export const cityInfo = signal<CityInfo | null>(null);
 export const date = signal<GameDate>({ year: START_YEAR, month: 0, tick: 0 });
 export const funds = signal(0);
 export const speed = signal<Speed>('paused');
+export const census = signal<Census | null>(null);
+export const valves = signal<Valves>({ r: 0, c: 0, i: 0 });
+/** The last query tool result, shown in the query panel until closed. */
+export const queryResult = signal<QueryResult | null>(null);
 /** Construction tools, plus the read-only query tool. */
 export type UiTool = ToolId | 'query';
 export const activeTool = signal<UiTool | null>(null);
@@ -35,6 +39,7 @@ export function toast(text: string, tone: Toast['tone'] = 'error', ms = 2600): v
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 export const formatMoney = (value: number): string => money.format(value);
+export const formatCount = (value: number): string => value.toLocaleString('en-US');
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const formatDate = (d: GameDate): string => `${MONTHS[d.month] ?? ''} ${String(d.year)}`;

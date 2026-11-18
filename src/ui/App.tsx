@@ -1,4 +1,6 @@
 import type { Speed } from '@/shared/constants';
+import { QueryPanel } from './QueryPanel';
+import { RciMeter } from './RciMeter';
 import { SpeedControls } from './SpeedControls';
 import { CostTag, Toasts } from './Toasts';
 import { Toolbar } from './Toolbar';
@@ -15,6 +17,8 @@ export function App({ webglError, onSpeed }: AppProps) {
       <TopBar />
       <Toolbar />
       <SpeedControls onSpeed={onSpeed} />
+      <RciMeter />
+      <QueryPanel />
       <Toasts />
       <CostTag />
       {webglError !== null && (

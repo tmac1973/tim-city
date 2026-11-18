@@ -1,10 +1,8 @@
-import { SEA_LEVEL } from '@/shared/constants';
 import { COSTS } from '@/shared/costs';
 import type { ToolCommand } from '@/shared/protocol';
 import { PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneKind, type ZoneType } from '@/shared/tiles';
 import type { CityState } from '../state';
 import { placeFootprint } from './footprint';
-import { applyHeights, checkEdits, type HeightEdits, heightOf, spread, stepCount } from './grade';
 import { fail, type ToolPlan } from './plan';
 
 interface Lot {
@@ -30,42 +28,26 @@ function lotCorners(state: CityState, lot: Lot): number[] {
   return out;
 }
 
+/** Steepest lot a building can stand on: its plinth fills the difference. */
+export const MAX_LOT_SLOPE = 2;
+
 /**
- * Check a lot and level it (into `edits`) for building. Lots may slope by at
- * most one step; they are levelled to the rounded mean height, kept above
- * the water. Returns the extra clearing cost, or why the lot can't be used.
+ * Check a lot for building. Lots are not levelled: a lot may slope up to
+ * two steps and the building stands on a plinth reaching down to its lowest
+ * corner. Returns the clearing cost, or why the lot can't be used.
  */
-function prepareLot(
-  state: CityState,
-  lot: Lot,
-  edits: HeightEdits,
-  buildingOn: Set<number>,
-): { clearing: number } | { reason: string } {
+function checkLot(state: CityState, lot: Lot, taken: Set<number>): { clearing: number } | { reason: string } {
   let clearing = 0;
   for (const i of lot.tiles) {
     const kind = state.tiles[i] ?? 0;
     if (kind === TileKind.Water) return { reason: 'Not on water' };
     if (kind !== TileKind.Empty && kind !== TileKind.Tree && kind !== TileKind.Rubble) return { reason: 'Tile occupied' };
-    if (buildingOn.has(i)) return { reason: 'Overlaps another lot' };
+    if (taken.has(i)) return { reason: 'Overlaps another lot' };
     if (kind !== TileKind.Empty) clearing += COSTS.bulldoze;
   }
-  const corners = lotCorners(state, lot);
-  const heights = corners.map((c) => heightOf(state, edits, c));
-  const lo = Math.min(...heights);
-  const hi = Math.max(...heights);
-  if (hi - lo > 1) return { reason: 'Too steep' };
-
-  if (hi !== lo) {
-    const mean = heights.reduce((a, b) => a + b, 0) / heights.length;
-    const target = Math.max(SEA_LEVEL + 1, Math.round(mean));
-    const trial: HeightEdits = new Map(edits);
-    spread(state, trial, corners.map((c) => [c, target]));
-    const refused = checkEdits(state, trial, new Set([...buildingOn, ...lot.tiles]));
-    if (refused) return { reason: refused.reason };
-    // Spreading must not have tilted a lot accepted earlier in this drag.
-    for (const [c, h] of trial) edits.set(c, h);
-  }
-  for (const i of lot.tiles) buildingOn.add(i);
+  const heights = lotCorners(state, lot).map((c) => state.heights[c] ?? 0);
+  if (Math.max(...heights) - Math.min(...heights) > MAX_LOT_SLOPE) return { reason: 'Too steep' };
+  for (const i of lot.tiles) taken.add(i);
   return { clearing };
 }
 
@@ -80,8 +62,7 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
   const countX = stepX === 0 ? 1 : Math.floor(Math.abs(cmd.x1 - cmd.x0) / ZONE_SIZE) + 1;
   const countY = stepY === 0 ? 1 : Math.floor(Math.abs(cmd.y1 - cmd.y0) / ZONE_SIZE) + 1;
 
-  const edits: HeightEdits = new Map();
-  const buildingOn = new Set<number>();
+  const taken = new Set<number>();
   const accepted: Lot[] = [];
   const tiles: number[] = [];
   const bad: number[] = [];
@@ -99,28 +80,17 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
         continue;
       }
       tiles.push(...lot.tiles);
-      const snapshot = new Map(edits);
-      const prepared = prepareLot(state, lot, edits, buildingOn);
-      if ('reason' in prepared) {
+      const checked = checkLot(state, lot, taken);
+      if ('reason' in checked) {
         bad.push(...lot.tiles);
-        reason ??= prepared.reason;
-        continue;
-      }
-      if (!accepted.every((other) => lotIsLevel(state, edits, other))) {
-        // This lot's levelling disturbed an earlier one; skip it instead.
-        edits.clear();
-        for (const [c, h] of snapshot) edits.set(c, h);
-        for (const t of lot.tiles) buildingOn.delete(t);
-        bad.push(...lot.tiles);
-        reason ??= 'Too steep';
+        reason ??= checked.reason;
         continue;
       }
       accepted.push(lot);
-      cost += COSTS.zone + prepared.clearing;
+      cost += COSTS.zone + checked.clearing;
     }
   }
   if (accepted.length === 0) return fail(reason ?? 'Nothing to zone', tiles, bad);
-  cost += stepCount(state, edits) * COSTS.terraform;
 
   return {
     ok: true,
@@ -128,7 +98,6 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
     tiles,
     bad,
     apply: () => {
-      applyHeights(state, edits);
       for (const lot of accepted) {
         placeFootprint(state, lot.x, lot.y, zoneKind(type, 0));
         markBuilt(state, lot);
@@ -137,11 +106,6 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
       }
     },
   };
-}
-
-function lotIsLevel(state: CityState, edits: HeightEdits, lot: Lot): boolean {
-  const heights = lotCorners(state, lot).map((c) => heightOf(state, edits, c));
-  return Math.max(...heights) === Math.min(...heights);
 }
 
 /** Every tile of a building conducts power. */
@@ -153,18 +117,16 @@ function markBuilt(state: CityState, lot: Lot): void {
 export function planPlant(state: CityState, cmd: ToolCommand, kind: number): ToolPlan {
   const lot = lotAt(state, cmd.x1 - 1, cmd.y1 - 1, PLANT_SIZE);
   if (!lot) return fail('Too close to the edge');
-  const edits: HeightEdits = new Map();
-  const prepared = prepareLot(state, lot, edits, new Set());
-  if ('reason' in prepared) return fail(prepared.reason, lot.tiles, lot.tiles);
+  const checked = checkLot(state, lot, new Set());
+  if ('reason' in checked) return fail(checked.reason, lot.tiles, lot.tiles);
   const price = kind === TileKind.CoalPlant ? COSTS.coalPlant : COSTS.nuclearPlant;
 
   return {
     ok: true,
-    cost: price + prepared.clearing + stepCount(state, edits) * COSTS.terraform,
+    cost: price + checked.clearing,
     tiles: lot.tiles,
     bad: [],
     apply: () => {
-      applyHeights(state, edits);
       placeFootprint(state, lot.x, lot.y, kind);
       markBuilt(state, lot);
     },

@@ -1,8 +1,8 @@
-import type { QueryResult, ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
+import type { ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
 import type { PickResult } from '@/render/picking';
 import type { Renderer } from '@/render/renderer';
 import type { SimBridge } from '@/sim/bridge';
-import { activeTool, brush, costTag, formatMoney, toast, type UiTool } from './store';
+import { activeTool, brush, costTag, formatMoney, queryResult, toast, type UiTool } from './store';
 
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const REPEAT_MS = 250;
@@ -30,7 +30,7 @@ export class ToolController {
     });
     sim.onEvent((event) => {
       if (event.type === 'toolResult') this.onResult(event);
-      else if (event.type === 'queryResult') showQuery(event);
+      else if (event.type === 'queryResult') queryResult.value = event;
     });
     // Re-plan whenever the tool or brush changes.
     const reset = () => {
@@ -158,8 +158,3 @@ export class ToolController {
   }
 }
 
-/** Until phase 07's query panel, a query result shows as a longer info toast. */
-function showQuery(result: QueryResult): void {
-  const lines = result.details.map(([label, value]) => `${label}: ${value}`);
-  toast([result.title, ...lines].join(' · '), 'info', 5000);
-}

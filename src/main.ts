@@ -5,7 +5,7 @@ import { CityMirror } from './render/mirror';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
-import { cityInfo, date, funds, speed, toast } from './ui/store';
+import { census, cityInfo, date, funds, speed, toast, valves } from './ui/store';
 import { ToolController } from './ui/toolController';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -31,6 +31,8 @@ sim.onTick((tick) => {
   date.value = tick.date;
   funds.value = tick.funds;
   speed.value = tick.speed;
+  census.value = tick.census;
+  valves.value = tick.valves;
 });
 
 // Mount the UI even if WebGL fails, so the failure can be reported on screen.
@@ -43,8 +45,8 @@ try {
   });
   new ToolController(canvas, renderer, sim);
   renderer.start();
-  if (import.meta.env.DEV) {
-    // Debug handle for scripted checks in the dev server only.
+  if (import.meta.env.DEV || params.has('debug')) {
+    // Debug handle for scripted checks: the dev server, or any build with ?debug.
     (window as unknown as { __tim: unknown }).__tim = { sim, mirror, renderer };
   }
 } catch (err) {

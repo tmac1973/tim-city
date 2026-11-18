@@ -125,6 +125,8 @@ export interface ChunkSlice {
   id: number;
   tiles: Uint16Array;
   flags: Uint8Array;
+  /** Footprint positions (see CityState.parts); 1 marks a building's top-left tile. */
+  parts: Uint8Array;
   /** 33×33 corner heights covering the chunk's tiles. */
   heights: Uint8Array;
 }

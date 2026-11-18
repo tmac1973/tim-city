@@ -28,6 +28,13 @@ Turn sim zones into a living 3D city. A parametric kit builds 192 low-poly build
 5. Write `RciMeter.tsx` and `QueryPanel.tsx`; route query results to the panel instead of the toast; add population to the top bar.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- **One BatchedMesh** (`src/render/buildings/instances.ts`) holds all 192 zone models, both plants and two plinth sizes, so the whole city is one draw call (plus its shadow pass) instead of one InstancedMesh per variant.
+- **Windows are geometry, not a texture atlas.** Each window is a small proud quad tagged with a `glow` vertex attribute (1 = glass). It stays crisp at every zoom, matches the flat-shaded style, and gives phase 17 its night-lighting mask. `atlas.ts` was not created.
+- **Plinths** fill sloping lots (see the phase 06 note); buildings rise out of the ground over 1.5 s with a dust burst and sink over 0.6 s when demolished. Scaffolding was left out.
+- **Smoke and steam** come from a shared puff particle layer (`particles.ts`) fed by each model's stack positions; plants and heavy industry smoke, cooling towers steam.
+- The playable e2e uses `?debug` (the dev handle is now exposed in any build with that flag) to lay out a site, then checks the population in the top bar.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

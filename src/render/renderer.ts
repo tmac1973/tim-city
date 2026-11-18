@@ -1,4 +1,5 @@
 import { Color, Fog, Raycaster, Scene, Vector2, WebGLRenderer, PCFShadowMap } from 'three';
+import { BuildingLayer } from './buildings/instances';
 import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
@@ -27,6 +28,7 @@ export class Renderer {
   private readonly water: WaterLayer;
   private readonly trees: TreeLayer;
   private readonly networks: NetworkLayer;
+  private readonly buildings: BuildingLayer;
   private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
   private readonly dirty = new Set<number>();
@@ -63,6 +65,7 @@ export class Renderer {
     this.water = new WaterLayer(mirror);
     this.trees = new TreeLayer(mirror);
     this.networks = new NetworkLayer(mirror);
+    this.buildings = new BuildingLayer(mirror);
     this.cursor = new TileCursor(mirror);
     this.preview = new ToolPreview(mirror);
     this.scene.add(
@@ -70,6 +73,7 @@ export class Renderer {
       this.water.group,
       this.trees.group,
       this.networks.group,
+      this.buildings.group,
       this.cursor.line,
       this.preview.mesh,
     );
@@ -110,6 +114,7 @@ export class Renderer {
       this.water.rebuild(id);
       this.trees.rebuild(id);
       this.networks.rebuild(id);
+      this.buildings.rebuild(id);
     }
     this.dirty.clear();
     this.trees.flush();
@@ -118,6 +123,7 @@ export class Renderer {
     cam.update(dt);
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
     this.water.update(this.elapsed, this.lighting.sunDir);
+    this.buildings.update(dt);
     this.post.setView(cam.zoom, cam.topDown);
     this.updateHover();
     this.post.render(dt);

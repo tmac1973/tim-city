@@ -20,7 +20,7 @@ function post(message: WorkerToMain, transfer: Transferable[] = []): void {
 /** Ship dirty chunks and the current date, then any events. */
 function publish(current: Simulation): void {
   const chunks = takeDirtyChunks(current.state);
-  const transfer = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.heights.buffer]);
+  const transfer = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.parts.buffer, c.heights.buffer]);
   post(
     {
       type: 'tick',

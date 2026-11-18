@@ -36,6 +36,7 @@ Add the heart of the classic simulation. The player places coal and nuclear powe
 ## Implementation notes (changed during build)
 - **Demand formulas rebalanced.** The planned targets gave negative residential demand in an empty city (0 jobs ÷ 0 residents) and capped growth near 6,000 people. Implemented instead (`src/sim/systems/demand.ts`): each sector chases a desired size — residents ≈ 1.1 × jobs + 600, commercial ≈ 0.35 × residents + 50, industrial ≈ 0.75 × residents + 300 — and the valve target is the gap as a share of the desired size, scaled to ±2000, minus the tax term. Valves close 20% of the gap per month.
 - **Growth thresholds.** Grow when score > 50 + 60 × density, shrink when score < −(150 + 60 × density), each with a 25% monthly chance.
+- **Lots are not levelled** (changed in phase 07): adjacent lots share edge corners, so levelling each lot broke its neighbours and most painted blocks failed on rolling land. A lot may now slope up to 2 steps; the building stands at the lot's highest corner on a stone plinth reaching the lowest. No earthwork cost.
 - **Zones are painted by dragging**: lots are laid every 3 tiles across the drag; unusable lots are skipped and shown red while the rest are built. Plants are single 4×4 placements around the clicked tile.
 - A 20-year headless run of a starter city grows to ~3,700 residents and then waits for more job zones (C and I demand stay high); an under-powered grid browns out and shrinks, as intended.
 
