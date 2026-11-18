@@ -6,6 +6,7 @@ import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { stopEntry } from '../systems/transit';
 import { planBlock } from './block';
+import { planLiftTrack, planSubway, planSubwayStation } from './subway';
 import { planBulldoze } from './bulldoze';
 import { planNetwork } from './network';
 import { planBuilding, planParks, planZones } from './place';
@@ -28,7 +29,13 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
       plan = planNetwork(state, cmd, cmd.tool);
       break;
     case 'bulldoze':
-      plan = planBulldoze(state, cmd);
+      plan = cmd.underground ? planLiftTrack(state, cmd) : planBulldoze(state, cmd);
+      break;
+    case 'subway':
+      plan = planSubway(state, cmd);
+      break;
+    case 'subwayStation':
+      plan = planSubwayStation(state, cmd);
       break;
     case 'raise':
     case 'lower':

@@ -53,6 +53,8 @@ export const migrations: Record<number, (save: RawSave) => RawSave> = {
   },
   // 4 → 5: landmarks. No tourists yet; the new coverage fields start empty.
   4: (save) => ({ ...save, header: { ...save.header, tourism: 0 } }),
+  // 5 → 6: subway. No track yet; the empty layer is made on load.
+  5: (save) => save,
 };
 
 export function migrate(save: RawSave, target: number): RawSave {

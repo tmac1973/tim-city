@@ -32,6 +32,9 @@ export const COSTS = {
   airport: 10000,
   waterTower: 600,
   busStop: 150,
+  /** Per tile of subway track. */
+  subway: 40,
+  subwayStation: 800,
   landfill: 1000,
   cityHall: 3000,
   hospital: 2500,
@@ -48,6 +51,9 @@ export const COSTS = {
 /** Running costs a month, at full funding. */
 export const UPKEEP = {
   busStop: 5,
+  /** Per tile of track. */
+  subway: 1,
+  subwayStation: 20,
   waterTower: 20,
   landfill: 30,
   cityHall: 50,

@@ -51,6 +51,7 @@ export function emptyCensus(): Census {
     tourism: 0,
     busStops: 0,
     busRiders: 0,
+    subwayRiders: 0,
   };
 }
 
@@ -81,8 +82,11 @@ export class CityState {
   readonly busLane: Uint8Array;
   /** Stop pairs joined by a bus route. */
   busLinks: [number, number][] = [];
-  /** Trips so far this month that rode a bus. */
+  /** Trips so far this month that rode a bus, and the subway. */
   busRiders = 0;
+  subwayRiders = 0;
+  /** 1 where subway track runs under the tile; the surface above is untouched. */
+  readonly subway: Uint8Array;
   /** Named 2×2-block fields ((size/2)²), filled by later phases. */
   readonly blockFields: Record<string, Uint8Array> = {};
 
@@ -162,6 +166,7 @@ export class CityState {
     this.parts = new Uint8Array(size * size);
     this.zoneTier = new Uint8Array(size * size);
     this.busLane = new Uint8Array(size * size);
+    this.subway = new Uint8Array(size * size);
     this.densityAtYearStart = new Uint8Array(size * size);
     this.serviceMap = new Uint8Array(size * size);
     this.fireTicks = new Uint8Array(size * size);

@@ -129,3 +129,17 @@ export function busShelter(): Variant {
   k.block(0.4, 0.35, 0.16, 0.02, 0.45, 0.12, 0x2e86de);
   return done(k);
 }
+
+/** 1×1 subway entrance facing the road on its +z side: a stairwell with railings and a round blue sign. */
+export function subwayEntrance(): Variant {
+  const k = new Kit();
+  k.ground(-0.48, -0.48, 0.48, 0.48, 0xb9b4a8);
+  // The dark stairwell, sunk into the pavement.
+  k.ground(-0.2, -0.3, 0.2, 0.25, 0x2b2f35, 0.02);
+  for (const x of [-0.23, 0.23]) k.block(x, -0.03, 0.03, 0.56, 0, 0.18, 0x6d737b);
+  k.block(0, -0.32, 0.5, 0.03, 0, 0.18, 0x6d737b);
+  k.cylinder(0.36, 0.34, 0.025, 0, 0.6, 0x6d737b, 5);
+  k.cylinder(0.36, 0.34, 0.11, 0.6, 0.03, 0x2e86de, 12);
+  k.block(0.36, 0.34, 0.06, 0.035, 0.605, 0.02, 0xffffff);
+  return done(k);
+}

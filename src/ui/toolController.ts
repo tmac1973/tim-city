@@ -5,7 +5,7 @@ import type { PickResult } from '@/render/picking';
 import type { Renderer } from '@/render/renderer';
 import type { SimBridge } from '@/sim/bridge';
 import { TIER_NAMES } from '@/shared/tiles';
-import { activeTool, blockFill, brush, costTag, formatMoney, queryResult, toast, type UiTool, zoneTier } from './store';
+import { activeTool, blockFill, brush, undergroundView, costTag, formatMoney, queryResult, toast, type UiTool, zoneTier } from './store';
 
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const ZONES = new Set<UiTool>(['residential', 'commercial', 'industrial']);
@@ -57,6 +57,7 @@ export class ToolController {
     brush.subscribe(reset);
     zoneTier.subscribe(reset);
     blockFill.subscribe(reset);
+    undergroundView.subscribe(reset);
     this.listen();
   }
 
@@ -93,6 +94,7 @@ export class ToolController {
       tunnel: this.shift,
       ...(ZONES.has(tool) || tool === 'block' ? { tier: zoneTier.value } : {}),
       ...(tool === 'block' && blockFill.value !== null ? { fill: blockFill.value } : {}),
+      ...(tool === 'bulldoze' && undergroundView.value ? { underground: true } : {}),
       dryRun,
       requestId: this.requestId,
     };

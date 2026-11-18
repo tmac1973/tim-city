@@ -49,6 +49,7 @@ export function takeCensus(state: CityState): void {
   census.utilityRules = utilityRulesActive(state);
   census.tourism = state.tourism;
   census.busRiders = state.busRiders;
+  census.subwayRiders = state.subwayRiders;
   state.census = census;
 }
 

@@ -9,7 +9,7 @@ import { HEIGHT_UNIT } from '../units';
 import { PuffLayer } from './particles';
 import { Kit } from './kit';
 import { coalPlant, gasPlant, nuclearPlant, oilPlant, rotorGeometry, solarFarm, TURBINE_HUB, windTurbine } from './plants';
-import { busShelter, fireStation, landfill, largePark, park, policeStation, waterTower } from './services';
+import { busShelter, fireStation, subwayEntrance, landfill, largePark, park, policeStation, waterTower } from './services';
 import { airport, amusementPark, cityHall, clockTower, FERRIS_HUB, ferrisWheel, hospital, museum, seaport, stadium, statue, timSign, university, zoo } from './specials';
 import { stopEntry } from '@/sim/systems/transit';
 import { waterSide } from '@/sim/tools/place';
@@ -43,6 +43,7 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.ClockTower]: -28,
   [TileKind.TimSign]: -29,
   [TileKind.BusStop]: -30,
+  [TileKind.SubwayStation]: -31,
 };
 const PARK_KEY = -26;
 /** The Ferris wheel turns slowly, in radians a second. */
@@ -166,6 +167,7 @@ export class BuildingLayer {
       [TileKind.ClockTower]: clockTower(),
       [TileKind.TimSign]: timSign(),
       [TileKind.BusStop]: busShelter(),
+      [TileKind.SubwayStation]: subwayEntrance(),
     };
     for (const [kind, model] of Object.entries(models)) {
       const key = BUILDING_KEYS[Number(kind)];
@@ -403,7 +405,7 @@ export class BuildingLayer {
     const instanceId = this.mesh.addInstance(geometryId);
     const { bottom, top } = this.lotHeights(tx, ty, size);
     const position = new Vector3(tx + size / 2, top, ty + size / 2);
-    const side = key === BUILDING_KEYS[TileKind.Seaport] ? waterSide(this.mirror, tx, ty, size) : key === BUILDING_KEYS[TileKind.BusStop] ? roadSide(this.mirror, origin) : null;
+    const side = key === BUILDING_KEYS[TileKind.Seaport] ? waterSide(this.mirror, tx, ty, size) : key === BUILDING_KEYS[TileKind.BusStop] || key === BUILDING_KEYS[TileKind.SubwayStation] ? roadSide(this.mirror, origin) : null;
     const turns = side !== null ? (QUAY_TURNS[side] ?? 0) : Math.floor(hash3(tx, ty, 6) * 4);
     const rotation = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), (turns * Math.PI) / 2);
     const shade = 0.9 + 0.2 * hash3(tx, ty, 7);

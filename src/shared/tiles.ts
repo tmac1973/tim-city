@@ -35,6 +35,8 @@ export const TileKind = {
   RailTunnel: 26,
   /** A bus stop beside a road (not itself a road). */
   BusStop: 27,
+  /** A subway station entrance: links the road beside it to the track below. */
+  SubwayStation: 28,
 
   CoalPlant: 64,
   NuclearPlant: 65,
@@ -100,8 +102,10 @@ const NET_RAIL = 2;
 const NET_POWER = 4;
 const NET_BRIDGE = 8;
 const NET_TUNNEL = 16;
+/** Trips may pass through it like a road (subway stations). */
+const NET_STATION = 32;
 const NETWORK_BITS = new Uint8Array(1024);
-for (const [set, bit] of [[ROAD, NET_ROAD], [RAIL, NET_RAIL], [POWER, NET_POWER], [BRIDGE, NET_BRIDGE], [TUNNEL, NET_TUNNEL]] as const) {
+for (const [set, bit] of [[ROAD, NET_ROAD], [RAIL, NET_RAIL], [POWER, NET_POWER], [BRIDGE, NET_BRIDGE], [TUNNEL, NET_TUNNEL], [new Set<number>([TileKind.SubwayStation]), NET_STATION]] as const) {
   for (const kind of set) NETWORK_BITS[kind] = (NETWORK_BITS[kind] ?? 0) | bit;
 }
 
@@ -110,8 +114,8 @@ export const isRail = (kind: number): boolean => ((NETWORK_BITS[kind] ?? 0) & NE
 export const isPower = (kind: number): boolean => ((NETWORK_BITS[kind] ?? 0) & NET_POWER) !== 0;
 export const isBridge = (kind: number): boolean => ((NETWORK_BITS[kind] ?? 0) & NET_BRIDGE) !== 0;
 export const isTunnel = (kind: number): boolean => ((NETWORK_BITS[kind] ?? 0) & NET_TUNNEL) !== 0;
-/** Road or rail: anything a trip can travel on. */
-export const isTransportKind = (kind: number): boolean => ((NETWORK_BITS[kind] ?? 0) & (NET_ROAD | NET_RAIL)) !== 0;
+/** Road, rail or a subway station: anything a trip can travel on. */
+export const isTransportKind = (kind: number): boolean => ((NETWORK_BITS[kind] ?? 0) & (NET_ROAD | NET_RAIL | NET_STATION)) !== 0;
 export const isNetwork = (kind: number): boolean => kind >= 16 && kind <= 63;
 
 export function carries(kind: number, network: Network): boolean {
@@ -213,6 +217,7 @@ export const WATER_TOWER_SIZE = 2;
 export const LANDFILL_SIZE = 4;
 registerFootprint(TileKind.WaterTower, WATER_TOWER_SIZE);
 registerFootprint(TileKind.BusStop, 1);
+registerFootprint(TileKind.SubwayStation, 1);
 registerFootprint(TileKind.Landfill, LANDFILL_SIZE);
 
 /** Landmark kinds and their footprints. */

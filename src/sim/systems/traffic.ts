@@ -1,6 +1,6 @@
 import { TICKS_PER_MONTH } from '@/shared/constants';
 import { isRoad, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
-import { isTransport, stepCost } from '../graph';
+import { isTransport, stepCost, subwayCost, TRANSFER_COST } from '../graph';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { BUS_LOAD_SHARE, buildBusLanes, busLaneCost, nearStop } from './transit';
@@ -72,9 +72,10 @@ class TripSearch {
   private trip = 0;
 
   constructor(private readonly size: number) {
-    this.dist = new Float32Array(size * size);
-    this.parent = new Int32Array(size * size);
-    this.stamp = new Uint32Array(size * size);
+    // Two layers of nodes: the surface, then the subway track under it (size² + tile).
+    this.dist = new Float32Array(2 * size * size);
+    this.parent = new Int32Array(2 * size * size);
+    this.stamp = new Uint32Array(2 * size * size);
     this.blockStamp = new Uint32Array((size >> 1) * (size >> 1));
   }
 
@@ -83,7 +84,8 @@ class TripSearch {
     this.trip++;
     // A block takes the trip's load once, from its first road tile on the path.
     for (const t of path) {
-      if (!isRoad(state.tiles[t] ?? 0)) continue;
+      // Underground legs add no road traffic.
+      if (t >= state.size * state.size || !isRoad(state.tiles[t] ?? 0)) continue;
       const b = state.blockIndex(t % state.size, Math.floor(t / state.size));
       if (this.blockStamp[b] === this.trip) continue;
       this.blockStamp[b] = this.trip;
@@ -107,19 +109,36 @@ class TripSearch {
     this.heapSize = 0;
     for (const s of starts) this.visit(s, 0, -1);
     let expansions = 0;
+    const total = this.size * this.size;
+    const ride = subwayCost(state);
+    const { subway, tiles } = state;
     while (this.heapSize > 0 && expansions < maxExpansions) {
       const [node, cost] = this.pop();
       if (cost > (this.dist[node] ?? Infinity)) continue;
       expansions++;
-      if ((service[node] ?? 0) & want) return this.path(node);
+      const under = node >= total;
+      const tile = under ? node - total : node;
+      // Trips end on the surface.
+      if (!under && (service[node] ?? 0) & want) return this.path(node);
       // Four neighbours, without allocating: west, east, north, south.
-      const x = node % this.size;
-      const total = this.size * this.size;
+      const x = tile % this.size;
       for (let d = 0; d < 4; d++) {
-        const n = d === 0 ? (x > 0 ? node - 1 : -1) : d === 1 ? (x < this.size - 1 ? node + 1 : -1) : d === 2 ? node - this.size : node + this.size;
-        if (n < 0 || n >= total || !isTransport(state, n)) continue;
+        const n = d === 0 ? (x > 0 ? tile - 1 : -1) : d === 1 ? (x < this.size - 1 ? tile + 1 : -1) : d === 2 ? tile - this.size : tile + this.size;
+        if (n < 0 || n >= total) continue;
+        if (under) {
+          if (subway[n] !== 1) continue;
+          const next = cost + ride;
+          if (next <= maxCost) this.visit(n + total, next, node);
+          continue;
+        }
+        if (!isTransport(state, n)) continue;
         const next = cost + stepCost(state, node, n, busCost);
         if (next <= maxCost) this.visit(n, next, node);
+      }
+      // Down to the track, or up to the street, at a station.
+      if (tiles[tile] === TileKind.SubwayStation && subway[tile] === 1) {
+        const next = cost + TRANSFER_COST;
+        if (next <= maxCost) this.visit(under ? tile : tile + total, next, node);
       }
     }
     return null;
@@ -209,6 +228,7 @@ export function runTrip(state: CityState, i: number, loadScale = 1): boolean {
   const path = starts.length > 0 ? search.find(state, starts, WANTS[zone.type], service, MAX_TRIP_COST, MAX_EXPANSIONS, bus ? busLaneCost(state) : 0) : null;
   if (!path) return false;
   if (bus && path.some((t) => state.busLane[t] === 1)) state.busRiders++;
+  if (path.some((t) => t >= state.size * state.size)) state.subwayRiders++;
   const traffic = state.field('traffic');
   const load = zone.density * TRAFFIC_PER_LEVEL * loadScale;
   // Each block the trip drives through takes its load once.
@@ -262,6 +282,7 @@ export const trafficSystem: System = {
       buildServiceMap(state);
       buildBusLanes(state);
       state.busRiders = 0;
+      state.subwayRiders = 0;
     }
     const { size, flags } = state;
     const period = tripPeriod(size);

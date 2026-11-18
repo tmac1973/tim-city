@@ -31,6 +31,7 @@ const KIND_RGB: Partial<Record<number, Rgb>> = {
   [TileKind.ClockTower]: [165, 90, 65],
   [TileKind.TimSign]: [255, 245, 215],
   [TileKind.BusStop]: [46, 134, 222],
+  [TileKind.SubwayStation]: [46, 134, 222],
   [TileKind.PoliceStation]: [60, 90, 200],
   [TileKind.FireStation]: [210, 60, 50],
   [TileKind.Stadium]: [230, 230, 225],

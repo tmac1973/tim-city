@@ -15,6 +15,8 @@ export const Changed = {
   NETWORK: 32,
   /** A tree or water tile appeared or went (terrain, water and tree layers). */
   NATURE: 64,
+  /** Subway track was laid or lifted. */
+  SUBWAY: 128,
 } as const;
 
 const isNetworkKind = (k: number) => k >= 16 && k <= 63;
@@ -29,6 +31,8 @@ export class CityMirror {
   readonly flags: Uint8Array;
   readonly parts: Uint8Array;
   readonly zoneTier: Uint8Array;
+  /** 1 where subway track runs under the tile. */
+  readonly subway: Uint8Array;
   readonly heights: Uint8Array;
   private readonly listeners = new Set<ChunkListener>();
 
@@ -38,6 +42,7 @@ export class CityMirror {
     this.flags = new Uint8Array(size * size);
     this.parts = new Uint8Array(size * size);
     this.zoneTier = new Uint8Array(size * size);
+    this.subway = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
   }
 
@@ -62,6 +67,7 @@ export class CityMirror {
           const flag = chunk.flags[j] ?? 0;
           const part = chunk.parts[j] ?? 0;
           const tier = chunk.zoneTier[j] ?? 0;
+          const track = chunk.subway[j] ?? 0;
           const oldFlag = this.flags[i] ?? 0;
           const old = this.tiles[i] ?? 0;
           if (old !== tile) {
@@ -79,6 +85,8 @@ export class CityMirror {
           this.flags[i] = flag;
           this.parts[i] = part;
           this.zoneTier[i] = tier;
+          if (this.subway[i] !== track) changed |= Changed.SUBWAY;
+          this.subway[i] = track;
         }
       }
       const side = CHUNK_SIZE + 1;

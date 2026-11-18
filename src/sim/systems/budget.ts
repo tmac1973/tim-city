@@ -54,6 +54,8 @@ export function computeLedger(state: CityState): Ledger {
   let fire = 0;
   let utilities = 0;
   let stops = 0;
+  let track = 0;
+  let stations = 0;
   for (let i = 0; i < size * size; i++) {
     const kind = tiles[i] ?? 0;
     if (isRoad(kind)) roadTiles++;
@@ -61,6 +63,8 @@ export function computeLedger(state: CityState): Ledger {
     if (parts[i] === 1 && kind === TileKind.PoliceStation) police++;
     if (parts[i] === 1 && kind === TileKind.FireStation) fire++;
     if (kind === TileKind.BusStop) stops++;
+    if (kind === TileKind.SubwayStation) stations++;
+    if (state.subway[i] === 1) track++;
     if (parts[i] === 1 && kind === TileKind.WaterTower) utilities += UPKEEP.waterTower;
     if (parts[i] === 1 && kind === TileKind.Landfill) utilities += UPKEEP.landfill;
     if (!((flags[i] ?? 0) & TileFlag.ZONE_CENTER)) continue;
@@ -82,7 +86,8 @@ export function computeLedger(state: CityState): Ledger {
   ledger.fire = Math.round((fire * STATION_UPKEEP * state.funding.fire) / 100);
   // Utility upkeep is monthly; the ledger is yearly.
   ledger.utilities = Math.round((utilities * MONTHS_PER_YEAR * state.funding.utilities) / 100);
-  ledger.transit = Math.round((stops * UPKEEP.busStop * MONTHS_PER_YEAR * state.funding.transit) / 100);
+  const transit = stops * UPKEEP.busStop + track * UPKEEP.subway + stations * UPKEEP.subwayStation;
+  ledger.transit = Math.round((transit * MONTHS_PER_YEAR * state.funding.transit) / 100);
   ledger.landmarks = landmarkUpkeep(state, UPKEEP) * MONTHS_PER_YEAR;
   ledger.tourism = state.tourism * MONTHS_PER_YEAR;
   ledger.bonds = state.bonds.reduce((sum, b) => sum + bondPayment(b), 0);

@@ -1,4 +1,4 @@
-import { Color, Fog, Raycaster, Scene, Vector2, WebGLRenderer, PCFShadowMap } from 'three';
+import { Color, Fog, type Material, PCFShadowMap, Raycaster, Scene, Vector2, WebGLRenderer } from 'three';
 import { QUALITY, type QualityName, type QualityPreset } from '@/shared/settings';
 import { AgentLayer } from './agents';
 import { AGENT_SCALE } from './agents/budget';
@@ -18,6 +18,7 @@ import { pickTile, type PickResult } from './picking';
 import { PostFx } from './post';
 import { TerrainLayer } from './terrain';
 import { LotGuide } from './lotGuide';
+import { UndergroundLayer } from './underground';
 import { ToolPreview } from './toolPreview';
 import { TreeLayer } from './trees';
 import { WaterLayer } from './water';
@@ -34,6 +35,8 @@ export class Renderer {
   readonly preview: ToolPreview;
   /** Zone lots that would fit beside the road being drawn. */
   readonly lotGuide: LotGuide;
+  /** Subway track, stations and trains, shown in the underground view. */
+  readonly underground: UndergroundLayer;
 
   private readonly webgl: WebGLRenderer;
   private readonly post: PostFx;
@@ -108,6 +111,7 @@ export class Renderer {
     this.cursor = new TileCursor(mirror);
     this.preview = new ToolPreview(mirror);
     this.lotGuide = new LotGuide(mirror);
+    this.underground = new UndergroundLayer(mirror);
     this.scene.add(
       this.terrain.group,
       this.water.group,
@@ -122,6 +126,7 @@ export class Renderer {
       this.cursor.line,
       this.preview.mesh,
       this.lotGuide.lines,
+      this.underground.group,
     );
     this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera, preset);
     this.applyScales(preset);
@@ -137,10 +142,38 @@ export class Renderer {
 
   /** Show a data overlay (null: none); buildings and trees fade while one is on. */
   setOverlay(name: OverlayName | null): void {
-    this.overlay.setActive(name);
-    this.terrain.drapes.visible = name !== null;
-    this.buildings.setFade(name !== null);
-    this.trees.setFade(name !== null);
+    this.overlayName = name;
+    this.overlay.setActive(this.undergroundOn ? null : name);
+    this.terrain.drapes.visible = name !== null && !this.undergroundOn;
+    this.buildings.setFade(name !== null || this.undergroundOn);
+    this.trees.setFade(name !== null || this.undergroundOn);
+  }
+
+  private overlayName: OverlayName | null = null;
+  private undergroundOn = false;
+
+  /**
+   * The underground view: the surface fades to a quarter, water hides, data
+   * overlays step aside, and the subway network shows in its own colours.
+   */
+  setUnderground(on: boolean): void {
+    if (on === this.undergroundOn) return;
+    this.undergroundOn = on;
+    for (const group of [this.terrain.group, this.networks.group]) {
+      group.traverse((o) => {
+        const found = (o as { material?: Material | Material[] }).material;
+        if (!found) return;
+        for (const material of Array.isArray(found) ? found : [found]) {
+          material.transparent = on;
+          material.opacity = on ? 0.25 : 1;
+          material.depthWrite = !on;
+          material.needsUpdate = true;
+        }
+      });
+    }
+    this.water.group.visible = !on;
+    this.underground.setVisible(on);
+    this.setOverlay(this.overlayName);
   }
 
   /**
@@ -261,6 +294,7 @@ export class Renderer {
       this.buildings.rebuild(id);
       if (changed & (Changed.TILES | Changed.FLAGS | Changed.HEIGHTS)) this.fx.rebuild(id);
       if (changed & (Changed.FLAGS | Changed.PARTS)) flagsChanged = true;
+      if (changed & (Changed.SUBWAY | Changed.TILES | Changed.HEIGHTS)) this.underground.markDirty();
     }
     if (flagsChanged) this.overlay.refreshTiles();
     this.trees.flush();
@@ -272,6 +306,7 @@ export class Renderer {
     this.atmosphere.update(dt, cam.camera.position, cam.target, cam.distance);
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
     this.water.update(this.elapsed, this.lighting.sunDir, this.lighting.sun.color.clone().multiplyScalar(this.lighting.sun.intensity / 2.6));
+    this.underground.update(dt, this.agents.paused);
     this.buildings.updateLod(dt, cam.camera.position);
     this.buildings.update(dt);
     this.fx.update(dt, cam.target);

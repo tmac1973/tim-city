@@ -4,7 +4,7 @@ import { TileFlag, TileKind, ZoneType, zoneKind } from '@/shared/tiles';
 import { Changed, CityMirror } from './mirror';
 
 const slice = (edit: (s: ChunkSlice) => void = () => undefined): ChunkSlice => {
-  const s: ChunkSlice = { id: 0, tiles: new Uint16Array(1024), flags: new Uint8Array(1024), parts: new Uint8Array(1024), zoneTier: new Uint8Array(1024), heights: new Uint8Array(33 * 33) };
+  const s: ChunkSlice = { id: 0, tiles: new Uint16Array(1024), flags: new Uint8Array(1024), parts: new Uint8Array(1024), zoneTier: new Uint8Array(1024), subway: new Uint8Array(1024), heights: new Uint8Array(33 * 33) };
   edit(s);
   return s;
 };

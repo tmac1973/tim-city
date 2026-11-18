@@ -29,6 +29,7 @@ import {
   currentSlot,
   date,
   classReached,
+  undergroundView,
   evaluation,
   following,
   formatDate,
@@ -216,6 +217,12 @@ async function start(): Promise<void> {
     activeDisasters.subscribe((list) => {
       r.fx.setActive(list);
     });
+    // The underground view shows while V has it on or a subway tool is picked.
+    const showUnderground = () => {
+      r.setUnderground(undergroundView.value || activeTool.value === 'subway' || activeTool.value === 'subwayStation');
+    };
+    undergroundView.subscribe(showUnderground);
+    activeTool.subscribe(showUnderground);
     overlay.subscribe((name) => {
       r.setOverlay(name);
       // Power and zoning come from the tile mirror; every other overlay needs its field streamed.

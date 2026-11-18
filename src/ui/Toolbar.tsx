@@ -22,6 +22,7 @@ import {
   effectiveUiScale,
   settingsOpen,
   toast,
+  undergroundView,
   zoneTier,
   type UiTool,
   uiScale,
@@ -62,6 +63,8 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
   {
     label: 'Transit',
     tools: [
+      { id: 'subway', name: 'Subway', key: '', code: '', cost: price(COSTS.subway, '/tile'), hint: 'Drag track underground; it passes under anything. Trips ride it between stations. Press V to see underground.' },
+      { id: 'subwayStation', name: 'Subway station', key: '', code: '', cost: price(COSTS.subwayStation), hint: 'Place beside a road, on the track (or it lays a tile of track). Trips get on and off here.' },
       { id: 'busStop', name: 'Bus stop', key: 'Y', code: 'KeyY', cost: price(COSTS.busStop), hint: `Place beside a road. Stops within ${String(BUS_LINK_TILES)} road tiles link into a bus route; homes and shops within ${String(BUS_BOARD_TILES)} tiles of a stop ride it, and add fewer cars.` },
     ],
   },
@@ -281,6 +284,10 @@ export function Toolbar() {
           return;
         }
         if (!budgetOpen.value && !gameOver.value) pauseOpen.value = !pauseOpen.value;
+        return;
+      }
+      if (e.code === 'KeyV' && !e.shiftKey) {
+        undergroundView.value = !undergroundView.value;
         return;
       }
       if (e.code === 'BracketLeft' || e.code === 'BracketRight') {

@@ -28,6 +28,8 @@ export type ToolId =
   | 'road'
   | 'block'
   | 'busStop'
+  | 'subway'
+  | 'subwayStation'
   | 'rail'
   | 'power'
   | 'bulldoze'
@@ -79,6 +81,8 @@ export interface ToolCommand {
   brush: BrushSize;
   /** Shift held: road/rail drags bore a tunnel. */
   tunnel: boolean;
+  /** Bulldoze in the underground view: clear subway track instead of the surface. */
+  underground?: boolean;
   /** Zone tools: the density tier to paint (ZoneTier; medium when absent). */
   tier?: number;
   /** Block tool: the zone type to paint inside the ring (ZoneType), or absent for road only. */
@@ -307,6 +311,8 @@ export interface Census {
   busStops: number;
   /** Trips this month that rode a bus for part of the way. */
   busRiders: number;
+  /** Trips this month that rode the subway for part of the way. */
+  subwayRiders: number;
 }
 
 /** R, C, I demand, each −2000 … +2000. */
@@ -325,6 +331,8 @@ export interface ChunkSlice {
   parts: Uint8Array;
   /** ZoneTier per tile (see CityState.zoneTier). */
   zoneTier: Uint8Array;
+  /** 1 where subway track runs under the tile. */
+  subway: Uint8Array;
   /** 33×33 corner heights covering the chunk's tiles. */
   heights: Uint8Array;
 }

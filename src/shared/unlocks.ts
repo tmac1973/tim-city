@@ -18,6 +18,8 @@ let UNLOCKS: readonly Unlock[] = [
   { tool: 'cityHall', name: 'City Hall', cityClass: 1 },
   { tool: 'statue', name: 'Statue', cityClass: 1 },
   { tool: 'oil', name: 'Oil plant', cityClass: 2 },
+  { tool: 'subway', name: 'Subway', cityClass: 2 },
+  { tool: 'subwayStation', name: 'Subway station', cityClass: 2 },
   { tool: 'museum', name: 'Museum', cityClass: 2 },
   { tool: 'zoo', name: 'Zoo', cityClass: 2 },
   { tool: 'clockTower', name: 'Clock tower', cityClass: 2 },

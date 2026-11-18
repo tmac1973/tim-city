@@ -150,6 +150,8 @@ export const brush = signal<BrushSize>(3);
 export const zoneTier = signal(1);
 /** Zone type the Block tool paints inside its ring (ZoneType), or null for road only. */
 export const blockFill = signal<number | null>(null);
+/** The underground view, toggled with V (it also shows while a subway tool is picked). */
+export const undergroundView = signal(false);
 /** The toolbar category whose flyout is open. */
 export const openCategory = signal<string | null>(null);
 /** The tool last picked in each toolbar category, shown on its button. */

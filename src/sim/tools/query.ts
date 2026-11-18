@@ -28,6 +28,7 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.RoadTunnel]: 'Road tunnel',
   [TileKind.RailTunnel]: 'Rail tunnel',
   [TileKind.BusStop]: 'Bus stop',
+  [TileKind.SubwayStation]: 'Subway station',
   [TileKind.CoalPlant]: 'Coal power plant',
   [TileKind.NuclearPlant]: 'Nuclear power plant',
   [TileKind.SolarFarm]: 'Solar farm',
@@ -114,6 +115,12 @@ function trafficLabel(value: number): string {
 
 /** Describe a tile for the query tool. Never changes state. */
 export function queryTile(state: CityState, x: number, y: number, requestId: number): QueryResult {
+  const result = describeTile(state, x, y, requestId);
+  if (state.inBounds(x, y) && state.subway[state.index(x, y)] === 1) result.details.push(['Subway', 'Track runs below']);
+  return result;
+}
+
+function describeTile(state: CityState, x: number, y: number, requestId: number): QueryResult {
   const result: QueryResult = { type: 'queryResult', requestId, x, y, title: 'Off the map', details: [] };
   if (!state.inBounds(x, y)) return result;
   const i = state.index(x, y);
@@ -159,6 +166,10 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
       details.push(['Sun', state.overcast ? 'Overcast month −40%' : 'Clear month']);
     }
     details.push(['City load', `${String(state.census.powerDemand)} of ${String(state.census.powerSupply)} units`]);
+  } else if (kind === TileKind.SubwayStation) {
+    details.push(['Track', state.subway[i] === 1 ? 'Yes' : 'None: lay subway track under the station']);
+    details.push(['Riders', `${state.census.subwayRiders.toLocaleString('en-US')} trips last month (city)`]);
+    details.push(['Funding', `${String(state.funding.transit)}%`]);
   } else if (kind === TileKind.BusStop) {
     const linked = state.busLinks.filter(([a, b]) => a === i || b === i).length;
     details.push(['Routes', linked === 0 ? `None: build another stop within ${String(BUS_LINK_TILES)} road tiles` : `Linked to ${String(linked)} ${linked === 1 ? 'stop' : 'stops'}`]);

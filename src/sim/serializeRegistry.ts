@@ -4,7 +4,7 @@ import { EXTRA_FIELD_NAMES, FIELD_NAMES, type CityState } from './state';
  * Save-format version. Bump it whenever the registry or header changes and
  * add a migration in migrate.ts that turns the previous version into this one.
  */
-export const FORMAT_VERSION = 5;
+export const FORMAT_VERSION = 6;
 
 /**
  * Every typed array a city owns, in the fixed order they are written. New
@@ -25,6 +25,8 @@ export function savedArrays(state: CityState): [string, Uint8Array | Uint16Array
     ['zoneTier', state.zoneTier],
     // Version 4: water and garbage; version 5 adds health and education.
     ...EXTRA_FIELD_NAMES.map((name): [string, Uint8Array] => [`field:${name}`, state.field(name)]),
+    // Version 6: subway track.
+    ['subway', state.subway],
   ];
 }
 
@@ -54,6 +56,7 @@ export function savedHeader(state: CityState): Record<string, unknown> {
     utilityGraceUntil: state.utilityGraceUntil,
     tourism: state.tourism,
     busRiders: state.busRiders,
+    subwayRiders: state.subwayRiders,
     // This month's bus routes, as built at its start (rebuilt monthly, so kept as a short list).
     busLanes: state.busLane.reduce<number[]>((out, v, i) => (v ? (out.push(i), out) : out), []),
     busLinks: state.busLinks,

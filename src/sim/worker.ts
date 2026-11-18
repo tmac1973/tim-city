@@ -30,7 +30,7 @@ function post(message: WorkerToMain, transfer: Transferable[] = []): void {
 /** Ship dirty chunks and the current date, then any events. */
 function publish(current: Simulation): void {
   const chunks = takeDirtyChunks(current.state);
-  const transfer: Transferable[] = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.parts.buffer, c.zoneTier.buffer, c.heights.buffer]);
+  const transfer: Transferable[] = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.parts.buffer, c.zoneTier.buffer, c.subway.buffer, c.heights.buffer]);
   // Fields settle by the month's last tick, so that is when an overlay refreshes.
   let field: { name: FieldName; data: Uint8Array } | undefined;
   if (subscribed && (fieldDue || current.state.date.tick === 0)) {

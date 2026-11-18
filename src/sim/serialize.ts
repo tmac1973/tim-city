@@ -116,6 +116,7 @@ export function deserialize(bytes: Uint8Array): CityState {
     state.busLinks = h.busLinks as [number, number][];
   } else buildBusLanes(state);
   state.busRiders = (h.busRiders as number | undefined) ?? 0;
+  state.subwayRiders = (h.subwayRiders as number | undefined) ?? 0;
   state.markAllDirty();
   return state;
 }

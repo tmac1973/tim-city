@@ -170,6 +170,18 @@ const paths: Record<string, JSX.Element> = {
       <path d="M4 12h12M7 17v2M13 17v2M19 4v17M17 4h4" />
     </>
   ),
+  subway: (
+    <>
+      <path d="M3 9h18M3 15h18" stroke-dasharray="2 2" />
+      <path d="M6 9v6M12 9v6M18 9v6" />
+    </>
+  ),
+  subwayStation: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M8 16V8l4 5 4-5v8" />
+    </>
+  ),
   police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
   fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
   park: (
