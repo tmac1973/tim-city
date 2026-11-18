@@ -116,3 +116,16 @@ export function landfill(): Variant {
   k.block(-0.3, 1.2, 0.06, 0.36, 0, 0.14, 0x6d6a62);
   return done(k);
 }
+
+/** 1×1 bus shelter facing the road on its +z side: a glass box with a roof and a blue sign. */
+export function busShelter(): Variant {
+  const k = new Kit();
+  k.ground(-0.48, -0.48, 0.48, 0.48, 0xb9b4a8);
+  k.block(0, -0.05, 0.62, 0.04, 0, 0.3, 0x9fc3d6);
+  for (const x of [-0.3, 0.3]) k.block(x, 0.05, 0.03, 0.24, 0, 0.3, 0x9fc3d6);
+  k.block(0, 0.05, 0.7, 0.34, 0.3, 0.04, 0x4b5560);
+  k.block(0, 0.0, 0.4, 0.06, 0.02, 0.06, 0x7a5a3a);
+  k.cylinder(0.4, 0.35, 0.02, 0, 0.55, 0x6d737b, 5);
+  k.block(0.4, 0.35, 0.16, 0.02, 0.45, 0.12, 0x2e86de);
+  return done(k);
+}

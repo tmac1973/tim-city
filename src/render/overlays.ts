@@ -14,13 +14,14 @@ import {
   Vector3,
 } from 'three';
 import type { FieldName } from '@/shared/protocol';
-import { TileFlag, zoneOf } from '@/shared/tiles';
+import { findBusNetwork } from '@/sim/systems/transit';
+import { TileFlag, TileKind, zoneOf } from '@/shared/tiles';
 import type { CityMirror } from './mirror';
 
 /** Overlays drawn from the tile mirror instead of a streamed block field. */
-export const TILE_OVERLAYS = ['power', 'zoneTier'] as const;
+export const TILE_OVERLAYS = ['power', 'zoneTier', 'transit'] as const;
 export type OverlayName = FieldName | (typeof TILE_OVERLAYS)[number];
-export const isTileOverlay = (name: OverlayName | null): boolean => name === 'power' || name === 'zoneTier';
+export const isTileOverlay = (name: OverlayName | null): boolean => name === 'power' || name === 'zoneTier' || name === 'transit';
 type Rgba = [number, number, number, number];
 type Ramp = (v: number) => Rgba;
 
@@ -68,6 +69,7 @@ export const OVERLAYS: OverlayDef[] = [
     high: 'Prime',
   },
   { id: 'zoneTier', label: 'Zoning', columns: false, ramp: badRamp, low: 'Low density', high: 'High density' },
+  { id: 'transit', label: 'Transit', columns: false, ramp: badRamp, low: 'Bus route', high: 'Stop' },
   {
     id: 'popDensity',
     label: 'Density',
@@ -162,6 +164,8 @@ const drapeFragment = /* glsl */ `
 const IDENTITY = new Quaternion();
 const POWER_ON: Rgba = [255, 215, 60, 170];
 const POWER_OFF: Rgba = [230, 50, 50, 220];
+const BUS_ROUTE: Rgba = [255, 205, 40, 210];
+const BUS_STOP: Rgba = [255, 255, 255, 235];
 /** Low, medium and high density. */
 export const TIER_COLOURS: [Rgba, Rgba, Rgba] = [
   [150, 225, 255, 150],
@@ -244,6 +248,30 @@ export class OverlayLayer {
   refreshTiles(): void {
     if (this.active === 'power') this.refreshPower();
     else if (this.active === 'zoneTier') this.refreshZoneTier();
+    else if (this.active === 'transit') this.refreshTransit();
+  }
+
+  /** Bus routes in yellow and stops in white, from the same search the sim runs. */
+  private refreshTransit(): void {
+    const m = this.mirror;
+    const pixels = this.tileTexture.image.data as Uint8Array;
+    pixels.fill(0);
+    const values = new Uint8Array(m.size * m.size);
+    for (const route of findBusNetwork(m.size, m.tiles).routes) {
+      for (const t of route) {
+        pixels.set(BUS_ROUTE, t * 4);
+        values[t] = 1;
+      }
+    }
+    for (let i = 0; i < m.size * m.size; i++) {
+      if (m.tiles[i] !== TileKind.BusStop) continue;
+      pixels.set(BUS_STOP, i * 4);
+      values[i] = 2;
+    }
+    this.tileTexture.needsUpdate = true;
+    this.uniforms.uOverlay.value = this.tileTexture;
+    this.values = values;
+    this.pixels = pixels;
   }
 
   /** Zone lots shaded light to dark by density tier. */

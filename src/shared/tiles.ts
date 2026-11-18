@@ -33,6 +33,8 @@ export const TileKind = {
   PowerBridge: 24,
   RoadTunnel: 25,
   RailTunnel: 26,
+  /** A bus stop beside a road (not itself a road). */
+  BusStop: 27,
 
   CoalPlant: 64,
   NuclearPlant: 65,
@@ -210,6 +212,7 @@ registerFootprint(TileKind.Airport, AIRPORT_SIZE);
 export const WATER_TOWER_SIZE = 2;
 export const LANDFILL_SIZE = 4;
 registerFootprint(TileKind.WaterTower, WATER_TOWER_SIZE);
+registerFootprint(TileKind.BusStop, 1);
 registerFootprint(TileKind.Landfill, LANDFILL_SIZE);
 
 /** Landmark kinds and their footprints. */

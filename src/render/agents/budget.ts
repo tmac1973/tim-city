@@ -7,6 +7,8 @@ export const AGENT_CAPS = {
   pedestrians: 400,
   fireTrucks: 10,
   policeCars: 12,
+  /** One per bus route; they count toward the vehicle budget like cars. */
+  buses: 40,
 } as const;
 
 type AgentKind = keyof typeof AGENT_CAPS;

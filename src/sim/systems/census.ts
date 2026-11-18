@@ -24,6 +24,7 @@ export function takeCensus(state: CityState): void {
       }
     }
     if (kind === TileKind.Water) census.water++;
+    if (kind === TileKind.BusStop) census.busStops++;
     const f = flags[i] ?? 0;
     if (!(f & TileFlag.ZONE_CENTER)) continue;
     const zone = zoneOf(kind);
@@ -47,6 +48,7 @@ export function takeCensus(state: CityState): void {
   }
   census.utilityRules = utilityRulesActive(state);
   census.tourism = state.tourism;
+  census.busRiders = state.busRiders;
   state.census = census;
 }
 

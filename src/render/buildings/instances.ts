@@ -9,8 +9,9 @@ import { HEIGHT_UNIT } from '../units';
 import { PuffLayer } from './particles';
 import { Kit } from './kit';
 import { coalPlant, gasPlant, nuclearPlant, oilPlant, rotorGeometry, solarFarm, TURBINE_HUB, windTurbine } from './plants';
-import { fireStation, landfill, largePark, park, policeStation, waterTower } from './services';
+import { busShelter, fireStation, landfill, largePark, park, policeStation, waterTower } from './services';
 import { airport, amusementPark, cityHall, clockTower, FERRIS_HUB, ferrisWheel, hospital, museum, seaport, stadium, statue, timSign, university, zoo } from './specials';
+import { stopEntry } from '@/sim/systems/transit';
 import { waterSide } from '@/sim/tools/place';
 import { buildVariants, type Variant, variantKey } from './variants';
 import { BoltLayer, LotLayer } from './zoneMarkers';
@@ -41,6 +42,7 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.Statue]: -27,
   [TileKind.ClockTower]: -28,
   [TileKind.TimSign]: -29,
+  [TileKind.BusStop]: -30,
 };
 const PARK_KEY = -26;
 /** The Ferris wheel turns slowly, in radians a second. */
@@ -55,6 +57,13 @@ const PLINTH_VALUES = new Set(Object.values(PLINTH_KEYS));
 /** Seaport models face their quay to +z; turns that point it at each water side (N, E, S, W). */
 const QUAY_TURNS = [2, 1, 0, 3];
 const PLINTH_COLOR = 0x9c968a;
+
+/** The side (0 north, 1 east, 2 south, 3 west) of a bus stop's road, as waterSide gives it. */
+function roadSide(m: CityMirror, i: number): number | null {
+  const entry = stopEntry(m.size, m.tiles, i);
+  if (entry < 0) return null;
+  return entry === i - m.size ? 0 : entry === i + 1 ? 1 : entry === i + m.size ? 2 : 3;
+}
 
 /** Unit-tall stone base for a size × size lot, scaled to the slope it fills. */
 function plinth(size: number) {
@@ -156,6 +165,7 @@ export class BuildingLayer {
       [TileKind.Statue]: statue(),
       [TileKind.ClockTower]: clockTower(),
       [TileKind.TimSign]: timSign(),
+      [TileKind.BusStop]: busShelter(),
     };
     for (const [kind, model] of Object.entries(models)) {
       const key = BUILDING_KEYS[Number(kind)];
@@ -393,7 +403,7 @@ export class BuildingLayer {
     const instanceId = this.mesh.addInstance(geometryId);
     const { bottom, top } = this.lotHeights(tx, ty, size);
     const position = new Vector3(tx + size / 2, top, ty + size / 2);
-    const side = key === BUILDING_KEYS[TileKind.Seaport] ? waterSide(this.mirror, tx, ty, size) : null;
+    const side = key === BUILDING_KEYS[TileKind.Seaport] ? waterSide(this.mirror, tx, ty, size) : key === BUILDING_KEYS[TileKind.BusStop] ? roadSide(this.mirror, origin) : null;
     const turns = side !== null ? (QUAY_TURNS[side] ?? 0) : Math.floor(hash3(tx, ty, 6) * 4);
     const rotation = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), (turns * Math.PI) / 2);
     const shade = 0.9 + 0.2 * hash3(tx, ty, 7);

@@ -5,6 +5,7 @@ import { migrate, type RawSave } from './migrate';
 import type { RngState } from './rng';
 import { FORMAT_VERSION, savedArrays, savedHeader } from './serializeRegistry';
 import { CityState, emptyCensus } from './state';
+import { buildBusLanes } from './systems/transit';
 
 const MAGIC = 'TIMC';
 
@@ -108,6 +109,13 @@ export function deserialize(bytes: Uint8Array): CityState {
   state.nextDisasterId = h.nextDisasterId as number;
   state.radiation = new Map(h.radiation as [number, number][]);
   state.pollutionSpills = h.pollutionSpills as CityState['pollutionSpills'];
+  // This month's bus routes as they were; a save from before buses rebuilds them.
+  const lanes = h.busLanes as number[] | undefined;
+  if (lanes) {
+    for (const i of lanes) state.busLane[i] = 1;
+    state.busLinks = h.busLinks as [number, number][];
+  } else buildBusLanes(state);
+  state.busRiders = (h.busRiders as number | undefined) ?? 0;
   state.markAllDirty();
   return state;
 }

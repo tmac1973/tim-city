@@ -60,7 +60,7 @@ export function OverlayPanel({ bindMinimap }: { bindMinimap: (canvas: HTMLCanvas
       </div>
       {active && (
         <div class="legend">
-          <div class="legend-bar" style={{ background: active.id === 'power' ? 'linear-gradient(90deg, #ffd73c 50%, #e63232 50%)' : active.id === 'zoneTier' ? TIER_LEGEND : legend }} />
+          <div class="legend-bar" style={{ background: active.id === 'power' ? 'linear-gradient(90deg, #ffd73c 50%, #e63232 50%)' : active.id === 'zoneTier' ? TIER_LEGEND : active.id === 'transit' ? 'linear-gradient(90deg, #ffcd28 50%, #ffffff 50%)' : legend }} />
           <div class="legend-labels">
             <span>{active.low}</span>
             <span>{active.high}</span>

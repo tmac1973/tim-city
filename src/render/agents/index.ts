@@ -1,5 +1,6 @@
 import { Group, MeshStandardMaterial, type Ray, type Vector3 } from 'three';
 import { Changed, type CityMirror } from '../mirror';
+import { BusLayer } from './buses';
 import { CarLayer } from './cars';
 import { type Agent, InstancePool } from './core';
 import { EmergencyLayer } from './emergency';
@@ -21,6 +22,7 @@ export class AgentLayer {
   readonly ships: ShipLayer;
   readonly pedestrians: PedestrianLayer;
   readonly emergency: EmergencyLayer;
+  readonly buses: BusLayer;
   /** While paused, everything holds still. */
   paused = false;
 
@@ -38,6 +40,7 @@ export class AgentLayer {
     this.ships = new ShipLayer(mirror, rng, material);
     this.pedestrians = new PedestrianLayer(mirror, rng, material);
     this.emergency = new EmergencyLayer(mirror, rng, roadSurface, material);
+    this.buses = new BusLayer(mirror, roadSurface, material);
     this.group.add(
       ...this.cars.meshes,
       ...this.trains.meshes,
@@ -45,6 +48,7 @@ export class AgentLayer {
       ...this.ships.meshes,
       ...this.pedestrians.meshes,
       ...this.emergency.meshes,
+      ...this.buses.meshes,
     );
     mirror.onChunkChanged((_id, changed) => {
       // Agents follow roads, rail, water and buildings: only tile changes matter.
@@ -55,6 +59,7 @@ export class AgentLayer {
       this.ships.markDirty();
       this.pedestrians.markDirty();
       this.emergency.markDirty();
+      this.buses.markDirty();
     });
   }
 
@@ -71,6 +76,7 @@ export class AgentLayer {
     this.planes.update(step);
     this.ships.update(step);
     this.emergency.update(step);
+    this.buses.update(step);
     this.pedestrians.update(step, target, cameraDistance);
   }
 
@@ -82,6 +88,7 @@ export class AgentLayer {
       ...this.planes.planes,
       ...this.ships.ships,
       ...this.emergency.units.filter((u) => !u.leaving),
+      ...this.buses.buses.filter((b) => !b.leaving),
     ];
   }
 

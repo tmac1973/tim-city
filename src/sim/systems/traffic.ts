@@ -3,6 +3,7 @@ import { isRoad, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { isTransport, stepCost } from '../graph';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
+import { BUS_LOAD_SHARE, buildBusLanes, busLaneCost, nearStop } from './transit';
 import { ROAD_REACH } from './zones';
 
 /** Trips give up beyond this travel cost. */
@@ -78,19 +79,30 @@ class TripSearch {
   }
 
   /** Add `load` once to every block holding a road tile of the path. */
-  loadPath(state: CityState, path: readonly number[], load: number, traffic: Uint8Array): void {
+  loadPath(state: CityState, path: readonly number[], load: number, traffic: Uint8Array, bus = false): void {
     this.trip++;
+    // A block takes the trip's load once, from its first road tile on the path.
     for (const t of path) {
       if (!isRoad(state.tiles[t] ?? 0)) continue;
       const b = state.blockIndex(t % state.size, Math.floor(t / state.size));
       if (this.blockStamp[b] === this.trip) continue;
       this.blockStamp[b] = this.trip;
-      traffic[b] = Math.min(255, (traffic[b] ?? 0) + load);
+      // A bus leg puts a quarter of the cars on the road.
+      const share = bus && state.busLane[t] === 1 ? Math.max(1, Math.floor(load * BUS_LOAD_SHARE)) : load;
+      traffic[b] = Math.min(255, (traffic[b] ?? 0) + share);
     }
   }
 
   /** Path (tile indices, start first) to the nearest tile serving `want`, or null. */
-  find(state: CityState, starts: readonly number[], want: number, service: Uint8Array, maxCost = MAX_TRIP_COST, maxExpansions = MAX_EXPANSIONS): number[] | null {
+  find(
+    state: CityState,
+    starts: readonly number[],
+    want: number,
+    service: Uint8Array,
+    maxCost = MAX_TRIP_COST,
+    maxExpansions = MAX_EXPANSIONS,
+    busCost = 0,
+  ): number[] | null {
     this.run++;
     this.heapSize = 0;
     for (const s of starts) this.visit(s, 0, -1);
@@ -106,7 +118,7 @@ class TripSearch {
       for (let d = 0; d < 4; d++) {
         const n = d === 0 ? (x > 0 ? node - 1 : -1) : d === 1 ? (x < this.size - 1 ? node + 1 : -1) : d === 2 ? node - this.size : node + this.size;
         if (n < 0 || n >= total || !isTransport(state, n)) continue;
-        const next = cost + stepCost(state, node, n);
+        const next = cost + stepCost(state, node, n, busCost);
         if (next <= maxCost) this.visit(n, next, node);
       }
     }
@@ -190,12 +202,17 @@ export function runTrip(state: CityState, i: number, loadScale = 1): boolean {
   reachBox(state, i % state.size, Math.floor(i / state.size), (t) => {
     if (isTransport(state, t)) starts.push(t);
   });
-  const path = starts.length > 0 ? search.find(state, starts, WANTS[zone.type], service) : null;
+  const cx = i % state.size;
+  const cy = Math.floor(i / state.size);
+  // Lots with a bus stop nearby can ride the bus routes.
+  const bus = nearStop(state, cx, cy);
+  const path = starts.length > 0 ? search.find(state, starts, WANTS[zone.type], service, MAX_TRIP_COST, MAX_EXPANSIONS, bus ? busLaneCost(state) : 0) : null;
   if (!path) return false;
+  if (bus && path.some((t) => state.busLane[t] === 1)) state.busRiders++;
   const traffic = state.field('traffic');
   const load = zone.density * TRAFFIC_PER_LEVEL * loadScale;
   // Each block the trip drives through takes its load once.
-  if (load > 0) search.loadPath(state, path, load, traffic);
+  if (load > 0) search.loadPath(state, path, load, traffic, bus);
   return true;
 }
 
@@ -243,6 +260,8 @@ export const trafficSystem: System = {
       const traffic = state.field('traffic');
       for (let b = 0; b < traffic.length; b++) traffic[b] = Math.floor((traffic[b] ?? 0) * TRAFFIC_KEEP);
       buildServiceMap(state);
+      buildBusLanes(state);
+      state.busRiders = 0;
     }
     const { size, flags } = state;
     const period = tripPeriod(size);

@@ -4,6 +4,7 @@ import { isUnlocked, lockedMessage } from '@/shared/unlocks';
 import { AIRPORT_SIZE, LANDFILL_SIZE, LANDMARK_SIZES, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WATER_TOWER_SIZE, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
+import { stopEntry } from '../systems/transit';
 import { planBlock } from './block';
 import { planBulldoze } from './bulldoze';
 import { planNetwork } from './network';
@@ -80,6 +81,9 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
     case 'seaport':
       plan = planBuilding(state, cmd, TileKind.Seaport, SEAPORT_SIZE, COSTS.seaport, { needsWaterEdge: true });
       break;
+    case 'busStop':
+      plan = planBusStop(state, cmd);
+      break;
     case 'waterTower':
       plan = planBuilding(state, cmd, TileKind.WaterTower, WATER_TOWER_SIZE, COSTS.waterTower);
       break;
@@ -108,6 +112,14 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
     return fail('Radioactive', plan.tiles, plan.bad);
   }
   return plan;
+}
+
+/** A bus stop: one open tile that shares an edge with a road. */
+function planBusStop(state: CityState, cmd: ToolCommand): ToolPlan {
+  if (!state.inBounds(cmd.x1, cmd.y1)) return fail('Off the map');
+  const i = state.index(cmd.x1, cmd.y1);
+  if (stopEntry(state.size, state.tiles, i) < 0) return fail('Must be beside a road', [i], [i]);
+  return planBuilding(state, cmd, TileKind.BusStop, 1, COSTS.busStop);
 }
 
 /** Tile kind of each landmark tool. */

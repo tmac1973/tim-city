@@ -164,6 +164,12 @@ const paths: Record<string, JSX.Element> = {
       <path d="M3 5h6M6 5v9M11 5v9M15 14V5l2.5 5L20 5v9M5 14v6M18 14v6" />
     </>
   ),
+  busStop: (
+    <>
+      <rect x="4" y="5" width="12" height="12" rx="2" />
+      <path d="M4 12h12M7 17v2M13 17v2M19 4v17M17 4h4" />
+    </>
+  ),
   police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
   fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
   park: (

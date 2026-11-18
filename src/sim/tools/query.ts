@@ -2,6 +2,7 @@ import { type LandmarkName, POWER_SUPPLY, UTILITY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
 import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, isLandmark, isLeisure, MAX_DENSITY, TIER_CAP, TIER_NAMES, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { COVERAGE_RADIUS } from '../systems/coverage';
+import { BUS_LINK_TILES } from '../systems/transit';
 import { landmarks, tourismFrom } from '../systems/landmarks';
 import { hasGarbage, hasWater, utilityRulesActive } from '../systems/utilityRules';
 import { HIGH_GROUND_STEPS, plantName, plantSupply, windOnHighGround } from '../systems/power';
@@ -26,6 +27,7 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.PowerBridge]: 'Power line over water',
   [TileKind.RoadTunnel]: 'Road tunnel',
   [TileKind.RailTunnel]: 'Rail tunnel',
+  [TileKind.BusStop]: 'Bus stop',
   [TileKind.CoalPlant]: 'Coal power plant',
   [TileKind.NuclearPlant]: 'Nuclear power plant',
   [TileKind.SolarFarm]: 'Solar farm',
@@ -157,6 +159,11 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
       details.push(['Sun', state.overcast ? 'Overcast month −40%' : 'Clear month']);
     }
     details.push(['City load', `${String(state.census.powerDemand)} of ${String(state.census.powerSupply)} units`]);
+  } else if (kind === TileKind.BusStop) {
+    const linked = state.busLinks.filter(([a, b]) => a === i || b === i).length;
+    details.push(['Routes', linked === 0 ? `None: build another stop within ${String(BUS_LINK_TILES)} road tiles` : `Linked to ${String(linked)} ${linked === 1 ? 'stop' : 'stops'}`]);
+    details.push(['Riders', `${state.census.busRiders.toLocaleString('en-US')} trips last month (city)`]);
+    details.push(['Funding', `${String(state.funding.transit)}%`]);
   } else if (isPower(kind)) {
     details.push(['Power', powered ? 'Live' : 'Not connected to a plant']);
   } else if (UNLOCKS[kind]) {
@@ -186,6 +193,7 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
   }
   if (isRoad(kind)) {
     details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
+    if (state.busLane[i] === 1) details.push(['Bus route', 'Yes']);
     if ((state.flags[i] ?? 0) & TileFlag.POTHOLED) details.push(['Condition', 'Potholed — rebuild to repair']);
   }
   if (isOpenLand(kind) || isPark(kind)) details.push(...fieldDetails(state, x, y));

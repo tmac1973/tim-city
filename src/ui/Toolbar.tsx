@@ -3,6 +3,7 @@ import { COSTS, POWER_SUPPLY, UTILITY, zoneCost } from '@/shared/costs';
 import type { BrushSize, ToolId } from '@/shared/protocol';
 import { isUnlocked, lockedMessage, unlockLabel } from '@/shared/unlocks';
 import { TIER_CAP, TIER_NAMES, ZoneTier, ZoneType } from '@/shared/tiles';
+import { BUS_BOARD_TILES, BUS_LINK_TILES } from '@/sim/systems/transit';
 import { Icon } from './icons';
 import {
   activeTool,
@@ -56,6 +57,12 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
       { id: 'road', name: 'Road', key: 'R', code: 'KeyR', cost: price(COSTS.road, '/tile'), hint: 'Drag to build. Slopes are graded for you. Hold Shift to tunnel through a hill.' },
       { id: 'block', name: 'Block', key: 'H', code: 'KeyH', cost: price(COSTS.road, '/tile of road'), hint: 'Drag a rectangle: a ring of road sized to whole lots, filled with zones if you pick a type above.' },
       { id: 'rail', name: 'Rail', key: 'T', code: 'KeyT', cost: price(COSTS.rail, '/tile'), hint: 'Drag to build. Slopes are graded for you. Hold Shift to tunnel through a hill.' },
+    ],
+  },
+  {
+    label: 'Transit',
+    tools: [
+      { id: 'busStop', name: 'Bus stop', key: 'Y', code: 'KeyY', cost: price(COSTS.busStop), hint: `Place beside a road. Stops within ${String(BUS_LINK_TILES)} road tiles link into a bus route; homes and shops within ${String(BUS_BOARD_TILES)} tiles of a stop ride it, and add fewer cars.` },
     ],
   },
   {

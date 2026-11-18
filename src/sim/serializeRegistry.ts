@@ -53,6 +53,10 @@ export function savedHeader(state: CityState): Record<string, unknown> {
     overcast: state.overcast,
     utilityGraceUntil: state.utilityGraceUntil,
     tourism: state.tourism,
+    busRiders: state.busRiders,
+    // This month's bus routes, as built at its start (rebuilt monthly, so kept as a short list).
+    busLanes: state.busLane.reduce<number[]>((out, v, i) => (v ? (out.push(i), out) : out), []),
+    busLinks: state.busLinks,
     lastYearApproval: state.lastYearApproval,
     lastYearScore: state.lastYearScore,
     lastYearPop: state.lastYearPop,

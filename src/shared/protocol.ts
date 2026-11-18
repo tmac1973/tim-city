@@ -27,6 +27,7 @@ export interface GameDate {
 export type ToolId =
   | 'road'
   | 'block'
+  | 'busStop'
   | 'rail'
   | 'power'
   | 'bulldoze'
@@ -303,6 +304,9 @@ export interface Census {
   utilityRules: boolean;
   /** Tourism income this month. */
   tourism: number;
+  busStops: number;
+  /** Trips this month that rode a bus for part of the way. */
+  busRiders: number;
 }
 
 /** R, C, I demand, each −2000 … +2000. */

@@ -49,6 +49,8 @@ export function emptyCensus(): Census {
     ungarbagedLots: 0,
     utilityRules: true,
     tourism: 0,
+    busStops: 0,
+    busRiders: 0,
   };
 }
 
@@ -75,6 +77,12 @@ export class CityState {
   readonly parts: Uint8Array;
   /** ZoneTier on every tile of a zone lot, 0 elsewhere. */
   readonly zoneTier: Uint8Array;
+  /** 1 on road tiles that carry a bus route (transit.ts). Rebuilt each month and on load, not saved. */
+  readonly busLane: Uint8Array;
+  /** Stop pairs joined by a bus route. */
+  busLinks: [number, number][] = [];
+  /** Trips so far this month that rode a bus. */
+  busRiders = 0;
   /** Named 2×2-block fields ((size/2)²), filled by later phases. */
   readonly blockFields: Record<string, Uint8Array> = {};
 
@@ -153,6 +161,7 @@ export class CityState {
     this.heights = new Uint8Array((size + 1) * (size + 1));
     this.parts = new Uint8Array(size * size);
     this.zoneTier = new Uint8Array(size * size);
+    this.busLane = new Uint8Array(size * size);
     this.densityAtYearStart = new Uint8Array(size * size);
     this.serviceMap = new Uint8Array(size * size);
     this.fireTicks = new Uint8Array(size * size);

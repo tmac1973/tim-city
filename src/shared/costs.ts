@@ -31,6 +31,7 @@ export const COSTS = {
   seaport: 3000,
   airport: 10000,
   waterTower: 600,
+  busStop: 150,
   landfill: 1000,
   cityHall: 3000,
   hospital: 2500,
@@ -46,6 +47,7 @@ export const COSTS = {
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */
 /** Running costs a month, at full funding. */
 export const UPKEEP = {
+  busStop: 5,
   waterTower: 20,
   landfill: 30,
   cityHall: 50,
