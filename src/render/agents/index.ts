@@ -60,8 +60,9 @@ export class AgentLayer {
     this.cars.setTraffic(data);
   }
 
-  update(dt: number, target: Vector3, cameraDistance: number): void {
+  update(dt: number, target: Vector3, cameraDistance: number, night = 0): void {
     const step = this.paused ? 0 : dt;
+    this.cars.setNight(night);
     this.cars.update(step);
     this.trains.update(step);
     this.planes.update(step);

@@ -1,5 +1,5 @@
 import { h, render } from 'preact';
-import type { MapSize, Speed } from './shared/constants';
+import { type MapSize, type Speed, TICKS_PER_MONTH } from './shared/constants';
 import type { DifficultyName } from './shared/difficulty';
 import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/protocol';
 import { CityMirror } from './render/mirror';
@@ -28,6 +28,7 @@ import {
   graphsOpen,
   history,
   overlay,
+  skyState,
   speed,
   toast,
   valves,
@@ -85,6 +86,7 @@ async function start(): Promise<void> {
   sim.onTick((tick) => {
     mirror.apply(tick.chunks);
     date.value = tick.date;
+    renderer?.atmosphere.setDate(tick.date.month, tick.date.tick / TICKS_PER_MONTH);
     funds.value = tick.funds;
     speed.value = tick.speed;
     census.value = tick.census;
@@ -112,10 +114,22 @@ async function start(): Promise<void> {
     r.cityCamera.onFollowChange((agent) => {
       following.value = agent?.label ?? null;
     });
-    // Agents hold still while the game is paused.
+    // Agents, the clock and the weather hold still while the game is paused.
     speed.subscribe((s) => {
       r.agents.paused = s === 'paused';
+      r.atmosphere.paused = s === 'paused';
     });
+    // ?time=0.9 starts at that time of day; ?weather=rain starts in that weather.
+    const startTime = Number(params.get('time'));
+    if (params.has('time') && Number.isFinite(startTime)) r.atmosphere.clock.timeOfDay = startTime % 1;
+    const startWeather = params.get('weather');
+    if (startWeather && ['clear', 'overcast', 'rain', 'storm', 'snow', 'fog'].includes(startWeather)) {
+      r.atmosphere.weather.change(0, startWeather as 'clear');
+    }
+    setInterval(() => {
+      const a = r.atmosphere;
+      skyState.value = { time: a.clock.hhmm, night: a.night > 0.5, weather: a.weather.kind };
+    }, 1000);
     activeDisasters.subscribe((list) => {
       r.disasters.setActive(list);
     });

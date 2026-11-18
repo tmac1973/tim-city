@@ -50,6 +50,8 @@ export function addHeadline(text: string, date: string, x: number | null, y: num
 export const budgetOpen = signal(false);
 /** Shown once the city goes bankrupt, until dismissed. */
 export const gameOver = signal(false);
+/** Time of day and weather for the top bar badge (null until the renderer runs). */
+export const skyState = signal<{ time: string; night: boolean; weather: 'clear' | 'overcast' | 'rain' | 'storm' | 'snow' | 'fog' } | null>(null);
 /** The kind of vehicle the camera is riding with, or null. */
 export const following = signal<string | null>(null);
 

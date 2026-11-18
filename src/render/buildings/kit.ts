@@ -15,14 +15,16 @@ export type WindowStyle = 'punched' | 'band' | 'curtain' | 'shop' | 'high';
 
 /**
  * Builds one building's geometry from simple parts. Every triangle carries a
- * vertex color and a `glow` value: 1 for window glass (lit at night in a
- * later phase), 0 for everything else. Local space: the lot is centred on
- * the origin, ground at y = 0.
+ * vertex color and a `glow` value: 0 for walls and roofs; for window glass a
+ * per-pane random value that decides when it lights up at night, in (0, 1)
+ * for homes and [1, 2) for shop and office glass, which is lit more often.
+ * Local space: the lot is centred on the origin, ground at y = 0.
  */
 export class Kit {
   private readonly pos: number[] = [];
   private readonly col: number[] = [];
   private readonly glow: number[] = [];
+  private paneSeed = 0x2545f491;
   /** Tallest point so far, for placing markers above the building. */
   top = 0;
 
@@ -178,10 +180,17 @@ export class Kit {
           const s1 = s0 + bw * fw;
           const p = (s: number, y: number) =>
             new Vector3(origin.x + along.x * s + normal.x * proud, y, origin.z + along.z * s + normal.z * proud);
-          this.quad(p(s0, yb), p(s1, yb), p(s1, yt), p(s0, yt), normal, style === 'curtain' ? CURTAIN_GLASS : GLASS, 1);
+          this.quad(p(s0, yb), p(s1, yb), p(s1, yt), p(s0, yt), normal, style === 'curtain' ? CURTAIN_GLASS : GLASS, this.pane(style));
         }
       }
     }
+  }
+
+  /** Glow value for the next window pane (see the class comment). */
+  private pane(style: WindowStyle): number {
+    this.paneSeed = (Math.imul(this.paneSeed, 1103515245) + 12345) >>> 0;
+    const r = 0.01 + 0.98 * ((this.paneSeed >>> 8) / 16777216);
+    return style === 'curtain' || style === 'shop' || style === 'band' ? 1 + r : r;
   }
 
   /** A door on the face of a box at z = cz + d/2 (the "front"). */

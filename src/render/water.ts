@@ -2,6 +2,7 @@ import { BufferAttribute, BufferGeometry, Color, Group, Mesh, ShaderMaterial, Ve
 import { CHUNK_SIZE } from '@/shared/constants';
 import { TileKind } from '@/shared/tiles';
 import type { CityMirror } from './mirror';
+import { ATMOSPHERE } from './atmosphere/uniforms';
 import { PALETTE } from './palette';
 import { HEIGHT_UNIT, WATER_Y } from './units';
 
@@ -24,6 +25,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uFoam;
   uniform vec3 uSunDir;
   uniform vec3 uSunColor;
+  uniform float uLight;
   varying float vDepth;
   varying vec3 vWorld;
 
@@ -58,6 +60,7 @@ const fragmentShader = /* glsl */ `
     foam = clamp(foam, 0.0, 1.0);
     col = mix(col, uFoam, foam);
     col += uSunColor * spec + fresnel;
+    col *= uLight;
 
     gl_FragColor = vec4(col, max(mix(0.72, 0.93, d), foam));
   }
@@ -78,6 +81,7 @@ export class WaterLayer {
       uFoam: { value: new Color(PALETTE.foam) },
       uSunDir: { value: new Vector3(0, 1, 0) },
       uSunColor: { value: new Color(PALETTE.sun) },
+      uLight: ATMOSPHERE.uLight,
     },
   });
   private readonly meshes = new Map<number, Mesh>();
@@ -86,10 +90,11 @@ export class WaterLayer {
     this.group.name = 'water';
   }
 
-  update(time: number, sunDir: Vector3): void {
-    const uniforms = this.material.uniforms as { uTime: { value: number }; uSunDir: { value: Vector3 } };
+  update(time: number, sunDir: Vector3, sunColor?: Color): void {
+    const uniforms = this.material.uniforms as { uTime: { value: number }; uSunDir: { value: Vector3 }; uSunColor: { value: Color } };
     uniforms.uTime.value = time;
     uniforms.uSunDir.value.copy(sunDir);
+    if (sunColor) uniforms.uSunColor.value.copy(sunColor);
   }
 
   rebuild(id: number): void {

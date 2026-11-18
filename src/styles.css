@@ -1170,3 +1170,13 @@ button {
   font-size: 11px;
   color: var(--muted);
 }
+
+/* Time of day and weather */
+.sky-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

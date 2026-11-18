@@ -28,6 +28,18 @@ Give the diorama life over time. A 6-minute real-time day cycle moves the sun, s
 5. Write `TimeOfDayBadge.tsx`.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- **No window atlas.** Buildings are vertex-coloured geometry, so the building kit's existing `glow` attribute carries a per-pane random value (0–1 for homes, 1–2 for shop and office glass). `atmosphere/uniforms.ts` patches the building material: a pane lights when its hash falls under 45% (homes) or 72% (commercial), re-rolled every ~23 s per building, scaled by `uNight`. The per-building seed comes from the batch matrix.
+- One `patchMaterial` helper adds snow (upward faces, from the view-space normal), autumn (green-dominant colours only, so trunks stay brown) and window light to terrain, trees and buildings through shared uniforms. Roads stay clear of snow.
+- **Fog stays linear.** Weather pulls the existing `Fog` near/far in (to 3/70 at full fog) and colours it with the sky horizon, instead of switching to `FogExp2`; the clear-weather diorama keeps its crisp edges.
+- The shadow-casting light never drops below 0.45 elevation even when the sky's sun is low; a grazing sun pushed shadows past the shadow map and showed its edge as a hard rectangle. Dawn and dusk still colour the light and the sky.
+- Unlit shaders (water, smoke) and unlit vertex-coloured overlays (zone lot fills, flood sheets) dim with a shared daylight level (`uLight`, `DAYLIT`); otherwise they glowed at night.
+- No exposure change: bloom (threshold 1.1 on the HDR buffer) catches only emissives — windows, lamp heads, headlights, emergency light bars.
+- No ground splash dots for rain; streaks plus fog read well enough at every zoom, and the precipitation box grows with camera distance (24–120 units) so rain shows when zoomed out.
+- Lightning is a double flash of the hemisphere light and sky, using the visual RNG.
+- `?time=0.9` and `?weather=rain` set the starting time of day and weather (for checks and screenshots).
+- Measured: 2,400 cars, night, storm, 128 map — steady 60 fps; agent update about 0.9 ms.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

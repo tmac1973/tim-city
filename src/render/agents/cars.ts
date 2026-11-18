@@ -1,4 +1,4 @@
-import { Color, type Material, Vector3 } from 'three';
+import { Color, type Material, MeshBasicMaterial, Vector3 } from 'three';
 import { isRoad, isTunnel } from '@/shared/tiles';
 import type { CityMirror } from '../mirror';
 import { AGENT_CAPS } from './budget';
@@ -78,6 +78,9 @@ export class CarLayer {
   private clock = 0;
   private head: Int32Array;
   private next = new Int32Array(AGENT_CAPS.cars);
+  private readonly lights: InstancePool;
+  private readonly lightMaterial = new MeshBasicMaterial({ vertexColors: true });
+  private night = 0;
 
   constructor(
     private readonly mirror: CityMirror,
@@ -88,10 +91,17 @@ export class CarLayer {
     const pool = (m: CarModel) => new InstancePool(MODELS[m](), material, AGENT_CAPS.cars, true, VEHICLE_SCALE);
     this.pools = { sedan: pool('sedan'), hatchback: pool('hatchback'), van: pool('van'), truck: pool('truck'), bus: pool('bus'), taxi: pool('taxi') };
     this.head = new Int32Array(mirror.size * mirror.size);
+    this.lights = new InstancePool(MODELS.carLights(), this.lightMaterial, AGENT_CAPS.cars, false, VEHICLE_SCALE);
   }
 
   get meshes() {
-    return Object.values(this.pools).map((p) => p.mesh);
+    return [...Object.values(this.pools).map((p) => p.mesh), this.lights.mesh];
+  }
+
+  /** Headlights and taillights come on as it gets dark (0 day … 1 night). */
+  setNight(night: number): void {
+    this.night = night;
+    this.lightMaterial.color.setScalar(0.4 + night * 3);
   }
 
   setTraffic(data: Uint8Array): void {
@@ -271,11 +281,15 @@ export class CarLayer {
 
   private draw(): void {
     for (const pool of Object.values(this.pools)) pool.begin();
+    this.lights.begin();
+    const lit = this.night > 0.05;
     for (const car of this.cars) {
       if (!car.alive || car.hidden) continue;
       const s = car.scale;
       this.pools[car.model].push(car.pos.x, car.pos.y, car.pos.z, car.dir.x, car.dir.y, car.dir.z, s, car.color);
+      if (lit) this.lights.push(car.pos.x, car.pos.y, car.pos.z, car.dir.x, car.dir.y, car.dir.z, s, 0xffffff, LENGTH[car.model] / VEHICLE_SCALE);
     }
     for (const pool of Object.values(this.pools)) pool.end();
+    this.lights.end();
   }
 }

@@ -45,8 +45,8 @@ export class InstancePool {
     this.n = 0;
   }
 
-  /** Place one instance at p facing f (need not be unit), scaled by s. */
-  push(px: number, py: number, pz: number, fx: number, fy: number, fz: number, scale: number, rgb: Color | number): void {
+  /** Place one instance at p facing f (need not be unit), scaled by s, and stretched by sx along f. */
+  push(px: number, py: number, pz: number, fx: number, fy: number, fz: number, scale: number, rgb: Color | number, sx = 1): void {
     if (this.n >= this.capacity) return;
     const s = scale * this.baseScale;
     const fl = Math.hypot(fx, fy, fz) || 1;
@@ -62,7 +62,7 @@ export class InstancePool {
     const yz = zx * ay;
     const e = this.mesh.instanceMatrix.array as Float32Array;
     const o = this.n * 16;
-    e[o] = ax * s; e[o + 1] = ay * s; e[o + 2] = az * s; e[o + 3] = 0;
+    e[o] = ax * s * sx; e[o + 1] = ay * s * sx; e[o + 2] = az * s * sx; e[o + 3] = 0;
     e[o + 4] = yx * s; e[o + 5] = yy * s; e[o + 6] = yz * s; e[o + 7] = 0;
     e[o + 8] = zx * s; e[o + 9] = 0; e[o + 10] = zz * s; e[o + 11] = 0;
     e[o + 12] = px; e[o + 13] = py; e[o + 14] = pz; e[o + 15] = 1;

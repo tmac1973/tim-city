@@ -1,4 +1,5 @@
 import { Icon } from './icons';
+import { TimeOfDayBadge } from './TimeOfDayBadge';
 import {
   budgetOpen,
   census,
@@ -38,6 +39,7 @@ export function TopBar() {
       <span class="stat" title="Date">
         {formatDate(date.value)}
       </span>
+      <TimeOfDayBadge />
       <span class="stat population" title="Population" data-testid="population">
         Pop. {formatCount(census.value?.resPop ?? 0)}
       </span>

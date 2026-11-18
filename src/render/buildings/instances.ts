@@ -1,6 +1,7 @@
 import { BatchedMesh, Color, Group, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CHUNK_SIZE } from '@/shared/constants';
 import { AIRPORT_SIZE, FOOTPRINTS, PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
+import { patchMaterial } from '../atmosphere/uniforms';
 import { hash3 } from '../hash';
 import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT } from '../units';
@@ -85,6 +86,7 @@ export class BuildingLayer {
 
   constructor(private readonly mirror: CityMirror) {
     this.group.name = 'buildings';
+    patchMaterial(this.material, { snow: true, windows: true });
     for (const [key, variant] of buildVariants()) this.variants.set(key, variant);
     const models = {
       [TileKind.CoalPlant]: coalPlant(),

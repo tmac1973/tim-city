@@ -1,4 +1,5 @@
 import { type BufferGeometry, Color, Group, type Material, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { patchMaterial } from './atmosphere/uniforms';
 import { CHUNK_SIZE, SEA_LEVEL } from '@/shared/constants';
 import { TileKind } from '@/shared/tiles';
 import { TriangleBuilder } from './geometry';
@@ -42,6 +43,7 @@ export class TerrainLayer {
     private readonly drapeMaterial?: Material,
   ) {
     this.group.name = 'terrain';
+    patchMaterial(this.material, { snow: true });
     this.drapes.name = 'overlay-drape';
     this.drapes.visible = false;
   }

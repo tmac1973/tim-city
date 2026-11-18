@@ -14,6 +14,7 @@ import {
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { patchMaterial } from './atmosphere/uniforms';
 import { CHUNK_SIZE } from '@/shared/constants';
 import { TileKind } from '@/shared/tiles';
 import { hash3 } from './hash';
@@ -67,6 +68,7 @@ export class TreeLayer {
 
   constructor(private readonly mirror: CityMirror) {
     this.group.name = 'trees';
+    patchMaterial(this.material, { snow: true, autumn: true });
     for (const geometry of this.geometries) this.meshes.push(this.makeMesh(geometry, 1024));
   }
 

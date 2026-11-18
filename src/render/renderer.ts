@@ -1,5 +1,6 @@
 import { Color, Fog, Raycaster, Scene, Vector2, WebGLRenderer, PCFShadowMap } from 'three';
 import { AgentLayer } from './agents';
+import { Atmosphere } from './atmosphere';
 import type { Agent } from './agents/core';
 import { BuildingLayer } from './buildings/instances';
 import { CityCamera } from './camera';
@@ -36,6 +37,7 @@ export class Renderer {
   readonly overlay: OverlayLayer;
   readonly disasters: DisasterLayer;
   readonly agents: AgentLayer;
+  readonly atmosphere: Atmosphere;
   private recentlyFollowed: Agent[] = [];
   private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
@@ -84,6 +86,7 @@ export class Renderer {
       (x, z) => networks.surfaceAt(x, z, 'road'),
       (x, z) => networks.surfaceAt(x, z, 'rail'),
     );
+    this.atmosphere = new Atmosphere(this.scene, mirror, this.lighting);
     this.cityCamera.nextVehicle = (current) => {
       const next = this.agents.nextAfter(current, this.recentlyFollowed);
       if (next) this.recentlyFollowed = [next, ...this.recentlyFollowed].slice(0, 4);
@@ -99,6 +102,7 @@ export class Renderer {
       this.buildings.group,
       this.disasters.group,
       this.agents.group,
+      this.atmosphere.group,
       this.overlay.group,
       this.terrain.drapes,
       this.cursor.line,
@@ -195,6 +199,7 @@ export class Renderer {
       this.networks.rebuild(id);
       this.buildings.rebuild(id);
       this.disasters.rebuild(id);
+      this.atmosphere.lamps.rebuild(id);
     }
     if (hadDirty) this.overlay.refreshPower();
     this.dirty.clear();
@@ -202,10 +207,11 @@ export class Renderer {
 
     const cam = this.cityCamera;
     // Agents move first so a chase camera sees this frame's position.
-    this.agents.update(dt, cam.target, cam.following ? 0 : cam.distance);
+    this.agents.update(dt, cam.target, cam.following ? 0 : cam.distance, this.atmosphere.night);
     cam.update(dt);
+    this.atmosphere.update(dt, cam.camera.position, cam.target, cam.distance);
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
-    this.water.update(this.elapsed, this.lighting.sunDir);
+    this.water.update(this.elapsed, this.lighting.sunDir, this.lighting.sun.color.clone().multiplyScalar(this.lighting.sun.intensity / 2.6));
     this.buildings.update(dt);
     this.disasters.update(dt);
     // Street level has no miniature look: the sharp band covers the screen.

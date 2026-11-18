@@ -16,6 +16,7 @@ import { CHUNK_SIZE } from '@/shared/constants';
 import { ZONE_SIZE, zoneOf, ZoneType } from '@/shared/tiles';
 import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT, splitsNwSe } from '../units';
+import { DAYLIT } from '../atmosphere/uniforms';
 
 export const ZONE_COLORS: Record<ZoneType, number> = {
   [ZoneType.R]: 0x5fd36b,
@@ -35,7 +36,10 @@ export class LotLayer {
   private readonly edge = new LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
   private readonly chunks = new Map<number, { fill: Mesh; edge: LineSegments }>();
 
-  constructor(private readonly mirror: CityMirror) {}
+  constructor(private readonly mirror: CityMirror) {
+    DAYLIT.add(this.fill);
+    DAYLIT.add(this.edge);
+  }
 
   rebuild(id: number): void {
     const old = this.chunks.get(id);

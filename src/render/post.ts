@@ -1,5 +1,6 @@
 import { type Camera, HalfFloatType, type Scene, type WebGLRenderer } from 'three';
 import {
+  BloomEffect,
   EffectComposer,
   EffectPass,
   KernelSize,
@@ -32,6 +33,8 @@ export class PostFx {
       new EffectPass(
         camera,
         this.tiltShift,
+        // Only HDR emissives (lit windows, lamps, headlights) pass the threshold.
+        new BloomEffect({ luminanceThreshold: 1.1, luminanceSmoothing: 0.25, intensity: 1.1, mipmapBlur: true, radius: 0.6 }),
         new VignetteEffect({ offset: 0.35, darkness: 0.3 }),
         // Neutral keeps the palette's saturation; AgX washed the greens out.
         new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }),

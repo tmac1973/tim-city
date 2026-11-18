@@ -21,6 +21,7 @@ import { TriangleBuilder } from './geometry';
 import { hash3 } from './hash';
 import type { CityMirror } from './mirror';
 import { HEIGHT_UNIT } from './units';
+import { DAYLIT } from './atmosphere/uniforms';
 
 const MAX_FLAMES = 4000;
 const RUBBLE = [new Color(0x8a8378), new Color(0x6f675d), new Color(0xa39a8c)];
@@ -72,6 +73,7 @@ export class DisasterLayer {
   private time = 0;
 
   constructor(private readonly mirror: CityMirror) {
+    DAYLIT.add(this.sheet);
     this.flames = new InstancedMesh(
       new ConeGeometry(0.28, 0.9, 6).translate(0, 0.45, 0),
       new MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.9 }),

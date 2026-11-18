@@ -162,6 +162,16 @@ function pedestrian(): BufferGeometry {
   return t.build();
 }
 
+/** Head- and taillights for a vehicle one unit long; stretch along x to fit. */
+function carLights(): BufferGeometry {
+  const t = new TriangleBuilder();
+  for (const z of [-0.042, 0.042]) {
+    t.box(0.5, 0.058, z, 0.04, 0.016, 0.026, new Color(1, 0.95, 0.78));
+    t.box(-0.5, 0.06, z, 0.04, 0.016, 0.026, new Color(1, 0.08, 0.04));
+  }
+  return t.build();
+}
+
 function lightBar(): BufferGeometry {
   const t = new TriangleBuilder();
   t.box(0, 0, 0, 0.03, 0.018, 0.09, WHITE);
@@ -184,6 +194,7 @@ export const MODELS = {
   ship,
   pedestrian,
   lightBar,
+  carLights,
 };
 
 export type ModelName = keyof typeof MODELS;

@@ -1,4 +1,5 @@
 import { BufferAttribute, BufferGeometry, Points, ShaderMaterial, Vector3 } from 'three';
+import { ATMOSPHERE } from '../atmosphere/uniforms';
 import { hash3 } from '../hash';
 
 const vertexShader = /* glsl */ `
@@ -17,6 +18,7 @@ const vertexShader = /* glsl */ `
 `;
 
 const fragmentShader = /* glsl */ `
+  uniform float uLight;
   varying float vAlpha;
   varying float vShade;
   void main() {
@@ -24,7 +26,7 @@ const fragmentShader = /* glsl */ `
     float d = length(p);
     if (d > 0.5) discard;
     float soft = smoothstep(0.5, 0.15, d);
-    gl_FragColor = vec4(vec3(vShade), vAlpha * soft);
+    gl_FragColor = vec4(vec3(vShade) * uLight, vAlpha * soft);
   }
 `;
 
@@ -68,7 +70,7 @@ export class PuffLayer {
     geometry.setDrawRange(0, 0);
     this.points = new Points(
       geometry,
-      new ShaderMaterial({ vertexShader, fragmentShader, transparent: true, depthWrite: false }),
+      new ShaderMaterial({ vertexShader, fragmentShader, transparent: true, depthWrite: false, uniforms: { uLight: ATMOSPHERE.uLight } }),
     );
     this.points.frustumCulled = false;
     this.points.renderOrder = 4;
