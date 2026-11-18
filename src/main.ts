@@ -1,6 +1,7 @@
 import { h, render } from 'preact';
 import type { MapSize } from './shared/constants';
 import { DEFAULT_TERRAIN, type TerrainOptions } from './shared/protocol';
+import { CityMirror } from './render/mirror';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
@@ -10,16 +11,6 @@ const appRoot = document.querySelector<HTMLDivElement>('#app');
 if (!canvas || !appRoot) {
   throw new Error('index.html is missing #scene or #app');
 }
-
-// Mount the UI first so a WebGL failure can still be reported on screen.
-let webglError: string | null = null;
-try {
-  new Renderer(canvas).start();
-} catch (err) {
-  webglError = err instanceof Error ? err.message : String(err);
-  console.error('WebGL renderer failed to start:', webglError);
-}
-render(h(App, { webglError }), appRoot);
 
 const params = new URLSearchParams(location.search);
 const seed = params.get('seed') ?? 'tim';
@@ -31,7 +22,27 @@ const slider = (key: keyof TerrainOptions): number => {
 };
 const terrain: TerrainOptions = { water: slider('water'), forest: slider('forest'), hills: slider('hills') };
 
+const mirror = new CityMirror(size);
+
+// Mount the UI even if WebGL fails, so the failure can be reported on screen.
+let webglError: string | null = null;
+try {
+  const renderer = new Renderer(canvas, mirror);
+  renderer.onTerrainShown(() => {
+    // Tests and tooling wait for this marker.
+    document.documentElement.dataset.rendered = 'true';
+  });
+  renderer.start();
+} catch (err) {
+  webglError = err instanceof Error ? err.message : String(err);
+  console.error('WebGL renderer failed to start:', webglError);
+}
+render(h(App, { webglError }), appRoot);
+
 const sim = new SimBridge();
+sim.onTick(({ chunks }) => {
+  mirror.apply(chunks);
+});
 if (import.meta.env.DEV) {
   sim.onTick(({ date, chunks }) => {
     if (date.tick === 0) {
@@ -44,7 +55,6 @@ if (import.meta.env.DEV) {
 }
 
 void sim.init({ name: 'New City', seed, size }, terrain).then(() => {
-  // Tests and tooling wait for this marker before driving the sim.
   document.documentElement.dataset.sim = 'ready';
   sim.setSpeed('normal');
 });
