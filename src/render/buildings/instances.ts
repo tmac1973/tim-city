@@ -66,6 +66,7 @@ interface Anim {
 export class BuildingLayer {
   readonly group = new Group();
   private readonly mesh: BatchedMesh;
+  private readonly material = new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.78 });
   private readonly puffs = new PuffLayer();
   private readonly bolts = new BoltLayer();
   private readonly lots: LotLayer;
@@ -110,7 +111,7 @@ export class BuildingLayer {
       maxInstances,
       vertices,
       0,
-      new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.78 }),
+      this.material,
     );
     for (const [key, v] of this.variants) this.geometryIds.set(key, this.mesh.addGeometry(v.geometry));
     this.mesh.castShadow = true;
@@ -127,6 +128,15 @@ export class BuildingLayer {
     let n = 0;
     for (const v of this.variants.values()) n += v.geometry.getAttribute('position').count;
     return n;
+  }
+
+  /** See-through while a data overlay is on, so the colours show. */
+  setFade(on: boolean): void {
+    const material = this.material;
+    material.transparent = on;
+    material.opacity = on ? 0.3 : 1;
+    material.depthWrite = !on;
+    material.needsUpdate = true;
   }
 
   rebuild(id: number): void {

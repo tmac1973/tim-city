@@ -1,6 +1,18 @@
 import { signal } from '@preact/signals';
+import type { OverlayName } from '@/render/overlays';
 import { type Speed, START_YEAR } from '@/shared/constants';
-import type { BrushSize, BudgetInfo, Census, CityInfo, Evaluation, GameDate, QueryResult, ToolId, Valves } from '@/shared/protocol';
+import type {
+  BrushSize,
+  BudgetInfo,
+  Census,
+  CityInfo,
+  Evaluation,
+  GameDate,
+  HistorySample,
+  QueryResult,
+  ToolId,
+  Valves,
+} from '@/shared/protocol';
 
 /** UI state shared by components and the input controllers. */
 export const cityInfo = signal<CityInfo | null>(null);
@@ -12,6 +24,9 @@ export const valves = signal<Valves>({ r: 0, c: 0, i: 0 });
 export const budget = signal<BudgetInfo | null>(null);
 export const evaluation = signal<Evaluation | null>(null);
 export const reportOpen = signal(false);
+export const overlay = signal<OverlayName | null>(null);
+export const graphsOpen = signal(false);
+export const history = signal<{ monthly: HistorySample[]; yearly: HistorySample[] }>({ monthly: [], yearly: [] });
 
 export interface Headline {
   id: number;

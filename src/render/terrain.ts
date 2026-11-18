@@ -1,4 +1,4 @@
-import { type BufferGeometry, Color, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import { type BufferGeometry, Color, Group, type Material, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { CHUNK_SIZE, SEA_LEVEL } from '@/shared/constants';
 import { TileKind } from '@/shared/tiles';
 import { TriangleBuilder } from './geometry';
@@ -6,6 +6,9 @@ import { hash3 } from './hash';
 import type { CityMirror } from './mirror';
 import { PALETTE } from './palette';
 import { HEIGHT_UNIT, SKIRT_BOTTOM_Y, splitsNwSe, WATER_Y } from './units';
+
+/** Height of the overlay drape above the ground: clear of roads and rail. */
+const DRAPE_LIFT = 0.14;
 
 const C = {
   sandWet: new Color(PALETTE.sandWet),
@@ -30,8 +33,17 @@ export class TerrainLayer {
     metalness: 0,
   });
 
-  constructor(private readonly mirror: CityMirror) {
+  /** Overlay drapes: the same chunk surfaces, lifted above roads, drawn with the overlay material. */
+  readonly drapes = new Group();
+  private readonly drapeMeshes = new Map<number, Mesh>();
+
+  constructor(
+    private readonly mirror: CityMirror,
+    private readonly drapeMaterial?: Material,
+  ) {
     this.group.name = 'terrain';
+    this.drapes.name = 'overlay-drape';
+    this.drapes.visible = false;
   }
 
   rebuild(id: number): void {
@@ -40,11 +52,22 @@ export class TerrainLayer {
       old.geometry.dispose();
       this.group.remove(old);
     }
-    const mesh = new Mesh(this.buildChunk(id), this.material);
+    const geometry = this.buildChunk(id);
+    const mesh = new Mesh(geometry, this.material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.meshes.set(id, mesh);
     this.group.add(mesh);
+
+    const oldDrape = this.drapeMeshes.get(id);
+    if (oldDrape) this.drapes.remove(oldDrape);
+    if (this.drapeMaterial) {
+      const drape = new Mesh(geometry, this.drapeMaterial);
+      drape.position.y = DRAPE_LIFT;
+      drape.renderOrder = 5;
+      this.drapeMeshes.set(id, drape);
+      this.drapes.add(drape);
+    }
   }
 
   private buildChunk(id: number): BufferGeometry {

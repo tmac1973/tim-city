@@ -2,6 +2,8 @@ import type { Speed } from '@/shared/constants';
 import type { SimCommand } from '@/shared/protocol';
 import { BudgetWindow } from './BudgetWindow';
 import { CityReport } from './CityReport';
+import { GraphsWindow } from './GraphsWindow';
+import { OverlayPanel } from './OverlayPanel';
 import { NewsTicker } from './NewsTicker';
 import { GameOver } from './GameOver';
 import { QueryPanel } from './QueryPanel';
@@ -17,21 +19,25 @@ interface AppProps {
   send: (command: SimCommand) => void;
   onBudgetClose: () => void;
   onShowMe: (x: number, y: number) => void;
+  bindMinimap: (canvas: HTMLCanvasElement) => void;
+  requestHistory: () => void;
 }
 
-export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe }: AppProps) {
+export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMinimap, requestHistory }: AppProps) {
   return (
     <>
       <TopBar />
       <Toolbar />
       <SpeedControls onSpeed={onSpeed} />
       <RciMeter />
+      <OverlayPanel bindMinimap={bindMinimap} />
       <QueryPanel />
       <Toasts />
       <CostTag />
       <NewsTicker onShowMe={onShowMe} />
       <BudgetWindow send={send} onClose={onBudgetClose} />
       <CityReport onShowMe={onShowMe} />
+      <GraphsWindow request={requestHistory} />
       <GameOver />
       {webglError !== null && (
         <p class="panel notice" role="alert">

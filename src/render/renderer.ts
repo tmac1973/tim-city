@@ -4,6 +4,7 @@ import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
 import { NetworkLayer } from './networks';
+import { OverlayLayer, type OverlayName } from './overlays';
 import type { CityMirror } from './mirror';
 import { PALETTE } from './palette';
 import { pickTile, type PickResult } from './picking';
@@ -29,6 +30,7 @@ export class Renderer {
   private readonly trees: TreeLayer;
   private readonly networks: NetworkLayer;
   private readonly buildings: BuildingLayer;
+  readonly overlay: OverlayLayer;
   private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
   private readonly dirty = new Set<number>();
@@ -61,7 +63,8 @@ export class Renderer {
 
     this.cityCamera = new CityCamera(canvas, mirror.size, (x, z) => mirror.heightAt(x, z));
     this.lighting = new Lighting(this.scene);
-    this.terrain = new TerrainLayer(mirror);
+    this.overlay = new OverlayLayer(mirror);
+    this.terrain = new TerrainLayer(mirror, this.overlay.drapeMaterial);
     this.water = new WaterLayer(mirror);
     this.trees = new TreeLayer(mirror);
     this.networks = new NetworkLayer(mirror);
@@ -74,6 +77,8 @@ export class Renderer {
       this.trees.group,
       this.networks.group,
       this.buildings.group,
+      this.overlay.group,
+      this.terrain.drapes,
       this.cursor.line,
       this.preview.mesh,
     );
@@ -85,6 +90,32 @@ export class Renderer {
     window.addEventListener('resize', () => {
       this.resize();
     });
+  }
+
+  /** Show a data overlay (null: none); buildings and trees fade while one is on. */
+  setOverlay(name: OverlayName | null): void {
+    this.overlay.setActive(name);
+    this.terrain.drapes.visible = name !== null;
+    this.buildings.setFade(name !== null);
+    this.trees.setFade(name !== null);
+  }
+
+  /**
+   * Where the screen's four corners meet the ground plane at the camera
+   * target's height, for the minimap's view outline.
+   */
+  viewFootprint(): [number, number][] {
+    const cam = this.cityCamera.camera;
+    const y = this.cityCamera.target.y;
+    const out: [number, number][] = [];
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+      this.raycaster.setFromCamera(new Vector2(sx, sy), cam);
+      const { origin, direction } = this.raycaster.ray;
+      // Corners above the horizon fall back to a far point along the ray.
+      const t = direction.y < -1e-3 ? (y - origin.y) / direction.y : this.mirror.size * 2;
+      out.push([origin.x + direction.x * t, origin.z + direction.z * t]);
+    }
+    return out;
   }
 
   /** Called whenever the hovered tile changes (null when off the map). */
@@ -116,6 +147,7 @@ export class Renderer {
       this.networks.rebuild(id);
       this.buildings.rebuild(id);
     }
+    if (hadDirty) this.overlay.refreshPower();
     this.dirty.clear();
     this.trees.flush();
 

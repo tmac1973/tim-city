@@ -24,6 +24,13 @@ Make every hidden number visible. The player toggles 3D heatmap overlays for pow
 3. Write `OverlayBar.tsx`, `Minimap.tsx`, `LineChart.tsx` and `GraphsWindow.tsx`.
 4. Write tests.
 
+## Implementation notes (changed during build)
+- **Overlays are a terrain "drape", not a terrain-shader blend.** Blending into the ground shader hid the traffic overlay completely (roads and buildings draw over the ground). Each terrain chunk now has a second mesh sharing its geometry, lifted 0.14 above roads and drawn with an unlit, translucent overlay material, so colours stay readable and cover roads.
+- **Columns** rise only for blocks at or above 24 (about a tenth of the scale), coloured by their real value, for pollution, crime and density. Land value is non-zero everywhere, so it is ground-only (columns filled the map with haze).
+- Fields stream as a full block-field snapshot when subscribed and at each month start (4–16 KB), rather than per changed chunk.
+- The minimap and the 3×3 overlay buttons sit top-right (the left column is full at 720 px); the query panel moved below them.
+- The e2e frame check compares median frame time with and without an overlay (headless browsers render in software, where absolute times measure the machine); real frame-rate gates stay in phase 21.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

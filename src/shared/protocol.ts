@@ -249,10 +249,17 @@ export interface ChunkSlice {
   heights: Uint8Array;
 }
 
+/** Block fields an overlay can show (power comes from tile flags instead). */
+export const FIELD_OVERLAYS = ['traffic', 'pollution', 'crime', 'landValue', 'popDensity', 'policeCover', 'fireCover', 'growth'] as const;
+export type FieldName = (typeof FIELD_OVERLAYS)[number];
+
 export type MainToWorker =
   | ({ type: 'init'; terrain: TerrainOptions; difficulty: DifficultyName } & CityInfo)
   | { type: 'setSpeed'; speed: Speed }
-  | { type: 'command'; command: SimCommand };
+  | { type: 'command'; command: SimCommand }
+  /** Send this block field with ticks (null: none). Not a sim command: it changes nothing. */
+  | { type: 'subscribeField'; name: FieldName | null }
+  | { type: 'requestHistory' };
 
 export interface TickMessage {
   type: 'tick';
@@ -263,6 +270,8 @@ export interface TickMessage {
   valves: Valves;
   budget: BudgetInfo;
   evaluation: Evaluation | null;
+  /** The subscribed block field, when it changed (at month end, or on subscribing). */
+  field?: { name: FieldName; data: Uint8Array };
   chunks: ChunkSlice[];
 }
 
@@ -270,4 +279,5 @@ export type WorkerToMain =
   | ({ type: 'ready' } & CityInfo)
   | TickMessage
   | { type: 'event'; event: SimEvent }
+  | { type: 'history'; monthly: HistorySample[]; yearly: HistorySample[] }
   | { type: 'error'; message: string };

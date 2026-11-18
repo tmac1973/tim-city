@@ -415,7 +415,7 @@ button {
 /* Query panel */
 .query {
   position: absolute;
-  top: 72px;
+  top: 400px;
   right: 12px;
   width: 260px;
   padding: 12px 14px;
@@ -857,4 +857,161 @@ button {
   margin-bottom: 4px;
   padding-bottom: 4px;
   opacity: 0.8;
+}
+
+/* Minimap and overlays */
+.overlays {
+  position: absolute;
+  top: 72px;
+  right: 12px;
+  width: 200px;
+  padding: 8px;
+}
+
+.minimap {
+  display: block;
+  width: 184px;
+  height: 184px;
+  border-radius: 8px;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+.overlay-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.overlay-buttons button {
+  height: 26px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.overlay-buttons button:hover {
+  background: rgb(255 255 255 / 10%);
+  color: var(--panel-text);
+}
+
+.overlay-buttons button.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.legend {
+  margin-top: 8px;
+}
+
+.legend-bar {
+  height: 8px;
+  border-radius: 4px;
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* Graphs */
+.graphs {
+  width: min(720px, 100%);
+  padding: 18px 20px;
+}
+
+.graphs header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.graphs header .close {
+  margin-left: auto;
+  font-size: 22px;
+  background: none;
+}
+
+.segmented {
+  display: flex;
+  background: rgb(255 255 255 / 8%);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.modal-backdrop .segmented button {
+  height: 28px;
+  background: none;
+  font-size: 13px;
+}
+
+.modal-backdrop .segmented button.active {
+  background: rgb(255 255 255 / 18%);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.modal-backdrop .chip {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-backdrop .chip.on {
+  color: var(--panel-text);
+  background: rgb(255 255 255 / 16%);
+}
+
+.chip i,
+.chart-readout i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: rgb(255 255 255 / 3%);
+  border-radius: 8px;
+}
+
+.chart .grid {
+  stroke: rgb(255 255 255 / 8%);
+}
+
+.chart .cursor {
+  stroke: rgb(255 255 255 / 45%);
+}
+
+.chart-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-readout span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }

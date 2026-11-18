@@ -1,8 +1,9 @@
 import { h, render } from 'preact';
 import type { MapSize, Speed } from './shared/constants';
 import type { DifficultyName } from './shared/difficulty';
-import { DEFAULT_TERRAIN, type TerrainOptions } from './shared/protocol';
+import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/protocol';
 import { CityMirror } from './render/mirror';
+import { MinimapPainter } from './render/minimap';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
@@ -19,6 +20,9 @@ import {
   formatMoney,
   funds,
   gameOver,
+  graphsOpen,
+  history,
+  overlay,
   speed,
   toast,
   valves,
@@ -54,17 +58,32 @@ sim.onTick((tick) => {
   valves.value = tick.valves;
   budget.value = tick.budget;
   evaluation.value = tick.evaluation;
+  if (tick.field) fieldListener?.(tick.field.name, tick.field.data);
 });
 
 // Mount the UI even if WebGL fails, so the failure can be reported on screen.
 let webglError: string | null = null;
 /** Points the camera at a tile; a no-op until the renderer exists. */
 let flyTo: (x: number, y: number) => void = () => undefined;
+let bindMinimap: (canvas: HTMLCanvasElement) => void = () => undefined;
+let fieldListener: ((name: FieldName, data: Uint8Array) => void) | null = null;
 try {
   const renderer = new Renderer(canvas, mirror);
   flyTo = (x, y) => {
     renderer.cityCamera.flyTo(x, y);
   };
+  const minimap = new MinimapPainter(mirror, renderer);
+  bindMinimap = (canvas) => {
+    minimap.attach(canvas);
+  };
+  fieldListener = (name, data) => {
+    renderer.overlay.setField(name, data);
+  };
+  overlay.subscribe((name) => {
+    renderer.setOverlay(name);
+    // Power comes from tile flags; every other overlay needs its field streamed.
+    sim.subscribeField(name && name !== 'power' ? name : null);
+  });
   renderer.onTerrainShown(() => {
     // Tests and tooling wait for this marker.
     document.documentElement.dataset.rendered = 'true';
@@ -110,11 +129,22 @@ render(
     onShowMe: (x, y) => {
       flyTo(x, y);
     },
+    bindMinimap: (canvas) => {
+      bindMinimap(canvas);
+    },
+    requestHistory: () => {
+      sim.requestHistory();
+    },
   }),
   appRoot,
 );
 
+sim.onHistory((h) => {
+  history.value = h;
+});
 sim.onEvent((event) => {
+  // Keep open graphs current, a month at a time.
+  if (event.type === 'monthEnd' && graphsOpen.value) sim.requestHistory();
   if (event.type === 'news') addHeadline(event.headline, formatDate(date.value), event.x, event.y);
   if (event.type === 'milestone') toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}`, 'info', 6000);
   if (event.type === 'yearBudget') {

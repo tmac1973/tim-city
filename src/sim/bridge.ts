@@ -2,6 +2,8 @@ import type { Speed } from '@/shared/constants';
 import type { DifficultyName } from '@/shared/difficulty';
 import type {
   CityInfo,
+  FieldName,
+  HistorySample,
   MainToWorker,
   SimCommand,
   SimEvent,
@@ -17,6 +19,7 @@ export class SimBridge {
   private readonly worker: Worker;
   private readonly tickListeners = new Set<Listener<TickMessage>>();
   private readonly eventListeners = new Set<Listener<SimEvent>>();
+  private readonly historyListeners = new Set<Listener<{ monthly: HistorySample[]; yearly: HistorySample[] }>>();
   private pendingInit: { resolve: Listener<CityInfo>; reject: Listener<Error> } | null = null;
 
   constructor() {
@@ -42,6 +45,20 @@ export class SimBridge {
 
   command(command: SimCommand): void {
     this.send({ type: 'command', command });
+  }
+
+  /** Ask for a block field with each month's ticks, for an overlay; null stops it. */
+  subscribeField(name: FieldName | null): void {
+    this.send({ type: 'subscribeField', name });
+  }
+
+  requestHistory(): void {
+    this.send({ type: 'requestHistory' });
+  }
+
+  onHistory(listener: Listener<{ monthly: HistorySample[]; yearly: HistorySample[] }>): () => void {
+    this.historyListeners.add(listener);
+    return () => this.historyListeners.delete(listener);
   }
 
   /** Returns an unsubscribe function. */
@@ -70,6 +87,9 @@ export class SimBridge {
         return;
       case 'event':
         for (const listener of this.eventListeners) listener(message.event);
+        return;
+      case 'history':
+        for (const listener of this.historyListeners) listener({ monthly: message.monthly, yearly: message.yearly });
         return;
       case 'error':
         this.fail(new Error(message.message));

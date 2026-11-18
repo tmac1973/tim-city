@@ -8,13 +8,16 @@ import { runTool } from './tools';
 import { queryTile } from './tools/query';
 import { computeLedger } from './systems/budget';
 import { DIFFICULTY } from '@/shared/difficulty';
-import type { BudgetInfo } from '@/shared/protocol';
+import type { BudgetInfo, FieldName } from '@/shared/protocol';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
 let sim: Simulation | null = null;
 let speed: Speed = 'paused';
 let timer: ReturnType<typeof setTimeout> | undefined;
+/** The block field the main thread wants, and whether to send it on the next publish. */
+let subscribed: FieldName | null = null;
+let fieldDue = false;
 
 function post(message: WorkerToMain, transfer: Transferable[] = []): void {
   ctx.postMessage(message, transfer);
@@ -23,7 +26,14 @@ function post(message: WorkerToMain, transfer: Transferable[] = []): void {
 /** Ship dirty chunks and the current date, then any events. */
 function publish(current: Simulation): void {
   const chunks = takeDirtyChunks(current.state);
-  const transfer = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.parts.buffer, c.heights.buffer]);
+  const transfer: Transferable[] = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.parts.buffer, c.heights.buffer]);
+  // Fields settle by the month's last tick, so that is when an overlay refreshes.
+  let field: { name: FieldName; data: Uint8Array } | undefined;
+  if (subscribed && (fieldDue || current.state.date.tick === 0)) {
+    field = { name: subscribed, data: current.state.field(subscribed).slice() };
+    transfer.push(field.data.buffer);
+    fieldDue = false;
+  }
   post(
     {
       type: 'tick',
@@ -34,6 +44,7 @@ function publish(current: Simulation): void {
       valves: { ...current.state.valves },
       budget: budgetInfo(current),
       evaluation: current.state.evaluation,
+      ...(field ? { field } : {}),
       chunks,
     },
     transfer,
@@ -81,6 +92,14 @@ function handle(message: MainToWorker): void {
       schedule();
       return;
     }
+    case 'subscribeField':
+      subscribed = message.name;
+      fieldDue = true;
+      if (sim) publish(sim);
+      return;
+    case 'requestHistory':
+      if (sim) post({ type: 'history', monthly: sim.state.history.monthly, yearly: sim.state.history.yearly });
+      return;
     case 'setSpeed':
       speed = message.speed;
       if (sim) publish(sim);

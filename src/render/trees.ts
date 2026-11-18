@@ -70,6 +70,14 @@ export class TreeLayer {
     for (const geometry of this.geometries) this.meshes.push(this.makeMesh(geometry, 1024));
   }
 
+  /** See-through while a data overlay is on, so the colours show. */
+  setFade(on: boolean): void {
+    this.material.transparent = on;
+    this.material.opacity = on ? 0.3 : 1;
+    this.material.depthWrite = !on;
+    this.material.needsUpdate = true;
+  }
+
   rebuild(id: number): void {
     const m = this.mirror;
     const x0 = (id % m.chunksPerSide) * CHUNK_SIZE;
