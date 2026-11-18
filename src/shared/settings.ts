@@ -28,13 +28,15 @@ export interface Settings {
   edgeScroll: boolean;
   /** Rotate and tilt speed multiplier, 0.5–2. */
   sensitivity: number;
+  /** Size of the interface relative to its design size, 0.75–2. */
+  uiScale: number;
   /** Show onboarding tips. */
   tips: boolean;
   /** Tips already shown and dismissed. */
   seenTips: string[];
 }
 
-export const DEFAULT_SETTINGS: Settings = { quality: 'high', edgeScroll: true, sensitivity: 1, tips: true, seenTips: [] };
+export const DEFAULT_SETTINGS: Settings = { quality: 'high', edgeScroll: true, sensitivity: 1, uiScale: 1, tips: true, seenTips: [] };
 
 const KEY = 'timcity.settings';
 
@@ -46,16 +48,25 @@ export function loadSettings(storage: Pick<Storage, 'getItem'> | null = safeStor
     const parsed = JSON.parse(raw) as Partial<Settings>;
     const quality = parsed.quality && parsed.quality in QUALITY ? parsed.quality : DEFAULT_SETTINGS.quality;
     const sensitivity = typeof parsed.sensitivity === 'number' ? Math.min(2, Math.max(0.5, parsed.sensitivity)) : 1;
+    const uiScale = typeof parsed.uiScale === 'number' ? clampUiScale(parsed.uiScale) : 1;
     return {
       quality,
       edgeScroll: parsed.edgeScroll ?? DEFAULT_SETTINGS.edgeScroll,
       sensitivity,
+      uiScale,
       tips: parsed.tips ?? true,
       seenTips: Array.isArray(parsed.seenTips) ? parsed.seenTips.filter((t) => typeof t === 'string') : [],
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
+}
+
+export const UI_SCALE_MIN = 0.75;
+export const UI_SCALE_MAX = 2;
+
+export function clampUiScale(scale: number): number {
+  return Number.isFinite(scale) ? Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)) : 1;
 }
 
 export function saveSettings(settings: Settings, storage: Pick<Storage, 'setItem'> | null = safeStorage()): void {

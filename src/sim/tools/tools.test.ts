@@ -130,6 +130,20 @@ describe('road, rail and power', () => {
     expect((s.flags[s.index(18, 20)] ?? 0) & TileFlag.CONDUCTIVE).toBeTruthy();
   });
 
+  it('lets power cross a road between two buildings', () => {
+    const s = flatCity();
+    runTool(s, tool('road', 5, 13, 20, 13));
+    runTool(s, tool('residential', 11, 11));
+    runTool(s, tool('residential', 11, 15));
+    // One click on the east–west road between the zones.
+    expect(runTool(s, tool('power', 11, 13)).ok).toBe(true);
+    expect(kindAt(s, 11, 13)).toBe(TileKind.RoadPower);
+    // A drag from one building to the other crosses the road too.
+    expect(runTool(s, tool('power', 12, 12, 12, 14)).ok).toBe(true);
+    expect(kindAt(s, 12, 13)).toBe(TileKind.RoadPower);
+    expect(kindAt(s, 12, 12)).not.toBe(TileKind.PowerLine);
+  });
+
   it('fails without changing anything when funds are short', () => {
     const s = flatCity();
     s.funds = 15;

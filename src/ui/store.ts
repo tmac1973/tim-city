@@ -82,7 +82,12 @@ export const pauseOpen = signal(false);
 export const settings = signal<Settings>(loadSettings());
 settings.subscribe((s) => {
   saveSettings(s);
+  // styles.css zooms #app by this; viewport units divide by it to stay on screen.
+  if (typeof document !== 'undefined') document.documentElement.style.setProperty('--ui-scale', String(s.uiScale));
 });
+
+/** Interface scale: CSS pixels on screen per CSS pixel inside #app. */
+export const uiScale = (): number => settings.value.uiScale;
 
 /** Counts the onboarding tips watch, refreshed every couple of seconds. */
 export const cityFacts = signal({ roads: 0, lines: 0, zones: 0, plants: 0, unpowered: 0, pop: 0 });

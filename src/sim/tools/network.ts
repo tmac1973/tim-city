@@ -3,6 +3,7 @@ import type { ToolCommand } from '@/shared/protocol';
 import {
   carries,
   isBridge,
+  isNetwork,
   isOpenLand,
   isPower,
   isTunnel,
@@ -98,11 +99,16 @@ export function placeOnLand(state: CityState, tile: PathTile, network: Network, 
   }
 
   if (kind === TileKind.Radiation) return { reason: 'Radioactive' };
+  // Buildings already conduct, so a power drag may start, end or pass over them.
+  if (network === 'power' && !isNetwork(kind) && ((state.flags[index] ?? 0) & TileFlag.CONDUCTIVE) !== 0) {
+    return { kind, cost: 0 };
+  }
   const existing = SINGLE_NETWORK[kind];
   if (!existing || isBridge(kind) || isTunnel(kind)) return { reason: 'Tile occupied' };
   if (axes.size !== 1) return { reason: "Can't cross on a bend" };
-  const along = axes.has('x') ? 'x' : 'y';
   const existingAxis = connectionAxis(state, x, y, existing);
+  // A lone tile has no direction of its own: it crosses whatever is there.
+  const along = single && existingAxis !== 'both' ? (existingAxis === 'x' ? 'y' : 'x') : axes.has('x') ? 'x' : 'y';
   if (existingAxis === 'both') return { reason: "Can't cross a junction" };
   if (existingAxis === along) return { reason: "Can't run along another line" };
   if (existing !== 'power' && network !== 'power' && !slopeOk(state, x, y, new Set<Axis>(['x', 'y']))) {

@@ -11,18 +11,26 @@ import {
   savesOpen,
   settings,
   settingsOpen,
+  uiScale,
 } from '../store';
 import { currentTip } from './tips';
 
-/** Where the bubble sits, beside its anchor (or at the bottom centre). */
+/**
+ * Where the bubble sits, beside its anchor (or at the bottom centre), in
+ * #app pixels: the screen's pixels divided by the interface scale.
+ */
 function placeFor(selector: string | null): { left: number; top: number; arrow: 'left' | 'up' | 'down' } {
+  const k = uiScale();
+  const w = window.innerWidth / k;
+  const h = window.innerHeight / k;
   const el = selector ? document.querySelector(selector) : null;
-  if (!el) return { left: window.innerWidth / 2 - 170, top: window.innerHeight - 190, arrow: 'down' };
-  const r = el.getBoundingClientRect();
+  if (!el) return { left: w / 2 - 170, top: h - 190, arrow: 'down' };
+  const box = el.getBoundingClientRect();
+  const r = { left: box.left / k, right: box.right / k, top: box.top / k, bottom: box.bottom / k, width: box.width / k, height: box.height / k };
   // Toolbar buttons sit on the left edge: point at them from the right.
-  if (r.left < window.innerWidth / 3) return { left: r.right + 14, top: Math.max(70, r.top + r.height / 2 - 36), arrow: 'left' };
-  if (r.top < 90) return { left: Math.min(window.innerWidth - 360, Math.max(12, r.left + r.width / 2 - 170)), top: r.bottom + 14, arrow: 'up' };
-  return { left: Math.min(window.innerWidth - 360, Math.max(12, r.left + r.width / 2 - 170)), top: Math.max(70, r.top - 120), arrow: 'down' };
+  if (r.left < w / 3) return { left: r.right + 14, top: Math.max(70, r.top + r.height / 2 - 36), arrow: 'left' };
+  if (r.top < 90) return { left: Math.min(w - 360, Math.max(12, r.left + r.width / 2 - 170)), top: r.bottom + 14, arrow: 'up' };
+  return { left: Math.min(w - 360, Math.max(12, r.left + r.width / 2 - 170)), top: Math.max(70, r.top - 120), arrow: 'down' };
 }
 
 /** One dismissible onboarding tip at a time, pointing at what it talks about. */

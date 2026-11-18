@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { COSTS, POWER_SUPPLY } from '@/shared/costs';
 import type { BrushSize } from '@/shared/protocol';
 import { Icon } from './icons';
@@ -12,8 +12,10 @@ import {
   pauseOpen,
   reportOpen,
   savesOpen,
+  settings,
   settingsOpen,
   type UiTool,
+  uiScale,
 } from './store';
 
 interface ToolDef {
@@ -88,6 +90,32 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const BRUSHES: BrushSize[] = [1, 3, 5];
 
+/**
+ * Shrinks the toolbar when it would run off the bottom of the window, as it
+ * does on short windows or at a large interface size.
+ */
+function useFitHeight(interfaceScale: number) {
+  const ref = useRef<HTMLElement>(null);
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = ref.current;
+      if (!el) return;
+      const box = el.getBoundingClientRect();
+      const current = Number(el.style.transform.match(/scale\(([\d.]+)\)/)?.[1] ?? 1);
+      const natural = box.height / current;
+      const room = window.innerHeight - box.top - 12 * uiScale();
+      setScale(Math.min(1, Math.floor((room / natural) * 100) / 100));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+    };
+  }, [interfaceScale]);
+  return { ref, scale };
+}
+
 export function Toolbar() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -123,9 +151,10 @@ export function Toolbar() {
     };
   }, []);
 
+  const fit = useFitHeight(settings.value.uiScale);
   const current = activeTool.value;
   return (
-    <nav class="toolbar panel" aria-label="Tools">
+    <nav ref={fit.ref} class="toolbar panel" aria-label="Tools" style={fit.scale < 1 ? { transform: `scale(${String(fit.scale)})` } : undefined}>
       {GROUPS.map((group) => (
         <div class="tool-group" key={group.label}>
           <span class="group-label">{group.label}</span>

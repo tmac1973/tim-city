@@ -1,4 +1,4 @@
-import { costTag, toasts } from './store';
+import { costTag, toasts, uiScale } from './store';
 
 export function Toasts() {
   return (
@@ -28,11 +28,13 @@ export function Toasts() {
 export function CostTag() {
   const tag = costTag.value;
   if (!tag) return null;
+  // The mouse is in screen pixels; #app is zoomed by the interface scale.
+  const k = uiScale();
   return (
     <div
       class={tag.ok ? 'cost-tag ok' : 'cost-tag bad'}
       data-testid="cost-tag"
-      style={{ transform: `translate(${String(tag.x + 18)}px, ${String(tag.y + 18)}px)` }}
+      style={{ transform: `translate(${String(tag.x / k + 18)}px, ${String(tag.y / k + 18)}px)` }}
     >
       {tag.text}
     </div>

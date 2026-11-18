@@ -1,4 +1,4 @@
-import type { QualityName } from '@/shared/settings';
+import { type QualityName, UI_SCALE_MAX, UI_SCALE_MIN } from '@/shared/settings';
 import { settings, settingsOpen, volumes } from '../store';
 
 const KEYS: [string, string][] = [
@@ -58,6 +58,20 @@ export function SettingsWindow() {
             </button>
           ))}
         </fieldset>
+        <label class="slider">
+          <span>
+            Interface size <b>{Math.round(s.uiScale * 100)}%</b>
+          </span>
+          <input
+            type="range"
+            min={UI_SCALE_MIN}
+            max={UI_SCALE_MAX}
+            step={0.05}
+            value={s.uiScale}
+            aria-label="Interface size"
+            onChange={(e) => (settings.value = { ...s, uiScale: Number(e.currentTarget.value) })}
+          />
+        </label>
         <h3>Sound</h3>
         <label class="check">
           <input type="checkbox" checked={v.muted} onChange={(e) => (volumes.value = { ...v, muted: e.currentTarget.checked })} />

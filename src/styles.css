@@ -9,6 +9,10 @@
   --bad: #ff7a6b;
   --radius: 12px;
   --shadow: 0 8px 28px rgb(0 0 0 / 28%);
+  /* Interface scale from Settings. Inside #app, use --app-w / --app-h, not vw / vh. */
+  --ui-scale: 1;
+  --app-w: calc(100vw / var(--ui-scale));
+  --app-h: calc(100vh / var(--ui-scale));
 }
 
 html,
@@ -34,7 +38,11 @@ body {
 /* UI layer passes input through to the canvas; panels opt back in. */
 #app {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: var(--app-w);
+  height: var(--app-h);
+  zoom: var(--ui-scale);
   pointer-events: none;
 }
 
@@ -150,6 +158,7 @@ button {
   flex-direction: column;
   gap: 10px;
   padding: 10px 8px;
+  transform-origin: top left;
 }
 
 .tool-group {
@@ -533,7 +542,7 @@ button {
 
 .budget {
   width: min(760px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(var(--app-h) - 32px);
   overflow: auto;
   padding: 18px 20px;
 }
@@ -661,7 +670,7 @@ button {
 /* City report */
 .report {
   width: min(760px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(var(--app-h) - 32px);
   overflow: auto;
   padding: 18px 20px;
 }
@@ -812,7 +821,7 @@ button {
   left: 50%;
   bottom: 12px;
   transform: translateX(-50%);
-  max-width: min(560px, calc(100vw - 480px));
+  max-width: min(560px, calc(var(--app-w) - 480px));
   padding: 6px 10px;
   border-radius: 999px;
 }
@@ -1019,7 +1028,7 @@ button {
 /* Save and load */
 .saves {
   width: min(620px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(var(--app-h) - 32px);
   display: flex;
   flex-direction: column;
   padding: 18px 20px;
@@ -1100,7 +1109,7 @@ button {
 /* Disasters */
 .disasters {
   width: min(560px, 100%);
-  max-height: calc(100vh - 32px);
+  max-height: calc(var(--app-h) - 32px);
   overflow: auto;
   padding: 18px 20px;
 }
@@ -1205,7 +1214,7 @@ button {
   display: grid;
   align-items: center;
   justify-items: start;
-  padding: 0 clamp(16px, 8vw, 120px);
+  padding: 0 clamp(16px, calc(var(--app-w) * 0.08), 120px);
   background: linear-gradient(90deg, rgb(8 12 18 / 55%), rgb(8 12 18 / 0%) 55%);
 }
 
@@ -1271,7 +1280,7 @@ button {
 .new-city,
 .settings,
 .pause {
-  max-height: calc(100vh - 32px);
+  max-height: calc(var(--app-h) - 32px);
   overflow: auto;
   padding: 18px 20px;
 }
