@@ -118,6 +118,19 @@ export class Renderer {
     return out;
   }
 
+  /**
+   * A small JPEG of the current view, for save thumbnails. Renders a frame
+   * and reads the canvas in the same task, before the browser clears it.
+   */
+  capture(width: number): string {
+    this.post.render(0);
+    const scaled = document.createElement('canvas');
+    scaled.width = width;
+    scaled.height = Math.round((width * this.canvas.height) / this.canvas.width);
+    scaled.getContext('2d')?.drawImage(this.canvas, 0, 0, scaled.width, scaled.height);
+    return scaled.toDataURL('image/jpeg', 0.75);
+  }
+
   /** Called whenever the hovered tile changes (null when off the map). */
   onHoverChange(listener: (tile: PickResult | null) => void): void {
     this.hoverListeners.push(listener);

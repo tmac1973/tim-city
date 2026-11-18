@@ -21,6 +21,8 @@ export class SimBridge {
   private readonly eventListeners = new Set<Listener<SimEvent>>();
   private readonly historyListeners = new Set<Listener<{ monthly: HistorySample[]; yearly: HistorySample[] }>>();
   private pendingInit: { resolve: Listener<CityInfo>; reject: Listener<Error> } | null = null;
+  private readonly pendingSnapshots = new Map<number, Listener<Uint8Array>>();
+  private nextSnapshot = 1;
 
   constructor() {
     this.worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
@@ -36,6 +38,23 @@ export class SimBridge {
     return new Promise((resolve, reject) => {
       this.pendingInit = { resolve, reject };
       this.send({ type: 'init', ...info, terrain, difficulty });
+    });
+  }
+
+  /** Start from a save's (uncompressed) bytes instead of a new map. */
+  load(bytes: Uint8Array): Promise<CityInfo> {
+    return new Promise((resolve, reject) => {
+      this.pendingInit = { resolve, reject };
+      this.send({ type: 'load', bytes });
+    });
+  }
+
+  /** The whole city, serialized. */
+  snapshot(): Promise<Uint8Array> {
+    return new Promise((resolve) => {
+      const requestId = this.nextSnapshot++;
+      this.pendingSnapshots.set(requestId, resolve);
+      this.send({ type: 'requestSnapshot', requestId });
     });
   }
 
@@ -87,6 +106,10 @@ export class SimBridge {
         return;
       case 'event':
         for (const listener of this.eventListeners) listener(message.event);
+        return;
+      case 'snapshot':
+        this.pendingSnapshots.get(message.requestId)?.(message.bytes);
+        this.pendingSnapshots.delete(message.requestId);
         return;
       case 'history':
         for (const listener of this.historyListeners) listener({ monthly: message.monthly, yearly: message.yearly });

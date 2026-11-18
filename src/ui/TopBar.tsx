@@ -11,6 +11,7 @@ import {
   funds,
   graphsOpen,
   reportOpen,
+  savesOpen,
   toast,
 } from './store';
 
@@ -50,6 +51,9 @@ export function TopBar() {
       </button>
       <button class="topbar-button" type="button" onClick={() => (graphsOpen.value = true)}>
         Graphs
+      </button>
+      <button class="topbar-button" type="button" onClick={() => (savesOpen.value = true)}>
+        Save
       </button>
       <span class="spacer" />
       {info && (

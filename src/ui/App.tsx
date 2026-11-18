@@ -4,6 +4,7 @@ import { BudgetWindow } from './BudgetWindow';
 import { CityReport } from './CityReport';
 import { GraphsWindow } from './GraphsWindow';
 import { OverlayPanel } from './OverlayPanel';
+import { type SaveActions, SaveLoadWindow } from './SaveLoadWindow';
 import { NewsTicker } from './NewsTicker';
 import { GameOver } from './GameOver';
 import { QueryPanel } from './QueryPanel';
@@ -21,9 +22,10 @@ interface AppProps {
   onShowMe: (x: number, y: number) => void;
   bindMinimap: (canvas: HTMLCanvasElement) => void;
   requestHistory: () => void;
+  saves: SaveActions;
 }
 
-export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMinimap, requestHistory }: AppProps) {
+export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMinimap, requestHistory, saves }: AppProps) {
   return (
     <>
       <TopBar />
@@ -38,6 +40,7 @@ export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMi
       <BudgetWindow send={send} onClose={onBudgetClose} />
       <CityReport onShowMe={onShowMe} />
       <GraphsWindow request={requestHistory} />
+      <SaveLoadWindow actions={saves} />
       <GameOver />
       {webglError !== null && (
         <p class="panel notice" role="alert">

@@ -26,6 +26,9 @@ export const evaluation = signal<Evaluation | null>(null);
 export const reportOpen = signal(false);
 export const overlay = signal<OverlayName | null>(null);
 export const graphsOpen = signal(false);
+export const savesOpen = signal(false);
+/** The slot this city was loaded from or last saved to. */
+export const currentSlot = signal<string | null>(null);
 export const history = signal<{ monthly: HistorySample[]; yearly: HistorySample[] }>({ monthly: [], yearly: [] });
 
 export interface Headline {

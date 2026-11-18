@@ -28,6 +28,13 @@ Let the player keep cities. The sim serializes its full state into a versioned b
 5. Write `SaveLoadWindow.tsx`; add a top-bar save button.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- **Traffic's service map is now saved state** (`CityState.serviceMap`). It was a cache built at each month start; a game saved mid-month would rebuild it from different data on load and drift from the original. The round-trip test runs a 20-year city, saves, loads, runs both 10 more years, and requires byte-identical saves — plus a mid-month variant.
+- **Loading reloads the page** with `?load=<slot>` (`&auto=1` for autosaves). The save's header gives the map size before the mirror and renderer are built, so a 256 save loads cleanly into what was a 128 session. Loaded games start paused.
+- The JSON header and array list live in `serializeRegistry.ts`; arrays are written in registry order (tiles, flags, heights, parts, densityAtYearStart, serviceMap, every block field).
+- Slots and autosaves store gzipped bytes plus a JPEG thumbnail grabbed right after a rendered frame. Imported files become a slot named "<city> (imported)".
+- The fixture town (`src/sim/fixtureCity.ts`) is shared by the tests and `scripts/makeFixtureSave.ts` (`pnpm fixture`, run with `tsx`).
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

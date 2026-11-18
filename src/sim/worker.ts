@@ -2,6 +2,7 @@
 import { SPEED_MS_PER_MONTH, type Speed, TICKS_PER_MONTH } from '@/shared/constants';
 import type { MainToWorker, WorkerToMain } from '@/shared/protocol';
 import { takeDirtyChunks } from './chunks';
+import { deserialize, serialize } from './serialize';
 import { Simulation } from './sim';
 import { generateTerrain } from './terrain/generate';
 import { runTool } from './tools';
@@ -90,6 +91,20 @@ function handle(message: MainToWorker): void {
       post({ type: 'ready', name, seed, size });
       publish(sim);
       schedule();
+      return;
+    }
+    case 'load': {
+      const state = deserialize(message.bytes);
+      sim = new Simulation({ name: state.name, seed: state.seed, size: state.size }, state);
+      post({ type: 'ready', name: state.name, seed: state.seed, size: state.size });
+      publish(sim);
+      schedule();
+      return;
+    }
+    case 'requestSnapshot': {
+      if (!sim) throw new Error('Snapshot requested before init');
+      const bytes = serialize(sim.state);
+      post({ type: 'snapshot', requestId: message.requestId, bytes }, [bytes.buffer]);
       return;
     }
     case 'subscribeField':

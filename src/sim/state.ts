@@ -81,6 +81,11 @@ export class CityState {
   readonly history: { monthly: HistorySample[]; yearly: HistorySample[] } = { monthly: [], yearly: [] };
   /** Zone-centre densities at the start of the year, to find zones people are leaving. */
   densityAtYearStart: Uint8Array;
+  /**
+   * Per tile: which destinations it serves this month (traffic.ts). Saved
+   * with the city so a game loaded mid-month continues exactly as it would have.
+   */
+  readonly serviceMap: Uint8Array;
   census: Census = emptyCensus();
   readonly valves: Valves = { r: 0, c: 0, i: 0 };
   /** True while some zones are unpowered because plants are at capacity. */
@@ -110,6 +115,7 @@ export class CityState {
     this.heights = new Uint8Array((size + 1) * (size + 1));
     this.parts = new Uint8Array(size * size);
     this.densityAtYearStart = new Uint8Array(size * size);
+    this.serviceMap = new Uint8Array(size * size);
     const blocks = (size / 2) * (size / 2);
     for (const name of FIELD_NAMES) this.blockFields[name] = new Uint8Array(blocks);
     this.rootRng = new Rng(seed);
@@ -123,6 +129,12 @@ export class CityState {
       this.streams.set(label, rng);
     }
     return rng;
+  }
+
+  /** Restore saved random streams (see randomStates). */
+  restoreRandom(states: readonly [string, ReturnType<Rng['getState']>][]): void {
+    this.streams.clear();
+    for (const [label, s] of states) this.random(label).setState(s);
   }
 
   /** Every stream's state, sorted by label, for determinism checks and saves. */

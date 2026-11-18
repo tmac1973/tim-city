@@ -15,8 +15,9 @@ export class Simulation {
   readonly commands = new CommandQueue();
   private events: SimEvent[] = [];
 
-  constructor(info: CityInfo) {
-    this.state = new CityState(info);
+  /** A new city from `info`, or one restored from a save when `state` is given. */
+  constructor(info: CityInfo, state?: CityState) {
+    this.state = state ?? new CityState(info);
     registerCoreCommands(this.commands);
     // Every event may also make the news.
     const emit = (event: SimEvent) => {

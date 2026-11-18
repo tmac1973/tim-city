@@ -259,7 +259,10 @@ export type MainToWorker =
   | { type: 'command'; command: SimCommand }
   /** Send this block field with ticks (null: none). Not a sim command: it changes nothing. */
   | { type: 'subscribeField'; name: FieldName | null }
-  | { type: 'requestHistory' };
+  | { type: 'requestHistory' }
+  /** Start from a save (uncompressed bytes) instead of `init`. */
+  | { type: 'load'; bytes: Uint8Array }
+  | { type: 'requestSnapshot'; requestId: number };
 
 export interface TickMessage {
   type: 'tick';
@@ -280,4 +283,5 @@ export type WorkerToMain =
   | TickMessage
   | { type: 'event'; event: SimEvent }
   | { type: 'history'; monthly: HistorySample[]; yearly: HistorySample[] }
+  | { type: 'snapshot'; requestId: number; bytes: Uint8Array }
   | { type: 'error'; message: string };

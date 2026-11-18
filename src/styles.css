@@ -1015,3 +1015,84 @@ button {
   align-items: center;
   gap: 6px;
 }
+
+/* Save and load */
+.saves {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px;
+}
+
+.saves > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.saves .close {
+  font-size: 22px;
+  background: none;
+}
+
+.save-as {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.save-as input {
+  flex: 1;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgb(255 255 255 / 6%);
+  color: var(--panel-text);
+  font: inherit;
+  user-select: text;
+}
+
+.save-list {
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.save-item {
+  display: grid;
+  grid-template-columns: 96px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 5%);
+}
+
+.save-item img,
+.save-item .no-thumb {
+  width: 96px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: rgb(255 255 255 / 8%);
+}
+
+.save-info {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.save-info strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saves footer {
+  justify-content: flex-start;
+}

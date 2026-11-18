@@ -25,8 +25,6 @@ export const WANTS: Record<ZoneType, number> = {
   [ZoneType.I]: SERVES[ZoneType.R] | SERVES_EDGE,
 };
 
-/** Per-tile bits: zone types whose lots lie within road reach of the tile. */
-const serviceMaps = new WeakMap<CityState, Uint8Array>();
 
 function reachBox(state: CityState, cx: number, cy: number, visit: (i: number) => void): void {
   const r = 1 + ROAD_REACH;
@@ -35,9 +33,11 @@ function reachBox(state: CityState, cx: number, cy: number, visit: (i: number) =
   }
 }
 
+/** Rebuild state.serviceMap: per tile, the zone types whose lots lie within road reach. */
 export function buildServiceMap(state: CityState): Uint8Array {
   const { size } = state;
-  const map = new Uint8Array(size * size);
+  const map = state.serviceMap;
+  map.fill(0);
   for (let i = 0; i < size * size; i++) {
     if (!((state.flags[i] ?? 0) & TileFlag.ZONE_CENTER)) continue;
     const zone = zoneOf(state.tiles[i] ?? 0);
@@ -54,7 +54,6 @@ export function buildServiceMap(state: CityState): Uint8Array {
     if (!((state.flags[i] ?? 0) & TileFlag.POWERED)) continue;
     reachBox(state, (i % size) + 1, Math.floor(i / size) + 1, (t) => (map[t] = (map[t] ?? 0) | SERVES_EDGE));
   }
-  serviceMaps.set(state, map);
   return map;
 }
 
@@ -181,7 +180,7 @@ const searches = new WeakMap<CityState, TripSearch>();
 export function runTrip(state: CityState, i: number): boolean {
   const zone = zoneOf(state.tiles[i] ?? 0);
   if (!zone) return false;
-  const service = serviceMaps.get(state) ?? buildServiceMap(state);
+  const service = state.serviceMap;
   let search = searches.get(state);
   if (!search) {
     search = new TripSearch(state.size);
