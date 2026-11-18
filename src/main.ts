@@ -482,7 +482,8 @@ async function start(): Promise<void> {
     currentSlot.value = loadName;
     toast(`Loaded "${loadName ?? ''}"`, 'info');
   } else {
-    sim.setSpeed('normal');
+    // So does a new one: an empty city's clock would only run down the funds.
+    toast('Paused. Press Play (or 2) when you’re ready to start the clock.', 'info', 6000);
   }
 }
 
