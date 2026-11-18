@@ -32,10 +32,13 @@ export function hasRoadAccess(state: CityState, cx: number, cy: number): boolean
 
 /**
  * Score that drives a zone's growth: its sector's demand, plus local
- * factors. Later phases add land value, pollution, crime and traffic here.
+ * factors. Congestion at the zone holds it back; later phases add land
+ * value, pollution and crime.
  */
-export function zoneScore(state: CityState, type: ZoneType): number {
-  return type === ZoneType.R ? state.valves.r : type === ZoneType.C ? state.valves.c : state.valves.i;
+export function zoneScore(state: CityState, x: number, y: number, type: ZoneType): number {
+  const valve = type === ZoneType.R ? state.valves.r : type === ZoneType.C ? state.valves.c : state.valves.i;
+  const traffic = state.field('traffic')[state.blockIndex(x, y)] ?? 0;
+  return valve - traffic / 8;
 }
 
 function setDensity(state: CityState, cx: number, cy: number, type: ZoneType, density: number, lvClass: number): void {
@@ -67,9 +70,10 @@ export const zoneSystem: System = {
         }
         continue;
       }
-      if (!hasRoadAccess(state, x, y)) continue;
+      // A zone grows only if its people can reach work, shops or homes.
+      if (f & TileFlag.TRIP_FAILED || !hasRoadAccess(state, x, y)) continue;
 
-      const score = zoneScore(state, type);
+      const score = zoneScore(state, x, y, type);
       const roll = rng.nextFloat();
       if (density < MAX_DENSITY && score > growThreshold(density) && roll < CHANGE_CHANCE) {
         setDensity(state, x, y, type, density + 1, landValueClass);

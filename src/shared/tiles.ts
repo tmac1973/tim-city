@@ -46,6 +46,8 @@ export const TileFlag = {
   BURNING: 1 << 2,
   ZONE_CENTER: 1 << 3,
   BULLDOZABLE: 1 << 4,
+  /** On a zone centre: last month's trip found no destination. */
+  TRIP_FAILED: 1 << 6,
 } as const;
 
 export type Network = 'road' | 'rail' | 'power';

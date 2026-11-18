@@ -63,6 +63,8 @@ export class CityState {
     this.flags = new Uint8Array(size * size);
     this.heights = new Uint8Array((size + 1) * (size + 1));
     this.parts = new Uint8Array(size * size);
+    const blocks = (size / 2) * (size / 2);
+    this.blockFields.traffic = new Uint8Array(blocks);
     this.rootRng = new Rng(seed);
   }
 
@@ -93,6 +95,18 @@ export class CityState {
 
   cornerIndex(x: number, y: number): number {
     return y * (this.size + 1) + x;
+  }
+
+  /** Index of the 2×2 block holding tile (x, y) in a block field. */
+  blockIndex(x: number, y: number): number {
+    return (y >> 1) * (this.size >> 1) + (x >> 1);
+  }
+
+  /** A named block field; throws if a system forgot to create it. */
+  field(name: string): Uint8Array {
+    const f = this.blockFields[name];
+    if (!f) throw new Error(`Missing block field ${name}`);
+    return f;
   }
 
   chunkId(x: number, y: number): number {

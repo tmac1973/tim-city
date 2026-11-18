@@ -99,6 +99,8 @@ describe('zone growth', () => {
     sim.enqueue(tool('power', 14, 12, 20, 12));
     sim.enqueue(tool('residential', 22, 12));
     sim.enqueue(tool('road', 21, 14, 30, 14));
+    // Jobs up the road, so residents have somewhere to commute.
+    sim.enqueue(tool('industrial', 27, 12));
     // A dark zone with a road but no power, far away.
     sim.enqueue(tool('residential', 80, 80));
     sim.enqueue(tool('road', 79, 82, 85, 82));

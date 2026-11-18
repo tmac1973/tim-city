@@ -1,6 +1,6 @@
 import { POWER_SUPPLY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
-import { isBridge, isPower, isTunnel, MAX_DENSITY, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { isBridge, isPower, isRoad, isTunnel, MAX_DENSITY, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { CityState } from '../state';
 import { hasRoadAccess, JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from '../systems/zones';
 import { footprintAt } from './footprint';
@@ -28,6 +28,11 @@ const NAMES: Partial<Record<number, string>> = {
 
 const ZONE_NAMES = ['Residential zone', 'Commercial zone', 'Industrial zone'] as const;
 
+function trafficLabel(value: number): string {
+  const level = value < 20 ? 'Quiet' : value < 80 ? 'Light' : value < 160 ? 'Busy' : 'Congested';
+  return `${level} (${String(value)})`;
+}
+
 /** Describe a tile for the query tool. Never changes state. */
 export function queryTile(state: CityState, x: number, y: number, requestId: number): QueryResult {
   const result: QueryResult = { type: 'queryResult', requestId, x, y, title: 'Off the map', details: [] };
@@ -46,6 +51,11 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
     else details.push(['Jobs', String(zone.density * JOBS_PER_LEVEL)]);
     details.push(['Power', powered ? 'On' : 'Off']);
     details.push(['Road access', hasRoadAccess(state, lot.x + 1, lot.y + 1) ? 'Yes' : 'No — build a road within 3 tiles']);
+    const center = state.index(lot.x + 1, lot.y + 1);
+    const failed = ((state.flags[center] ?? 0) & TileFlag.TRIP_FAILED) !== 0;
+    const goal = zone.type === ZoneType.R ? 'jobs or shops' : zone.type === ZoneType.C ? 'customers' : 'workers or the map edge';
+    details.push(['Commute', failed ? `No route to ${goal}` : 'OK']);
+    details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
     return result;
   }
 
@@ -57,6 +67,7 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
   } else if (isPower(kind)) {
     details.push(['Power', powered ? 'Live' : 'Not connected to a plant']);
   }
+  if (isRoad(kind)) details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
   if (!isBridge(kind) && !isTunnel(kind) && kind !== TileKind.Water) {
     details.push(['Height', String(Math.min(...corners(state, x, y)))]);
   }

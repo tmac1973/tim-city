@@ -26,6 +26,13 @@ Simulate traffic the way the overview decided: each zone generates trips to suit
 5. Update `zones.ts` to use `tripOk` and the traffic penalty.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- **Nearest-destination search is uniform-cost (Dijkstra), not A\*.** A\* needs one known goal; a trip looks for whichever reachable destination is closest. The search reuses typed-array buffers and a binary heap, and stops at 60 cost or 4,000 expansions as planned.
+- **No stored graph.** `src/sim/graph.ts` reads neighbours straight from tile kinds (road 1, rail 0.4, road↔rail transfer 2), so it can never go stale and needs no patching from the tool handler. Phase 09's potholes become a cost multiplier there.
+- **Trip ends.** Any road or rail tile within the 3-tile road reach of a lot serves that lot (a per-month service map); map-edge roads count as export destinations for industry.
+- A trip adds its load **once per 2×2 block** it drives through. `TRIP_FAILED` is a tile flag on the zone centre (default clear, so new zones may grow before their first trip).
+- Homes now need a reachable job or shop zone to grow, as the classic rules intend; the phase 06 growth test gained an industrial zone up the road.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e
