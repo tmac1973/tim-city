@@ -469,3 +469,191 @@ button {
 .population {
   color: var(--panel-text);
 }
+
+/* Top bar button */
+.topbar-button {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 8%);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.topbar-button:hover {
+  background: rgb(255 255 255 / 15%);
+}
+
+/* Modals */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(8 12 18 / 35%);
+  pointer-events: auto;
+  padding: 16px;
+}
+
+.modal-backdrop h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.modal-backdrop footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modal-backdrop button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: rgb(255 255 255 / 10%);
+  font-weight: 600;
+}
+
+.modal-backdrop button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 18%);
+}
+
+.modal-backdrop button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.modal-backdrop button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.budget {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.budget header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.treasury {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 22px;
+}
+
+@media (max-width: 700px) {
+  .budget-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slider {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.slider span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.slider input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.slider small,
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger th {
+  text-align: right;
+  color: var(--muted);
+  font-weight: 600;
+  padding-bottom: 6px;
+}
+
+.ledger td {
+  padding: 4px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.ledger td + td {
+  text-align: right;
+  padding-left: 12px;
+}
+
+.ledger tr.cost td + td {
+  color: #f0b0a6;
+}
+
+.ledger tr.total td {
+  font-weight: 800;
+  border-top: 2px solid rgb(255 255 255 / 25%);
+}
+
+.bonds {
+  margin-top: 18px;
+}
+
+.bonds h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.bond {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.bonds .issue {
+  margin-top: 6px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-right: auto;
+}
+
+.gameover {
+  width: min(460px, 100%);
+  padding: 20px 22px;
+}
+
+.gameover p {
+  color: var(--muted);
+  line-height: 1.5;
+}

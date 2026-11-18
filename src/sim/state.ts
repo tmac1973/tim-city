@@ -1,5 +1,6 @@
 import { CHUNK_SHIFT, DEFAULT_FUNDS, type MapSize, START_YEAR } from '@/shared/constants';
-import type { Census, CityInfo, GameDate, Valves } from '@/shared/protocol';
+import { DIFFICULTY, type DifficultyName } from '@/shared/difficulty';
+import type { Bond, Census, CityInfo, Funding, GameDate, Ledger, Valves } from '@/shared/protocol';
 import { Rng } from './rng';
 
 /**
@@ -58,16 +59,28 @@ export class CityState {
 
   funds = DEFAULT_FUNDS;
   readonly date: GameDate = { year: START_YEAR, month: 0, tick: 0 };
-  /** Percent; phase 11 makes it editable. */
+  /** Percent, 0–20. */
   taxRate = 7;
+  difficulty: DifficultyName = 'medium';
+  randomDisasters = true;
+  bonds: Bond[] = [];
+  /** This year's construction spending so far. */
+  constructionThisYear = 0;
+  lastYear: Ledger | null = null;
+  /** Out of money with no bonds left; building stops. */
+  bankrupt = false;
   census: Census = emptyCensus();
   readonly valves: Valves = { r: 0, c: 0, i: 0 };
   /** True while some zones are unpowered because plants are at capacity. */
   brownout = false;
   /** Year each demand cap was last announced, so it repeats only yearly. */
   readonly capNotified: Record<'r' | 'c' | 'i', number> = { r: -1, c: -1, i: -1 };
-  /** Service funding, percent of full. Phase 11's budget window edits it. */
-  readonly funding = { road: 100, police: 100, fire: 100 };
+  /** Service funding, percent of full. */
+  readonly funding: Funding = { road: 100, police: 100, fire: 100 };
+
+  get taxSensitivity(): number {
+    return DIFFICULTY[this.difficulty].taxSensitivity;
+  }
 
   /** Chunk ids changed since the last time the worker shipped them. */
   readonly dirtyChunks = new Set<number>();

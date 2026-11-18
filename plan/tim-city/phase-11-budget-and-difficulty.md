@@ -28,6 +28,13 @@ Make money matter. Tax income depends on population and land value. Service and 
 5. Write `BudgetWindow.tsx` and `GameOver.tsx`.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- Bond instalments are straight-line: each year pays principal ÷ years left plus interest on what is still owed ($10,000 at 5% costs $12,750 in total). Rates are whole percent (5% + 1% per bond already out).
+- The worker sends a live `BudgetInfo` (settings, bonds, last year's books, next year's estimate, construction so far) with every tick, so the window updates as sliders move, even while paused.
+- The window pauses the game while open and restores the speed after; an "Open every year end" checkbox (stored per browser) turns the automatic pop-up off, leaving a year-end toast and the top-bar Budget button.
+- Bankrupt cities stop accepting construction; the game-over screen offers "Keep watching" or a new city on a fresh seed.
+- `?difficulty=easy|medium|hard` selects the preset until phase 20's New City screen.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

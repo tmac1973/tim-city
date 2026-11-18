@@ -1,11 +1,12 @@
 import { h, render } from 'preact';
 import type { MapSize, Speed } from './shared/constants';
+import type { DifficultyName } from './shared/difficulty';
 import { DEFAULT_TERRAIN, type TerrainOptions } from './shared/protocol';
 import { CityMirror } from './render/mirror';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
-import { census, cityInfo, date, funds, speed, toast, valves } from './ui/store';
+import { autoBudget, budget, budgetOpen, census, cityInfo, date, formatMoney, funds, gameOver, speed, toast, valves } from './ui/store';
 import { ToolController } from './ui/toolController';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -23,6 +24,8 @@ const slider = (key: keyof TerrainOptions): number => {
   return params.has(key) && Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : DEFAULT_TERRAIN[key];
 };
 const terrain: TerrainOptions = { water: slider('water'), forest: slider('forest'), hills: slider('hills') };
+const difficultyParam = params.get('difficulty');
+const difficulty: DifficultyName = difficultyParam === 'easy' || difficultyParam === 'hard' ? difficultyParam : 'medium';
 
 const mirror = new CityMirror(size);
 const sim = new SimBridge();
@@ -33,6 +36,7 @@ sim.onTick((tick) => {
   speed.value = tick.speed;
   census.value = tick.census;
   valves.value = tick.valves;
+  budget.value = tick.budget;
 });
 
 // Mount the UI even if WebGL fails, so the failure can be reported on screen.
@@ -56,9 +60,41 @@ try {
 const onSpeed = (next: Speed) => {
   sim.setSpeed(next);
 };
-render(h(App, { webglError, onSpeed }), appRoot);
+// The budget window pauses the game while it is open and restores the speed after.
+let resumeSpeed: Speed | null = null;
+const openBudget = () => {
+  if (speed.value !== 'paused') {
+    resumeSpeed = speed.value;
+    sim.setSpeed('paused');
+  }
+  budgetOpen.value = true;
+};
+budgetOpen.subscribe((open) => {
+  if (open && speed.value !== 'paused' && resumeSpeed === null) openBudget();
+});
+const onBudgetClose = () => {
+  budgetOpen.value = false;
+  if (resumeSpeed) sim.setSpeed(resumeSpeed);
+  resumeSpeed = null;
+};
+render(
+  h(App, {
+    webglError,
+    onSpeed,
+    send: (command) => {
+      sim.command(command);
+    },
+    onBudgetClose,
+  }),
+  appRoot,
+);
 
 sim.onEvent((event) => {
+  if (event.type === 'yearBudget') {
+    if (autoBudget.value) openBudget();
+    else toast(`${String(event.year)} closed: ${event.net >= 0 ? 'surplus' : 'deficit'} of ${formatMoney(Math.abs(event.net))}`, 'info', 5000);
+  }
+  if (event.type === 'bankrupt') gameOver.value = true;
   if (event.type === 'demandCap') {
     const what = { r: 'Homes', c: 'Commerce', i: 'Industry' }[event.zone];
     toast(`${what} have stopped growing. The city needs a powered ${event.needs}.`, 'error', 7000);
@@ -79,7 +115,7 @@ if (import.meta.env.DEV) {
   });
 }
 
-void sim.init({ name: 'New City', seed, size }, terrain).then((info) => {
+void sim.init({ name: 'New City', seed, size }, terrain, difficulty).then((info) => {
   cityInfo.value = info;
   document.documentElement.dataset.sim = 'ready';
   sim.setSpeed('normal');

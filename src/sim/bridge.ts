@@ -1,4 +1,5 @@
 import type { Speed } from '@/shared/constants';
+import type { DifficultyName } from '@/shared/difficulty';
 import type {
   CityInfo,
   MainToWorker,
@@ -28,10 +29,10 @@ export class SimBridge {
     };
   }
 
-  init(info: CityInfo, terrain: TerrainOptions): Promise<CityInfo> {
+  init(info: CityInfo, terrain: TerrainOptions, difficulty: DifficultyName = 'medium'): Promise<CityInfo> {
     return new Promise((resolve, reject) => {
       this.pendingInit = { resolve, reject };
-      this.send({ type: 'init', ...info, terrain });
+      this.send({ type: 'init', ...info, terrain, difficulty });
     });
   }
 

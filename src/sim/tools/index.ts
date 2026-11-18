@@ -11,6 +11,7 @@ import { planTerraform } from './terraform';
 
 /** Plan a tool use, including the funds check. Never changes state. */
 export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
+  if (state.bankrupt) return fail('The city is bankrupt');
   if (!state.inBounds(cmd.x0, cmd.y0)) return fail('Off the map');
   let plan: ToolPlan;
   switch (cmd.tool) {
@@ -89,6 +90,7 @@ export function runTool(state: CityState, cmd: ToolCommand): ToolResult {
   if (plan.ok && !cmd.dryRun) {
     plan.apply();
     state.funds -= plan.cost;
+    state.constructionThisYear += plan.cost;
   }
   return toResult(cmd, plan);
 }

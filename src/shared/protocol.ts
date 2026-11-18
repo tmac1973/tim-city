@@ -1,4 +1,5 @@
 import type { MapSize, Speed } from './constants';
+import type { DifficultyName } from './difficulty';
 
 export interface CityInfo {
   name: string;
@@ -74,6 +75,11 @@ export type SimCommand =
   | { type: 'setTile'; x: number; y: number; kind: number }
   /** Debug and test command: set the treasury. */
   | { type: 'setFunds'; amount: number }
+  | { type: 'setTaxRate'; rate: number }
+  | { type: 'setFunding'; service: keyof Funding; percent: number }
+  | { type: 'issueBond' }
+  | { type: 'repayBond'; index: number }
+  | { type: 'setRandomDisasters'; enabled: boolean }
   | ToolCommand
   /** Read-only: answered at once, never queued. */
   | { type: 'query'; x: number; y: number; requestId: number };
@@ -107,10 +113,56 @@ export type SimEvent =
   | { type: 'yearEnd'; year: number }
   /** Some zones lost power because the grid's plants are at capacity. */
   | { type: 'brownout'; unpowered: number }
+  /** The year's books closed; the budget window shows them. */
+  | { type: 'yearBudget'; year: number; ledger: Ledger; net: number }
+  /** Out of money with no bonds left to issue. */
+  | { type: 'bankrupt' }
   /** A zone type stopped growing until the city builds a special building. */
   | { type: 'demandCap'; zone: 'r' | 'c' | 'i'; needs: 'stadium' | 'seaport' | 'airport' }
   | ToolResult
   | QueryResult;
+
+export interface Funding {
+  road: number;
+  police: number;
+  fire: number;
+}
+
+export interface Bond {
+  /** Principal still owed. */
+  principal: number;
+  /** Yearly interest rate, e.g. 0.06. */
+  rate: number;
+  yearsLeft: number;
+}
+
+/** A year's money, by line. Income is positive, costs are positive amounts spent. */
+export interface Ledger {
+  residentialTax: number;
+  commercialTax: number;
+  industrialTax: number;
+  roads: number;
+  police: number;
+  fire: number;
+  bonds: number;
+  /** Spent on building during the year (not part of the estimate). */
+  construction: number;
+}
+
+export interface BudgetInfo {
+  taxRate: number;
+  funding: Funding;
+  bonds: Bond[];
+  /** The year just closed, once one has. */
+  lastYear: Ledger | null;
+  /** Next year's taxes and running costs at today's settings. */
+  estimate: Ledger;
+  /** Spending on construction so far this year. */
+  constructionThisYear: number;
+  difficulty: DifficultyName;
+  randomDisasters: boolean;
+  bankrupt: boolean;
+}
 
 export interface Census {
   /** Residents, from residential density. */
@@ -145,7 +197,7 @@ export interface ChunkSlice {
 }
 
 export type MainToWorker =
-  | ({ type: 'init'; terrain: TerrainOptions } & CityInfo)
+  | ({ type: 'init'; terrain: TerrainOptions; difficulty: DifficultyName } & CityInfo)
   | { type: 'setSpeed'; speed: Speed }
   | { type: 'command'; command: SimCommand };
 
@@ -156,6 +208,7 @@ export interface TickMessage {
   speed: Speed;
   census: Census;
   valves: Valves;
+  budget: BudgetInfo;
   chunks: ChunkSlice[];
 }
 

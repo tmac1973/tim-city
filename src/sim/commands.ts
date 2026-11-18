@@ -1,5 +1,6 @@
 import type { SimCommand } from '@/shared/protocol';
 import type { CityState } from './state';
+import { issueBond, repayBond } from './systems/budget';
 
 type CommandType = SimCommand['type'];
 type Handler<T extends CommandType> = (state: CityState, command: Extract<SimCommand, { type: T }>) => void;
@@ -41,5 +42,20 @@ export function registerCoreCommands(queue: CommandQueue): void {
   });
   queue.on('setFunds', (state, { amount }) => {
     state.funds = amount;
+  });
+  queue.on('setTaxRate', (state, { rate }) => {
+    state.taxRate = Math.min(20, Math.max(0, Math.round(rate)));
+  });
+  queue.on('setFunding', (state, { service, percent }) => {
+    state.funding[service] = Math.min(100, Math.max(0, Math.round(percent)));
+  });
+  queue.on('issueBond', (state) => {
+    issueBond(state);
+  });
+  queue.on('repayBond', (state, { index }) => {
+    repayBond(state, index);
+  });
+  queue.on('setRandomDisasters', (state, { enabled }) => {
+    state.randomDisasters = enabled;
   });
 }

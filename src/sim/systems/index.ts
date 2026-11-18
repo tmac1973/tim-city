@@ -1,5 +1,6 @@
 import type { SimEvent } from '@/shared/protocol';
 import type { Scheduler } from '../scheduler';
+import { budgetSystem } from './budget';
 import { censusSystem } from './census';
 import { coverageSystem } from './coverage';
 import { crimeSystem } from './crime';
@@ -26,4 +27,5 @@ export function registerSystems(scheduler: Scheduler, emit: (event: SimEvent) =>
   scheduler.register(growthSystem);
   scheduler.register(roadsSystem);
   scheduler.register(censusSystem);
+  scheduler.register(budgetSystem(emit));
 }

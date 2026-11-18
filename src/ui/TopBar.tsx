@@ -1,5 +1,5 @@
 import { Icon } from './icons';
-import { census, cityInfo, date, formatCount, formatDate, formatMoney, funds, toast } from './store';
+import { budgetOpen, census, cityInfo, date, formatCount, formatDate, formatMoney, funds, toast } from './store';
 
 export function TopBar() {
   const info = cityInfo.value;
@@ -29,6 +29,9 @@ export function TopBar() {
       <span class={funds.value < 0 ? 'stat money negative' : 'stat money'} title="City funds" data-testid="funds">
         {formatMoney(funds.value)}
       </span>
+      <button class="topbar-button" type="button" onClick={() => (budgetOpen.value = true)}>
+        Budget
+      </button>
       <span class="spacer" />
       {info && (
         <button class="seed" type="button" onClick={copySeed} title="Copy this map's seed to share it">

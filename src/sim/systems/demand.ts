@@ -23,7 +23,7 @@ export function demandTargets(state: CityState): Valves {
   const desiredRes = (comJobs + indJobs) * 1.1 + 600;
   const desiredCom = 0.35 * resPop + 50;
   const desiredInd = 0.75 * resPop + 300;
-  const tax = (state.taxRate - 7) * 30;
+  const tax = (state.taxRate - 7) * 30 * state.taxSensitivity;
   return {
     r: clamp((VALVE_LIMIT * (desiredRes - resPop)) / Math.max(desiredRes, 600) - tax),
     c: clamp((VALVE_LIMIT * (desiredCom - comJobs)) / Math.max(desiredCom, 200) - tax),

@@ -6,6 +6,9 @@ import { Simulation } from './sim';
 import { generateTerrain } from './terrain/generate';
 import { runTool } from './tools';
 import { queryTile } from './tools/query';
+import { computeLedger } from './systems/budget';
+import { DIFFICULTY } from '@/shared/difficulty';
+import type { BudgetInfo } from '@/shared/protocol';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -29,11 +32,27 @@ function publish(current: Simulation): void {
       speed,
       census: current.state.census,
       valves: { ...current.state.valves },
+      budget: budgetInfo(current),
       chunks,
     },
     transfer,
   );
   for (const event of current.drainEvents()) post({ type: 'event', event });
+}
+
+function budgetInfo(current: Simulation): BudgetInfo {
+  const s = current.state;
+  return {
+    taxRate: s.taxRate,
+    funding: { ...s.funding },
+    bonds: s.bonds.map((b) => ({ ...b })),
+    lastYear: s.lastYear,
+    estimate: computeLedger(s),
+    constructionThisYear: s.constructionThisYear,
+    difficulty: s.difficulty,
+    randomDisasters: s.randomDisasters,
+    bankrupt: s.bankrupt,
+  };
 }
 
 function schedule(): void {
@@ -51,8 +70,10 @@ function schedule(): void {
 function handle(message: MainToWorker): void {
   switch (message.type) {
     case 'init': {
-      const { name, seed, size, terrain } = message;
+      const { name, seed, size, terrain, difficulty } = message;
       sim = new Simulation({ name, seed, size });
+      sim.state.difficulty = difficulty;
+      sim.state.funds = DIFFICULTY[difficulty].funds;
       generateTerrain(sim.state, terrain);
       post({ type: 'ready', name, seed, size });
       publish(sim);
