@@ -1,8 +1,10 @@
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
+import { TileKind, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { planBulldoze } from './bulldoze';
 import { planNetwork } from './network';
+import { planPlant, planZones } from './place';
 import { fail, type ToolPlan } from './plan';
 import { planTerraform } from './terraform';
 
@@ -23,6 +25,21 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
     case 'lower':
     case 'level':
       plan = planTerraform(state, cmd);
+      break;
+    case 'residential':
+      plan = planZones(state, cmd, ZoneType.R);
+      break;
+    case 'commercial':
+      plan = planZones(state, cmd, ZoneType.C);
+      break;
+    case 'industrial':
+      plan = planZones(state, cmd, ZoneType.I);
+      break;
+    case 'coal':
+      plan = planPlant(state, cmd, TileKind.CoalPlant);
+      break;
+    case 'nuclear':
+      plan = planPlant(state, cmd, TileKind.NuclearPlant);
       break;
   }
   if (plan.ok && plan.cost > state.funds) return fail('Not enough funds', plan.tiles);

@@ -7,7 +7,9 @@ export const cityInfo = signal<CityInfo | null>(null);
 export const date = signal<GameDate>({ year: START_YEAR, month: 0, tick: 0 });
 export const funds = signal(0);
 export const speed = signal<Speed>('paused');
-export const activeTool = signal<ToolId | null>(null);
+/** Construction tools, plus the read-only query tool. */
+export type UiTool = ToolId | 'query';
+export const activeTool = signal<UiTool | null>(null);
 export const brush = signal<BrushSize>(3);
 
 /** Text that follows the mouse while a tool is active: cost or the reason it can't build. */
@@ -21,14 +23,14 @@ export interface Toast {
 export const toasts = signal<Toast[]>([]);
 
 let nextToast = 1;
-export function toast(text: string, tone: Toast['tone'] = 'error'): void {
+export function toast(text: string, tone: Toast['tone'] = 'error', ms = 2600): void {
   const id = nextToast++;
   // Repeating the newest message refreshes it instead of stacking copies.
   const others = toasts.value.filter((t) => t.text !== text);
   toasts.value = [...others.slice(-3), { id, text, tone }];
   setTimeout(() => {
     toasts.value = toasts.value.filter((t) => t.id !== id);
-  }, 2600);
+  }, ms);
 }
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });

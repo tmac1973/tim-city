@@ -85,6 +85,28 @@ export function reshapeable(kind: number): boolean {
   return kind === TileKind.Empty || kind === TileKind.Tree || kind === TileKind.Water || kind === TileKind.Rubble;
 }
 
+/**
+ * Why a set of corner edits may not be applied, or null if it may: edits
+ * must not move ground under built tiles (other than those `buildingOn`,
+ * which are being built now) and must not flood or drain any tile.
+ */
+export function checkEdits(
+  state: CityState,
+  edits: HeightEdits,
+  buildingOn: ReadonlySet<number>,
+): { reason: string; bad: number[] } | null {
+  const touched = touchedTiles(state, edits);
+  const blocked = [...touched].filter((i) => !buildingOn.has(i) && !reshapeable(state.tiles[i] ?? 0));
+  if (blocked.length > 0) return { reason: "Can't grade next to buildings", bad: blocked };
+  const flooded = [...touched].filter((i) => {
+    const x = i % state.size;
+    const y = (i - x) / state.size;
+    return wetWith(state, edits, x, y) !== (state.tiles[i] === TileKind.Water);
+  });
+  if (flooded.length > 0) return { reason: 'Too close to the water', bad: flooded };
+  return null;
+}
+
 export interface GradeTile {
   x: number;
   y: number;
@@ -131,16 +153,8 @@ export function planGrade(
       }
     }
     if (seeds.length === 0) {
-      const touched = touchedTiles(state, edits);
-      const blocked = [...touched].filter((i) => !buildingOn.has(i) && !reshapeable(state.tiles[i] ?? 0));
-      if (blocked.length > 0) return { reason: "Can't grade next to buildings", bad: blocked };
-      const flooded = [...touched].filter((i) => {
-        const x = i % state.size;
-        const y = (i - x) / state.size;
-        return wetWith(state, edits, x, y) !== (state.tiles[i] === TileKind.Water);
-      });
-      if (flooded.length > 0) return { reason: 'Too close to the water', bad: flooded };
-      return { edits, steps: stepCount(state, edits) };
+      const refused = checkEdits(state, edits, buildingOn);
+      return refused ?? { edits, steps: stepCount(state, edits) };
     }
     spread(state, edits, seeds);
   }

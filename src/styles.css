@@ -153,9 +153,13 @@ button {
 }
 
 .tool-group {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 44px);
   gap: 4px;
+}
+
+.tool-group .group-label {
+  grid-column: 1 / -1;
 }
 
 .group-label {
@@ -212,6 +216,11 @@ button {
   opacity: 1;
 }
 
+/* Left-column tooltips clear the right column instead of covering it. */
+.tool:nth-of-type(odd) .tooltip {
+  left: calc(200% + 16px);
+}
+
 .tooltip kbd {
   font-family: ui-monospace, monospace;
   font-size: 11px;
@@ -239,11 +248,11 @@ button {
 
 .brush-buttons {
   display: flex;
-  flex-direction: column;
   gap: 3px;
 }
 
 .brush-buttons button {
+  flex: 1;
   height: 28px;
   border-radius: 7px;
   font-weight: 700;

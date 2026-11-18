@@ -23,7 +23,19 @@ export interface GameDate {
   tick: number;
 }
 
-export type ToolId = 'road' | 'rail' | 'power' | 'bulldoze' | 'raise' | 'lower' | 'level';
+export type ToolId =
+  | 'road'
+  | 'rail'
+  | 'power'
+  | 'bulldoze'
+  | 'raise'
+  | 'lower'
+  | 'level'
+  | 'residential'
+  | 'commercial'
+  | 'industrial'
+  | 'coal'
+  | 'nuclear';
 export type BrushSize = 1 | 3 | 5;
 
 /**
@@ -53,7 +65,9 @@ export interface ToolCommand {
 export type SimCommand =
   /** Debug and test command: overwrite one tile's kind. */
   | { type: 'setTile'; x: number; y: number; kind: number }
-  | ToolCommand;
+  | ToolCommand
+  /** Read-only: answered at once, never queued. */
+  | { type: 'query'; x: number; y: number; requestId: number };
 
 export interface ToolResult {
   type: 'toolResult';
@@ -68,10 +82,43 @@ export interface ToolResult {
   bad: number[];
 }
 
+export interface QueryResult {
+  type: 'queryResult';
+  requestId: number;
+  x: number;
+  y: number;
+  /** Short name of what is on the tile. */
+  title: string;
+  /** Label → value lines, in display order. */
+  details: [string, string][];
+}
+
 export type SimEvent =
   | { type: 'monthEnd'; year: number; month: number }
   | { type: 'yearEnd'; year: number }
-  | ToolResult;
+  /** Some zones lost power because the grid's plants are at capacity. */
+  | { type: 'brownout'; unpowered: number }
+  | ToolResult
+  | QueryResult;
+
+export interface Census {
+  /** Residents, from residential density. */
+  resPop: number;
+  comJobs: number;
+  indJobs: number;
+  zones: { r: number; c: number; i: number };
+  plants: { coal: number; nuclear: number };
+  powerSupply: number;
+  powerDemand: number;
+  unpoweredZones: number;
+}
+
+/** R, C, I demand, each −2000 … +2000. */
+export interface Valves {
+  r: number;
+  c: number;
+  i: number;
+}
 
 /** One 32×32 chunk's data, copied out of the sim so it can be transferred. */
 export interface ChunkSlice {
@@ -92,6 +139,8 @@ export interface TickMessage {
   date: GameDate;
   funds: number;
   speed: Speed;
+  census: Census;
+  valves: Valves;
   chunks: ChunkSlice[];
 }
 

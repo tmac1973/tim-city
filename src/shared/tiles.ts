@@ -33,6 +33,9 @@ export const TileKind = {
   PowerBridge: 24,
   RoadTunnel: 25,
   RailTunnel: 26,
+
+  CoalPlant: 64,
+  NuclearPlant: 65,
 } as const;
 export type TileKind = (typeof TileKind)[keyof typeof TileKind];
 
@@ -79,3 +82,39 @@ export const FOOTPRINTS = new Map<number, number>();
 export function registerFootprint(kind: number, size: number): void {
   FOOTPRINTS.set(kind, size);
 }
+
+/**
+ * Zones are 3×3 blocks. Every tile of a zone carries one kind that encodes
+ * the zone type, its density (0 = empty lot … 8) and a land-value class
+ * (0–3, for building variety): ZONE_BASE + type·36 + density·4 + class.
+ */
+export const ZoneType = { R: 0, C: 1, I: 2 } as const;
+export type ZoneType = (typeof ZoneType)[keyof typeof ZoneType];
+export const ZONE_BASE = 80;
+export const MAX_DENSITY = 8;
+const PER_TYPE = (MAX_DENSITY + 1) * 4;
+
+export function zoneKind(type: ZoneType, density: number, landValueClass = 0): number {
+  return ZONE_BASE + type * PER_TYPE + density * 4 + landValueClass;
+}
+
+export function zoneOf(kind: number): { type: ZoneType; density: number; landValueClass: number } | null {
+  const offset = kind - ZONE_BASE;
+  if (offset < 0 || offset >= 3 * PER_TYPE) return null;
+  return {
+    type: Math.floor(offset / PER_TYPE) as ZoneType,
+    density: Math.floor((offset % PER_TYPE) / 4),
+    landValueClass: offset % 4,
+  };
+}
+
+export const ZONE_SIZE = 3;
+export const PLANT_SIZE = 4;
+
+for (const type of [ZoneType.R, ZoneType.C, ZoneType.I]) {
+  for (let density = 0; density <= MAX_DENSITY; density++) {
+    for (let lv = 0; lv < 4; lv++) registerFootprint(zoneKind(type, density, lv), ZONE_SIZE);
+  }
+}
+registerFootprint(TileKind.CoalPlant, PLANT_SIZE);
+registerFootprint(TileKind.NuclearPlant, PLANT_SIZE);

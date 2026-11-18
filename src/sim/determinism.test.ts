@@ -26,6 +26,12 @@ const ACTIONS: ScriptAction[] = [
   { atTick: 40, command: build('power', 5, 5, 40, 5) },
   { atTick: 60, command: build('raise', 90, 90, 90, 90) },
   { atTick: 61, command: build('bulldoze', 25, 40, 35, 45) },
+  // A small powered neighbourhood that must grow: plant, line, homes, factory, road.
+  { atTick: 70, command: build('coal', 100, 20, 100, 20) },
+  { atTick: 70, command: build('power', 103, 20, 106, 20) },
+  { atTick: 70, command: build('residential', 108, 20, 108, 20) },
+  { atTick: 70, command: build('industrial', 111, 20, 111, 20) },
+  { atTick: 70, command: build('road', 107, 23, 113, 23) },
   { atTick: 150, command: { type: 'setTile', x: 64, y: 64, kind: TileKind.Tree } },
 ];
 
@@ -38,6 +44,8 @@ function snapshot(sim: Simulation) {
     heights: Array.from(s.heights),
     parts: Array.from(s.parts),
     funds: s.funds,
+    census: s.census,
+    valves: { ...s.valves },
     date: { ...s.date },
     rng: s.randomStates(),
   };
@@ -67,6 +75,9 @@ describe('determinism', () => {
     expect(state.tiles[state.index(30, 50)]).toBe(TileKind.Rail);
     expect(state.heights[state.cornerIndex(90, 90)]).toBe(1);
     expect(state.funds).toBeLessThan(10_000);
+    // The neighbourhood grew.
+    expect(state.census.resPop).toBeGreaterThan(0);
+    expect(state.census.indJobs).toBeGreaterThan(0);
   });
 
   it('gives different random streams for different seeds', () => {

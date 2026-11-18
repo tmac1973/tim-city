@@ -3,7 +3,9 @@ import type { CityInfo, SimCommand, SimEvent } from '@/shared/protocol';
 import { CommandQueue, registerCoreCommands } from './commands';
 import { Scheduler } from './scheduler';
 import { CityState } from './state';
+import { registerSystems } from './systems';
 import { registerToolCommands } from './tools';
+import { queryTile } from './tools/query';
 
 /** The headless simulation. Runs in the worker and, for tests, in Node. */
 export class Simulation {
@@ -15,7 +17,11 @@ export class Simulation {
   constructor(info: CityInfo) {
     this.state = new CityState(info);
     registerCoreCommands(this.commands);
-    registerToolCommands(this.commands, (event) => this.events.push(event));
+    const emit = (event: SimEvent) => this.events.push(event);
+    registerToolCommands(this.commands, emit);
+    // Queries are answered at once by the worker; a queued one (from a replay) still answers.
+    this.commands.on('query', (state, { x, y, requestId }) => emit(queryTile(state, x, y, requestId)));
+    registerSystems(this.scheduler, emit);
   }
 
   enqueue(command: SimCommand): void {

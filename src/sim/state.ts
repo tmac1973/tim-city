@@ -1,6 +1,19 @@
 import { CHUNK_SHIFT, DEFAULT_FUNDS, type MapSize, START_YEAR } from '@/shared/constants';
-import type { CityInfo, GameDate } from '@/shared/protocol';
+import type { Census, CityInfo, GameDate, Valves } from '@/shared/protocol';
 import { Rng } from './rng';
+
+export function emptyCensus(): Census {
+  return {
+    resPop: 0,
+    comJobs: 0,
+    indJobs: 0,
+    zones: { r: 0, c: 0, i: 0 },
+    plants: { coal: 0, nuclear: 0 },
+    powerSupply: 0,
+    powerDemand: 0,
+    unpoweredZones: 0,
+  };
+}
 
 /**
  * All city state, held in flat typed arrays so it can run in a worker, copy
@@ -28,6 +41,12 @@ export class CityState {
 
   funds = DEFAULT_FUNDS;
   readonly date: GameDate = { year: START_YEAR, month: 0, tick: 0 };
+  /** Percent; phase 11 makes it editable. */
+  taxRate = 7;
+  census: Census = emptyCensus();
+  readonly valves: Valves = { r: 0, c: 0, i: 0 };
+  /** True while some zones are unpowered because plants are at capacity. */
+  brownout = false;
 
   /** Chunk ids changed since the last time the worker shipped them. */
   readonly dirtyChunks = new Set<number>();

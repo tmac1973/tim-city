@@ -1,11 +1,11 @@
 import { useEffect } from 'preact/hooks';
-import { COSTS } from '@/shared/costs';
-import type { BrushSize, ToolId } from '@/shared/protocol';
+import { COSTS, POWER_SUPPLY } from '@/shared/costs';
+import type { BrushSize } from '@/shared/protocol';
 import { Icon } from './icons';
-import { activeTool, brush } from './store';
+import { activeTool, brush, type UiTool } from './store';
 
 interface ToolDef {
-  id: ToolId;
+  id: UiTool;
   name: string;
   key: string;
   code: string;
@@ -13,32 +13,48 @@ interface ToolDef {
   hint: string;
 }
 
+const price = (n: number, unit = '') => `$${n.toLocaleString('en-US')}${unit}`;
+
 const GROUPS: { label: string; tools: ToolDef[] }[] = [
   {
-    label: 'Transport',
+    label: 'Zones',
     tools: [
-      { id: 'road', name: 'Road', key: 'R', code: 'KeyR', cost: `$${String(COSTS.road)}/tile`, hint: 'Drag to build. Hold Shift to tunnel through a hill.' },
-      { id: 'rail', name: 'Rail', key: 'T', code: 'KeyT', cost: `$${String(COSTS.rail)}/tile`, hint: 'Drag to build. Hold Shift to tunnel through a hill.' },
+      { id: 'residential', name: 'Residential zone', key: 'Z', code: 'KeyZ', cost: price(COSTS.zone, ' per lot'), hint: 'Homes. Drag to paint 3×3 lots. Needs power and a road within 3 tiles.' },
+      { id: 'commercial', name: 'Commercial zone', key: 'X', code: 'KeyX', cost: price(COSTS.zone, ' per lot'), hint: 'Shops and offices. Grows when residents need services.' },
+      { id: 'industrial', name: 'Industrial zone', key: 'C', code: 'KeyC', cost: price(COSTS.zone, ' per lot'), hint: 'Factories. Provides jobs and exports.' },
     ],
   },
   {
-    label: 'Utilities',
+    label: 'Transport',
     tools: [
-      { id: 'power', name: 'Power line', key: 'P', code: 'KeyP', cost: `$${String(COSTS.power)}/tile`, hint: 'Drag to carry power. Crosses roads and rail at right angles.' },
+      { id: 'road', name: 'Road', key: 'R', code: 'KeyR', cost: price(COSTS.road, '/tile'), hint: 'Drag to build. Slopes are graded for you. Hold Shift to tunnel through a hill.' },
+      { id: 'rail', name: 'Rail', key: 'T', code: 'KeyT', cost: price(COSTS.rail, '/tile'), hint: 'Drag to build. Slopes are graded for you. Hold Shift to tunnel through a hill.' },
+    ],
+  },
+  {
+    label: 'Power',
+    tools: [
+      { id: 'power', name: 'Power line', key: 'P', code: 'KeyP', cost: price(COSTS.power, '/tile'), hint: 'Drag to carry power. Zones that touch each other share it.' },
+      { id: 'coal', name: 'Coal plant', key: 'G', code: 'KeyG', cost: price(COSTS.coalPlant), hint: `${String(POWER_SUPPLY.coal)} units of power. Cheap but dirty.` },
+      { id: 'nuclear', name: 'Nuclear plant', key: 'N', code: 'KeyN', cost: price(COSTS.nuclearPlant), hint: `${String(POWER_SUPPLY.nuclear)} units of power. Clean, with a small risk.` },
     ],
   },
   {
     label: 'Land',
     tools: [
-      { id: 'bulldoze', name: 'Bulldoze', key: 'B', code: 'KeyB', cost: `$${String(COSTS.bulldoze)}/tile`, hint: 'Drag a box to clear trees, rubble and anything built.' },
-      { id: 'raise', name: 'Raise land', key: 'U', code: 'KeyU', cost: `$${String(COSTS.terraform)}/step`, hint: 'Click or hold to raise the ground under the brush.' },
-      { id: 'lower', name: 'Lower land', key: 'J', code: 'KeyJ', cost: `$${String(COSTS.terraform)}/step`, hint: 'Click or hold to lower the ground. Low ground floods.' },
-      { id: 'level', name: 'Level land', key: 'L', code: 'KeyL', cost: `$${String(COSTS.terraform)}/step`, hint: 'Flatten the brush to the height of the tile you click.' },
+      { id: 'bulldoze', name: 'Bulldoze', key: 'B', code: 'KeyB', cost: price(COSTS.bulldoze, '/tile'), hint: 'Drag a box to clear trees, rubble and anything built.' },
+      { id: 'raise', name: 'Raise land', key: 'U', code: 'KeyU', cost: price(COSTS.terraform, '/step'), hint: 'Click or hold to raise the ground under the brush.' },
+      { id: 'lower', name: 'Lower land', key: 'J', code: 'KeyJ', cost: price(COSTS.terraform, '/step'), hint: 'Click or hold to lower the ground. Low ground floods.' },
+      { id: 'level', name: 'Level land', key: 'L', code: 'KeyL', cost: price(COSTS.terraform, '/step'), hint: 'Flatten the brush to the height of the tile you click.' },
     ],
+  },
+  {
+    label: 'Info',
+    tools: [{ id: 'query', name: 'Query', key: 'Q', code: 'KeyQ', cost: 'Free', hint: 'Click any tile to see what is there.' }],
   },
 ];
 
-const TERRAFORM = new Set<ToolId>(['raise', 'lower', 'level']);
+const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const BRUSHES: BrushSize[] = [1, 3, 5];
 
 export function Toolbar() {

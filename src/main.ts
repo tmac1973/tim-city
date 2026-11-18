@@ -5,7 +5,7 @@ import { CityMirror } from './render/mirror';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
-import { cityInfo, date, funds, speed } from './ui/store';
+import { cityInfo, date, funds, speed, toast } from './ui/store';
 import { ToolController } from './ui/toolController';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -56,9 +56,20 @@ const onSpeed = (next: Speed) => {
 };
 render(h(App, { webglError, onSpeed }), appRoot);
 
+sim.onEvent((event) => {
+  if (event.type === 'brownout') {
+    toast(`Brownout: ${String(event.unpowered)} zones have no power. Build another power plant.`, 'error', 6000);
+  }
+});
+
 if (import.meta.env.DEV) {
-  sim.onEvent((event) => {
-    if (event.type !== 'toolResult') console.log('[sim event]', event);
+  sim.onTick(({ date: d, census, valves }) => {
+    if (d.tick !== 0) return;
+    const { resPop, comJobs, indJobs, powerDemand, powerSupply } = census;
+    console.log(
+      `[sim] ${String(d.year)}-${String(d.month + 1).padStart(2, '0')} pop ${String(resPop)} jobs C${String(comJobs)}/I${String(indJobs)}` +
+        ` power ${String(powerDemand)}/${String(powerSupply)} valves R${String(valves.r)} C${String(valves.c)} I${String(valves.i)}`,
+    );
   });
 }
 

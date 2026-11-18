@@ -41,6 +41,36 @@ const paths: Record<string, JSX.Element> = {
       <path d="M6 12h12M9 9l-3 3 3 3M15 9l3 3-3 3" />
     </>
   ),
+  residential: <path d="M4 11 12 4l8 7M6 9.5V20h12V9.5M10 20v-5h4v5" />,
+  commercial: (
+    <>
+      <path d="M4 20V9h16v11M3 20h18" />
+      <path d="M4 9l2-5h12l2 5M9 20v-5h6v5M7 12h2M15 12h2" />
+    </>
+  ),
+  industrial: (
+    <>
+      <path d="M3 20V11l5 3V11l5 3V7h3v13M3 20h18M19 20V4h2v16" />
+    </>
+  ),
+  coal: (
+    <>
+      <path d="M4 20V12h10v8M3 20h18M16 20V8h3v12" />
+      <path d="M17 5c0-1 1-1 1-2M7 15h4" />
+    </>
+  ),
+  nuclear: (
+    <>
+      <path d="M6 20c1.5-4 1.5-9 0-13h8c-1.5 4-1.5 9 0 13M3 20h18" />
+      <path d="M17 20V13h3v7M8 4c1-1 3-1 4 0" />
+    </>
+  ),
+  query: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 5 5M10.5 8v.01M10.5 10.5V13" />
+    </>
+  ),
   paused: <path d="M8 5v14M16 5v14" />,
   slow: <path d="M9 6v12l7-6z" />,
   normal: <path d="M5 6v12l6-6zM12 6v12l6-6z" />,

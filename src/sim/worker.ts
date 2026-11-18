@@ -5,6 +5,7 @@ import { takeDirtyChunks } from './chunks';
 import { Simulation } from './sim';
 import { generateTerrain } from './terrain/generate';
 import { runTool } from './tools';
+import { queryTile } from './tools/query';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -21,7 +22,15 @@ function publish(current: Simulation): void {
   const chunks = takeDirtyChunks(current.state);
   const transfer = chunks.flatMap((c) => [c.tiles.buffer, c.flags.buffer, c.heights.buffer]);
   post(
-    { type: 'tick', date: { ...current.state.date }, funds: current.state.funds, speed, chunks },
+    {
+      type: 'tick',
+      date: { ...current.state.date },
+      funds: current.state.funds,
+      speed,
+      census: current.state.census,
+      valves: { ...current.state.valves },
+      chunks,
+    },
     transfer,
   );
   for (const event of current.drainEvents()) post({ type: 'event', event });
@@ -61,6 +70,11 @@ function handle(message: MainToWorker): void {
       // for a tick; that keeps the build preview responsive at any speed.
       if (message.command.type === 'tool' && message.command.dryRun) {
         post({ type: 'event', event: runTool(sim.state, message.command) });
+        return;
+      }
+      if (message.command.type === 'query') {
+        const { x, y, requestId } = message.command;
+        post({ type: 'event', event: queryTile(sim.state, x, y, requestId) });
         return;
       }
       sim.enqueue(message.command);

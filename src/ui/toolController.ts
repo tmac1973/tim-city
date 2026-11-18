@@ -1,10 +1,10 @@
-import type { ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
+import type { QueryResult, ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
 import type { PickResult } from '@/render/picking';
 import type { Renderer } from '@/render/renderer';
 import type { SimBridge } from '@/sim/bridge';
-import { activeTool, brush, costTag, formatMoney, toast } from './store';
+import { activeTool, brush, costTag, formatMoney, toast, type UiTool } from './store';
 
-const TERRAFORM = new Set<ToolId>(['raise', 'lower', 'level']);
+const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const REPEAT_MS = 250;
 
 /**
@@ -30,6 +30,7 @@ export class ToolController {
     });
     sim.onEvent((event) => {
       if (event.type === 'toolResult') this.onResult(event);
+      else if (event.type === 'queryResult') showQuery(event);
     });
     // Re-plan whenever the tool or brush changes.
     const reset = () => {
@@ -68,7 +69,7 @@ export class ToolController {
 
   private refreshPreview(): void {
     const tool = activeTool.value;
-    const cmd = tool ? this.command(tool, true) : null;
+    const cmd = tool && tool !== 'query' ? this.command(tool, true) : null;
     if (!cmd) {
       this.latestDryRun = -1;
       this.renderer.preview.clear();
@@ -80,7 +81,7 @@ export class ToolController {
 
   private apply(): void {
     const tool = activeTool.value;
-    const cmd = tool ? this.command(tool, false) : null;
+    const cmd = tool && tool !== 'query' ? this.command(tool, false) : null;
     if (cmd) this.sim.command(cmd);
   }
 
@@ -111,6 +112,10 @@ export class ToolController {
     this.canvas.addEventListener('pointerdown', (e) => {
       const tool = activeTool.value;
       if (e.button !== 0 || !tool || !this.hovered) return;
+      if (tool === 'query') {
+        this.sim.command({ type: 'query', x: this.hovered.x, y: this.hovered.y, requestId: ++this.requestId });
+        return;
+      }
       if (TERRAFORM.has(tool)) {
         this.apply();
         this.repeat = setInterval(() => {
@@ -151,4 +156,10 @@ export class ToolController {
     });
     window.addEventListener('keyup', onShift);
   }
+}
+
+/** Until phase 07's query panel, a query result shows as a longer info toast. */
+function showQuery(result: QueryResult): void {
+  const lines = result.details.map(([label, value]) => `${label}: ${value}`);
+  toast([result.title, ...lines].join(' · '), 'info', 5000);
 }
