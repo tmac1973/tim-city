@@ -1,5 +1,5 @@
 import { type QualityName, UI_SCALE_MAX, UI_SCALE_MIN } from '@/shared/settings';
-import { settings, settingsOpen, volumes } from '../store';
+import { effectiveUiScale, settings, settingsOpen, volumes } from '../store';
 
 const KEYS: [string, string][] = [
   ['W A S D / arrows', 'Pan the camera'],
@@ -61,6 +61,7 @@ export function SettingsWindow() {
         <label class="slider">
           <span>
             Interface size <b>{Math.round(s.uiScale * 100)}%</b>
+            {effectiveUiScale.value < s.uiScale && <em class="muted"> {Math.round(effectiveUiScale.value * 100)}% fits this window</em>}
           </span>
           <input
             type="range"

@@ -22,7 +22,7 @@ test('a saved city loads back with the same date and population', async ({ page 
   const date = await page.locator('.topbar .stat').first().textContent();
   const pop = await population.textContent();
 
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Save / Load' }).click();
   const dialog = page.getByRole('dialog', { name: 'Save and load' });
   await dialog.getByLabel('Save name').fill('e2e city');
   await dialog.getByRole('button', { name: 'Save', exact: true }).click();
@@ -35,4 +35,29 @@ test('a saved city loads back with the same date and population', async ({ page 
   await expect(population).toHaveText(pop ?? '');
   await expect(page.getByRole('button', { name: 'Pause' })).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
+});
+
+test('a save is listed when the dialog is opened again', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    localStorage.setItem('timcity.settings', JSON.stringify({ tips: false }));
+  });
+  await page.goto('./?seed=e2e-reopen&quality=low');
+  await expect(page.locator('html[data-sim="ready"]')).toHaveCount(1, { timeout: 20_000 });
+  const open = page.getByRole('button', { name: 'Save / Load' });
+  const dialog = page.getByRole('dialog', { name: 'Save and load' });
+
+  await open.click();
+  await dialog.getByLabel('Save name').fill('reopen city');
+  await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+  // Close straight away, before the save has finished writing.
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await open.click();
+  await expect(dialog.getByText('reopen city', { exact: true })).toBeVisible({ timeout: 10_000 });
+
+  // And after a reload.
+  await page.reload();
+  await expect(page.locator('html[data-sim="ready"]')).toHaveCount(1, { timeout: 20_000 });
+  await open.click();
+  await expect(dialog.getByText('reopen city', { exact: true })).toBeVisible({ timeout: 10_000 });
 });

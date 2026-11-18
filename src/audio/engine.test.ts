@@ -74,6 +74,17 @@ describe('audio engine', () => {
     expect(gain.value).toBe(0.7);
   });
 
+  it('silences the music bus at zero, and the ambience while paused', () => {
+    const { e } = engine();
+    e.setVolumes({ music: 0, ambience: 0.6 });
+    expect((e.music as unknown as FakeGain).gain.value).toBe(0);
+    const ambience = (e.ambience as unknown as FakeGain).gain;
+    e.setPaused(true);
+    expect(ambience.value).toBe(0);
+    e.setPaused(false);
+    expect(ambience.value).toBe(0.6);
+  });
+
   it('waits for a gesture before making a context', () => {
     let made = 0;
     const e = new AudioEngine(() => {

@@ -19,6 +19,7 @@ export class AudioEngine {
   sfx!: GainNode;
   ambience!: GainNode;
   private volumes: Volumes = { master: 0.8, music: 0.45, sfx: 0.8, ambience: 0.6, muted: false };
+  private paused = false;
   private readonly readyListeners: (() => void)[] = [];
 
   constructor(private readonly factory: () => BaseAudioContext = () => new AudioContext()) {}
@@ -61,6 +62,13 @@ export class AudioEngine {
     this.apply();
   }
 
+  /** While the game is paused the city's ambience fades out; music and the interface play on. */
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    this.apply();
+  }
+
   get muted(): boolean {
     return this.volumes.muted;
   }
@@ -73,6 +81,6 @@ export class AudioEngine {
     this.master.gain.setTargetAtTime(v.muted ? 0 : v.master, t, 0.03);
     this.music.gain.setTargetAtTime(v.music, t, 0.03);
     this.sfx.gain.setTargetAtTime(v.sfx, t, 0.03);
-    this.ambience.gain.setTargetAtTime(v.ambience, t, 0.03);
+    this.ambience.gain.setTargetAtTime(this.paused ? 0 : v.ambience, t, this.paused ? 0.25 : 0.03);
   }
 }

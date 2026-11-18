@@ -12,7 +12,7 @@ import {
   pauseOpen,
   reportOpen,
   savesOpen,
-  settings,
+  effectiveUiScale,
   settingsOpen,
   type UiTool,
   uiScale,
@@ -151,7 +151,7 @@ export function Toolbar() {
     };
   }, []);
 
-  const fit = useFitHeight(settings.value.uiScale);
+  const fit = useFitHeight(effectiveUiScale.value);
   const current = activeTool.value;
   return (
     <nav ref={fit.ref} class="toolbar panel" aria-label="Tools" style={fit.scale < 1 ? { transform: `scale(${String(fit.scale)})` } : undefined}>

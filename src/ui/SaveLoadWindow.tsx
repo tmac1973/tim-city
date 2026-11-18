@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { listSaves } from '@/save/saveManager';
-import { cityInfo, currentSlot, formatCount, savesOpen, toast } from './store';
+import { cityInfo, currentSlot, formatCount, savesChanged, savesOpen, toast } from './store';
 
 export interface SaveActions {
   save: (slot: string) => Promise<void>;
@@ -35,7 +35,10 @@ function SaveLoadBody({ actions }: { actions: SaveActions }) {
       toast('Saved games are unavailable in this browser');
     });
   };
-  useEffect(refresh, []);
+  // Saves can finish after the dialog that started them closed, so follow every change.
+  const changes = savesChanged.value;
+  useEffect(refresh, [changes]);
+  const [saving, setSaving] = useState(false);
 
   const close = () => (savesOpen.value = false);
   const run = (task: Promise<void>) => {
@@ -57,7 +60,11 @@ function SaveLoadBody({ actions }: { actions: SaveActions }) {
           class="save-as"
           onSubmit={(e) => {
             e.preventDefault();
-            if (name.trim()) run(actions.save(name.trim()));
+            if (!name.trim() || saving) return;
+            setSaving(true);
+            run(actions.save(name.trim()).finally(() => {
+              setSaving(false);
+            }));
           }}
         >
           <input
@@ -69,12 +76,12 @@ function SaveLoadBody({ actions }: { actions: SaveActions }) {
               setName(e.currentTarget.value);
             }}
           />
-          <button type="submit" class="primary">
-            Save
+          <button type="submit" class="primary" disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </form>
         <div class="save-list">
-          {saves.length === 0 && <p class="muted">No saved cities yet. Ctrl+S saves at any time.</p>}
+          {saves.length === 0 && !saving && <p class="muted">No saved cities yet. Ctrl+S saves at any time.</p>}
           {saves.map((s) => (
             <div class="save-item" key={`${s.auto ? 'a' : 's'}:${s.name}:${String(s.savedAt)}`}>
               {s.thumbnail ? <img src={s.thumbnail} alt="" /> : <div class="no-thumb" />}

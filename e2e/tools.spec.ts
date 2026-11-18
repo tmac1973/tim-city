@@ -46,6 +46,8 @@ test('building a road through the toolbar charges for it', async ({ page }) => {
 
 test('the interface size setting zooms the UI and keeps the cost tag by the mouse', async ({ page }) => {
   test.setTimeout(90_000);
+  // Big enough for the full 1.5× (smaller windows cap the scale).
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await page.addInitScript(() => {
     localStorage.setItem('timcity.settings', JSON.stringify({ tips: false, uiScale: 1.5 }));
   });
@@ -54,9 +56,9 @@ test('the interface size setting zooms the UI and keeps the cost tag by the mous
   const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
   const road = page.getByRole('button', { name: 'Road' });
   const budget = await page.getByRole('button', { name: 'Budget' }).boundingBox();
-  // About 30 px tall at 100%.
-  expect(budget?.height ?? 0).toBeGreaterThan(40);
-  // The toolbar shrinks to fit the 720 px window instead of running off it.
+  // 32 px tall at 100%.
+  expect(budget?.height ?? 0).toBeGreaterThan(46);
+  // The toolbar shrinks to fit the window instead of running off it.
   const toolbar = await page.getByRole('navigation', { name: 'Tools' }).boundingBox();
   expect((toolbar?.y ?? 0) + (toolbar?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
 

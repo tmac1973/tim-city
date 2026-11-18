@@ -44,6 +44,7 @@ import {
   valves,
   volumes,
   watchNext,
+  savesChanged,
 } from './ui/store';
 import { onDisasterStarted } from './ui/cameraEvents';
 import { ToolController } from './ui/toolController';
@@ -245,6 +246,9 @@ async function start(): Promise<void> {
         debug.audio = a;
         a.listenForGesture();
         a.approval = () => evaluation.value?.approval ?? 50;
+        speed.subscribe((s) => {
+          a.setPaused(s === 'paused' && !titleMode);
+        });
         volumes.subscribe((v) => {
           a.setVolumes(v);
         });
@@ -315,6 +319,7 @@ async function start(): Promise<void> {
   const saveAs = async (slot: string) => {
     const thumbnail = details();
     await saveSlot(slot, await sim.snapshot(), thumbnail);
+    savesChanged.value++;
     currentSlot.value = slot;
     toast(`Saved "${slot}"`, 'info');
   };
@@ -371,7 +376,10 @@ async function start(): Promise<void> {
         load: (slot, auto) => {
           reloadInto(slot, auto);
         },
-        remove: deleteSave,
+        remove: async (slot, auto) => {
+          await deleteSave(slot, auto);
+          savesChanged.value++;
+        },
         exportCity: async () => {
           await exportFile(await sim.snapshot(), cityInfo.value?.name ?? 'city');
         },
@@ -422,7 +430,9 @@ async function start(): Promise<void> {
     if (event.type === 'milestone') toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}`, 'info', 6000);
     if (event.type === 'yearBudget' && !titleMode) {
       audio?.play('coin');
-      void sim.snapshot().then((bytes) => autosave(bytes, details()));
+      void sim.snapshot().then((bytes) => autosave(bytes, details())).then(() => {
+        savesChanged.value++;
+      });
       if (autoBudget.value) openBudget();
       else toast(`${String(event.year)} closed: ${event.net >= 0 ? 'surplus' : 'deficit'} of ${formatMoney(Math.abs(event.net))}`, 'info', 5000);
     }

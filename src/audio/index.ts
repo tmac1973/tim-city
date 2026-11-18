@@ -8,6 +8,9 @@ import { type Mood, Music } from './music';
 import { type Point3, placeListener } from './positional';
 import { Sfx, type SfxName } from './sfx';
 
+/** Sounds of the city itself, held back while the game is paused. */
+const WORLD_SOUNDS = new Set<SfxName>(['zoneGrow', 'coin', 'milestone']);
+
 /**
  * All of the game's sound, synthesized live. It reads the renderer's state
  * (camera, weather, agents, effects) and never changes anything.
@@ -23,6 +26,7 @@ export class CityAudio {
   private scene = { cars: 0, trees: 0, water: 0, built: 0, burning: 0, burningAt: null as Point3 | null };
   private strikes = 0;
   private lastSiren = new Map<object, Point3>();
+  private paused = false;
   /** Supplies the approval rating for the music's mood. */
   approval: () => number = () => 50;
 
@@ -42,7 +46,7 @@ export class CityAudio {
       this.music.start();
     });
     renderer.buildings.onRise((at) => {
-      this.sfx.play('zoneGrow', at);
+      this.play('zoneGrow', at);
     });
   }
 
@@ -62,7 +66,14 @@ export class CityAudio {
   }
 
   play(name: SfxName, at?: Point3): void {
+    if (this.paused && WORLD_SOUNDS.has(name)) return;
     this.sfx.play(name, at);
+  }
+
+  /** The world holds still while paused, and so does its sound. */
+  setPaused(paused: boolean): void {
+    this.paused = paused;
+    this.engine.setPaused(paused);
   }
 
   /** Root-mean-square level of the master output, 0–1 (for checks). */
@@ -105,7 +116,14 @@ export class CityAudio {
     });
     if (atmo.strikes !== this.strikes) {
       this.strikes = atmo.strikes;
-      this.ambience.thunder(Math.random());
+      if (!this.paused) this.ambience.thunder(Math.random());
+    }
+    if (this.paused) {
+      // Fire, tornado, rumble and sirens fade out; queued impacts are dropped.
+      this.disasters.update(dt, 0, null, null, 0, [], listener);
+      this.lastSiren.clear();
+      r.fx.events.length = 0;
+      return;
     }
 
     // Moving fire trucks wail; their velocity drives the Doppler shift.

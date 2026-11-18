@@ -1,4 +1,4 @@
-import { signal } from '@preact/signals';
+import { computed, signal } from '@preact/signals';
 import type { OverlayName } from '@/render/overlays';
 import { type Speed, START_YEAR } from '@/shared/constants';
 import type {
@@ -76,18 +76,41 @@ volumes.subscribe((v) => {
 export const screen = signal<'title' | 'game'>('game');
 export const newCityOpen = signal(false);
 export const settingsOpen = signal(false);
+/** Bumped whenever a save, autosave or delete finishes: open save lists re-read. */
+export const savesChanged = signal(0);
 export const pauseOpen = signal(false);
 
 /** Player settings, saved to this browser whenever they change. */
 export const settings = signal<Settings>(loadSettings());
 settings.subscribe((s) => {
   saveSettings(s);
+});
+
+/** The window size, kept current, for the interface scale. */
+const windowSize = signal(typeof window === 'undefined' ? { w: 1920, h: 1080 } : { w: window.innerWidth, h: window.innerHeight });
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    windowSize.value = { w: window.innerWidth, h: window.innerHeight };
+  });
+}
+
+/**
+ * The interface scale in use: the chosen size, but no larger than leaves the
+ * top bar (about 1200 px wide) and the tool panel room to fit the window.
+ */
+export const effectiveUiScale = computed(() => {
+  const chosen = settings.value.uiScale;
+  if (chosen <= 1) return chosen;
+  const { w, h } = windowSize.value;
+  return Math.max(1, Math.min(chosen, w / 1200, h / 700));
+});
+effectiveUiScale.subscribe((k) => {
   // styles.css zooms #app by this; viewport units divide by it to stay on screen.
-  if (typeof document !== 'undefined') document.documentElement.style.setProperty('--ui-scale', String(s.uiScale));
+  if (typeof document !== 'undefined') document.documentElement.style.setProperty('--ui-scale', String(k));
 });
 
 /** Interface scale: CSS pixels on screen per CSS pixel inside #app. */
-export const uiScale = (): number => settings.value.uiScale;
+export const uiScale = (): number => effectiveUiScale.value;
 
 /** Counts the onboarding tips watch, refreshed every couple of seconds. */
 export const cityFacts = signal({ roads: 0, lines: 0, zones: 0, plants: 0, unpowered: 0, pop: 0 });

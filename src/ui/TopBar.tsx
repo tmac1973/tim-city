@@ -13,6 +13,7 @@ import {
   funds,
   graphsOpen,
   reportOpen,
+  pauseOpen,
   savesOpen,
   toast,
 } from './store';
@@ -56,12 +57,15 @@ export function TopBar() {
         Graphs
       </button>
       <button class="topbar-button" type="button" onClick={() => (savesOpen.value = true)}>
-        Save
+        Save / Load
       </button>
       <button class="topbar-button" type="button" data-menu="disasters" onClick={() => (disastersOpen.value = true)}>
         Disasters
       </button>
       <span class="spacer" />
+      <button class="topbar-button" type="button" title="Save, load, settings or quit to the title (Esc)" onClick={() => (pauseOpen.value = true)}>
+        Menu
+      </button>
       {info && (
         <button class="seed" type="button" onClick={copySeed} title="Copy this map's seed to share it">
           <span class="seed-label">Seed</span>
