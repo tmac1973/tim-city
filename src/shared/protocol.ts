@@ -291,7 +291,9 @@ export type MainToWorker =
   | { type: 'requestHistory' }
   /** Start from a save (uncompressed bytes) instead of `init`. */
   | { type: 'load'; bytes: Uint8Array }
-  | { type: 'requestSnapshot'; requestId: number };
+  | { type: 'requestSnapshot'; requestId: number }
+  /** Generate terrain for the New City preview; changes nothing in the running city. */
+  | { type: 'generatePreview'; requestId: number; seed: string; size: MapSize; terrain: TerrainOptions };
 
 export interface TickMessage {
   type: 'tick';
@@ -317,4 +319,5 @@ export type WorkerToMain =
   | { type: 'event'; event: SimEvent }
   | { type: 'history'; monthly: HistorySample[]; yearly: HistorySample[] }
   | { type: 'snapshot'; requestId: number; bytes: Uint8Array }
+  | { type: 'preview'; requestId: number; size: MapSize; heights: Uint8Array; tiles: Uint16Array }
   | { type: 'error'; message: string };

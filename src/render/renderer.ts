@@ -1,9 +1,12 @@
 import { Color, Fog, Raycaster, Scene, Vector2, WebGLRenderer, PCFShadowMap } from 'three';
+import { QUALITY, type QualityName, type QualityPreset } from '@/shared/settings';
 import { AgentLayer } from './agents';
+import { AGENT_SCALE } from './agents/budget';
 import { Atmosphere } from './atmosphere';
 import type { Agent } from './agents/core';
 import { BuildingLayer } from './buildings/instances';
 import { FxLayer } from './fx';
+import { FX_SCALE } from './fx/tiles';
 import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
@@ -53,8 +56,7 @@ export class Renderer {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly mirror: CityMirror,
-    /** 'low' turns off shadows and the blur passes (slow software GL, e.g. CI). */
-    quality: 'low' | 'high' = 'high',
+    quality: QualityName = 'high',
   ) {
     // postprocessing renders into its own buffers, so the default ones are off.
     this.webgl = new WebGLRenderer({
@@ -64,8 +66,9 @@ export class Renderer {
       stencil: false,
       depth: false,
     });
-    this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.webgl.shadowMap.enabled = quality === 'high';
+    const preset = QUALITY[quality];
+    this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, preset.pixelRatio));
+    this.webgl.shadowMap.enabled = preset.shadowMap > 0;
     this.webgl.shadowMap.type = PCFShadowMap;
 
     this.scene.background = new Color(PALETTE.sky);
@@ -108,7 +111,9 @@ export class Renderer {
       this.cursor.line,
       this.preview.mesh,
     );
-    this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera, quality === 'low');
+    this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera, preset);
+    this.applyScales(preset);
+    if (preset.shadowMap > 0) this.lighting.sun.shadow.mapSize.set(preset.shadowMap, preset.shadowMap);
 
     mirror.onChunkChanged((id) => this.dirty.add(id));
     this.listenPointer();
@@ -155,6 +160,33 @@ export class Renderer {
     scaled.height = Math.round((width * this.canvas.height) / this.canvas.width);
     scaled.getContext('2d')?.drawImage(this.canvas, 0, 0, scaled.width, scaled.height);
     return scaled.toDataURL('image/jpeg', 0.75);
+  }
+
+  /** Switch graphics quality while running. */
+  setQuality(quality: QualityName): void {
+    const preset = QUALITY[quality];
+    const shadows = preset.shadowMap > 0;
+    const sun = this.lighting.sun;
+    if (shadows !== this.webgl.shadowMap.enabled || (shadows && sun.shadow.mapSize.x !== preset.shadowMap)) {
+      this.webgl.shadowMap.enabled = shadows;
+      if (shadows) sun.shadow.mapSize.set(preset.shadowMap, preset.shadowMap);
+      sun.shadow.map?.dispose();
+      sun.shadow.map = null;
+      // Shadow support is compiled into every lit material.
+      this.scene.traverse((o) => {
+        const material = (o as { material?: { needsUpdate: boolean } | { needsUpdate: boolean }[] }).material;
+        for (const m of Array.isArray(material) ? material : material ? [material] : []) m.needsUpdate = true;
+      });
+    }
+    this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, preset.pixelRatio));
+    this.post.configure(preset);
+    this.applyScales(preset);
+    this.resize();
+  }
+
+  private applyScales(preset: QualityPreset): void {
+    AGENT_SCALE.value = preset.agents;
+    FX_SCALE.value = preset.particles;
   }
 
   /** The vehicle under the mouse pointer, if any. */

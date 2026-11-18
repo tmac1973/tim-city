@@ -1,8 +1,11 @@
 import { h, render } from 'preact';
-import { type MapSize, type Speed, TICKS_PER_MONTH } from './shared/constants';
+import { type MapSize, type Speed, START_YEAR, TICKS_PER_MONTH } from './shared/constants';
 import type { DifficultyName } from './shared/difficulty';
 import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/protocol';
 import { CityAudio } from './audio';
+import { gunzip } from './save/compress';
+import { QUALITY, type QualityName } from './shared/settings';
+import { isPower, isRoad, TileKind, zoneOf } from './shared/tiles';
 import { CityMirror } from './render/mirror';
 import { MinimapPainter } from './render/minimap';
 import { Renderer } from './render/renderer';
@@ -13,6 +16,7 @@ import { App } from './ui/App';
 import {
   activeDisasters,
   activeTool,
+  cityFacts,
   addHeadline,
   autoBudget,
   budget,
@@ -30,6 +34,9 @@ import {
   graphsOpen,
   history,
   overlay,
+  pauseOpen,
+  screen,
+  settings,
   skyState,
   speed,
   toast,
@@ -53,15 +60,38 @@ const slider = (key: keyof TerrainOptions): number => {
   return params.has(key) && Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : DEFAULT_TERRAIN[key];
 };
 
-/** Reload into a saved city (`?load=`), keeping the debug and quality flags if present. */
-function reloadInto(slot: string, auto: boolean): void {
-  const next = new URLSearchParams();
-  next.set('load', slot);
-  if (auto) next.set('auto', '1');
+/** Navigate to the game with these parameters, keeping the debug and quality flags. */
+function navigate(next: URLSearchParams): void {
   if (params.has('debug')) next.set('debug', '');
   const quality = params.get('quality');
   if (quality) next.set('quality', quality);
   location.search = next.toString();
+}
+
+/** Reload into a saved city (`?load=`). */
+function reloadInto(slot: string, auto: boolean): void {
+  const next = new URLSearchParams();
+  next.set('load', slot);
+  if (auto) next.set('auto', '1');
+  navigate(next);
+}
+
+/**
+ * With no city in the address (no load, seed, size or new), the game opens
+ * on the title screen. Seeds and saves in the address start a city straight
+ * away: shared seed links and the end-to-end tests rely on it.
+ */
+const titleMode = !['load', 'seed', 'size', 'new'].some((key) => params.has(key));
+
+/** The bundled sample city the title screen shows, or null if it cannot be fetched. */
+async function sampleCity(): Promise<Uint8Array | null> {
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}sample-city.timcity`);
+    if (!response.ok) return null;
+    return await gunzip(new Uint8Array(await response.arrayBuffer()));
+  } catch {
+    return null;
+  }
 }
 
 async function start(): Promise<void> {
@@ -71,6 +101,8 @@ async function start(): Promise<void> {
   const loadName = params.get('load');
   const loadAuto = params.get('auto') === '1';
   let saveBytes: Uint8Array | null = null;
+  screen.value = titleMode ? 'title' : 'game';
+  if (titleMode) saveBytes = await sampleCity();
   if (loadName) {
     try {
       saveBytes = await loadSave(loadName, loadAuto);
@@ -91,7 +123,8 @@ async function start(): Promise<void> {
   sim.onTick((tick) => {
     mirror.apply(tick.chunks);
     date.value = tick.date;
-    renderer?.atmosphere.setDate(tick.date.month, tick.date.tick / TICKS_PER_MONTH);
+    // The title screen keeps its summer evening whatever the sample city's date.
+    if (!titleMode) renderer?.atmosphere.setDate(tick.date.month, tick.date.tick / TICKS_PER_MONTH, tick.date.year === START_YEAR);
     funds.value = tick.funds;
     speed.value = tick.speed;
     census.value = tick.census;
@@ -108,8 +141,20 @@ async function start(): Promise<void> {
   let renderer: Renderer | null = null;
   let audio: CityAudio | null = null;
   try {
-    const r = new Renderer(canvas, mirror, params.get('quality') === 'low' ? 'low' : 'high');
+    // ?quality= in the address (tests, slow machines) wins over the saved setting.
+    const urlQuality = params.get('quality');
+    const forcedQuality = urlQuality && urlQuality in QUALITY ? (urlQuality as QualityName) : null;
+    const r = new Renderer(canvas, mirror, forcedQuality ?? settings.value.quality);
     renderer = r;
+    let appliedQuality = forcedQuality ?? settings.value.quality;
+    settings.subscribe((s) => {
+      r.cityCamera.edgeScroll = s.edgeScroll && !titleMode;
+      r.cityCamera.sensitivity = s.sensitivity;
+      if (!forcedQuality && s.quality !== appliedQuality) {
+        appliedQuality = s.quality;
+        r.setQuality(s.quality);
+      }
+    });
     const minimap = new MinimapPainter(mirror, r);
     bindMinimap = (c) => {
       minimap.attach(c);
@@ -122,9 +167,30 @@ async function start(): Promise<void> {
     });
     // Agents, the clock and the weather hold still while the game is paused.
     speed.subscribe((s) => {
-      r.agents.paused = s === 'paused';
-      r.atmosphere.paused = s === 'paused';
+      r.agents.paused = s === 'paused' && !titleMode;
+      r.atmosphere.paused = s === 'paused' || titleMode;
     });
+    if (titleMode) {
+      // A slow turn around the sample city on a clear summer evening.
+      r.atmosphere.clock.timeOfDay = 0.735;
+      r.atmosphere.weather.change(6, 'clear');
+      r.atmosphere.setDate(6, 0.5);
+      r.cityCamera.autoOrbit = 0.035;
+      r.cityCamera.setPitch(0.5);
+      r.onTerrainShown(() => {
+        // Centre on the built-up area.
+        let sx = 0;
+        let sz = 0;
+        let n = 0;
+        for (let i = 0; i < mirror.tiles.length; i++) {
+          if ((mirror.tiles[i] ?? 0) < 64) continue;
+          sx += i % size;
+          sz += Math.floor(i / size);
+          n++;
+        }
+        r.cityCamera.focus(n ? sx / n : size / 2, n ? sz / n : size / 2, 46);
+      });
+    }
     // ?time=0.9 starts at that time of day; ?weather=rain starts in that weather.
     const startTime = Number(params.get('time'));
     if (params.has('time') && Number.isFinite(startTime)) r.atmosphere.clock.timeOfDay = startTime % 1;
@@ -169,6 +235,36 @@ async function start(): Promise<void> {
     webglError = err instanceof Error ? err.message : String(err);
     console.error('WebGL renderer failed to start:', webglError);
   }
+
+  // The pause menu stops the game while it is open and restores the speed after.
+  let pauseResume: Speed | null = null;
+  pauseOpen.subscribe((open) => {
+    if (open && speed.value !== 'paused') {
+      pauseResume = speed.value;
+      sim.setSpeed('paused');
+    } else if (!open && pauseResume) {
+      sim.setSpeed(pauseResume);
+      pauseResume = null;
+    }
+  });
+  // What the onboarding tips watch.
+  setInterval(() => {
+    let roads = 0;
+    let lines = 0;
+    let zones = 0;
+    let plants = 0;
+    for (let i = 0; i < mirror.tiles.length; i++) {
+      const k = mirror.tiles[i] ?? 0;
+      if (isRoad(k)) roads++;
+      if (isPower(k)) lines++;
+      if (mirror.parts[i] === 1) {
+        if (zoneOf(k)) zones++;
+        else if (k === TileKind.CoalPlant || k === TileKind.NuclearPlant) plants++;
+      }
+    }
+    const c = census.value;
+    cityFacts.value = { roads, lines, zones, plants, unpowered: c?.unpoweredZones ?? 0, pop: c?.resPop ?? 0 };
+  }, 2000);
 
   // The budget window pauses the game while it is open and restores the speed after.
   let resumeSpeed: Speed | null = null;
@@ -229,6 +325,25 @@ async function start(): Promise<void> {
           renderer?.follow(null);
         },
       },
+      title: {
+        preview: (seed, size, terrain) => sim.preview(seed, size, terrain),
+        start: (o) => {
+          const next = new URLSearchParams();
+          next.set('new', '1');
+          next.set('name', o.name);
+          next.set('seed', o.seed);
+          next.set('size', String(o.size));
+          next.set('difficulty', o.difficulty);
+          for (const key of ['water', 'forest', 'hills'] as const) next.set(key, String(o.terrain[key]));
+          navigate(next);
+        },
+        resume: () => {
+          pauseOpen.value = false;
+        },
+        quit: () => {
+          navigate(new URLSearchParams());
+        },
+      },
       saves: {
         save: saveAs,
         load: (slot, auto) => {
@@ -283,7 +398,7 @@ async function start(): Promise<void> {
     }
     if (event.type === 'milestone') audio?.play('milestone');
     if (event.type === 'milestone') toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}`, 'info', 6000);
-    if (event.type === 'yearBudget') {
+    if (event.type === 'yearBudget' && !titleMode) {
       audio?.play('coin');
       void sim.snapshot().then((bytes) => autosave(bytes, details()));
       if (autoBudget.value) openBudget();
@@ -318,10 +433,13 @@ async function start(): Promise<void> {
     });
   }
 
-  const info = await (saveBytes ? sim.load(saveBytes) : sim.init({ name: 'New City', seed, size }, terrain, difficulty));
+  const cityName = (params.get('name') ?? '').trim().slice(0, 32) || 'New City';
+  const info = await (saveBytes ? sim.load(saveBytes) : sim.init({ name: cityName, seed, size }, terrain, difficulty));
   cityInfo.value = info;
   document.documentElement.dataset.sim = 'ready';
-  if (saveBytes) {
+  if (titleMode) {
+    // The sample city stays paused behind the menu; no autosaves, no pop-ups.
+  } else if (saveBytes) {
     // A loaded city waits, paused, until the player is ready.
     currentSlot.value = loadName;
     toast(`Loaded "${loadName ?? ''}"`, 'info');

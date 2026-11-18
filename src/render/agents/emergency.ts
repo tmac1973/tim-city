@@ -1,7 +1,7 @@
 import { Color, type Material, MeshBasicMaterial, Vector3 } from 'three';
 import { isRoad, isTunnel, TileFlag, TileKind, ZONE_SIZE } from '@/shared/tiles';
 import type { CityMirror } from '../mirror';
-import { AGENT_CAPS } from './budget';
+import { capOf, poolSize } from './budget';
 import { type Agent, InstancePool, Mover, placeOnSurface, VEHICLE_SCALE } from './core';
 import { MODELS } from './models';
 import { DX, DY, type Dir, exits, links, reverse, route } from './roadGraph';
@@ -73,10 +73,10 @@ export class EmergencyLayer {
     private readonly surface: (x: number, z: number) => number,
     material: Material,
   ) {
-    this.trucks = new InstancePool(MODELS.fireTruck(), material, AGENT_CAPS.fireTrucks, true, VEHICLE_SCALE);
-    this.police = new InstancePool(MODELS.policeCar(), material, AGENT_CAPS.policeCars, true, VEHICLE_SCALE);
+    this.trucks = new InstancePool(MODELS.fireTruck(), material, poolSize('fireTrucks'), true, VEHICLE_SCALE);
+    this.police = new InstancePool(MODELS.policeCar(), material, poolSize('policeCars'), true, VEHICLE_SCALE);
     const glow = new MeshBasicMaterial({ vertexColors: true, toneMapped: false });
-    this.lights = new InstancePool(MODELS.lightBar(), glow, AGENT_CAPS.fireTrucks + AGENT_CAPS.policeCars, false, VEHICLE_SCALE);
+    this.lights = new InstancePool(MODELS.lightBar(), glow, poolSize('fireTrucks') + poolSize('policeCars'), false, VEHICLE_SCALE);
   }
 
   get meshes() {
@@ -126,7 +126,7 @@ export class EmergencyLayer {
     for (const [sx, sy] of this.stations.police) {
       const home: [number, number] = [sx + 1, sy + 1];
       if (this.units.some((u) => u.label === 'Police car' && u.home[0] === home[0] && u.home[1] === home[1] && !u.leaving)) continue;
-      if (this.units.filter((u) => u.label === 'Police car').length >= AGENT_CAPS.policeCars) break;
+      if (this.units.filter((u) => u.label === 'Police car').length >= capOf('policeCars')) break;
       const start = roadsAround(m, sx, sy, ZONE_SIZE)[0];
       if (!start) continue;
       const unit = new Unit('Police car', home);
@@ -145,7 +145,7 @@ export class EmergencyLayer {
       if (!stillBurning && t.parked > 0) t.leaving = true;
     }
     for (const i of burning) {
-      if (this.units.filter((u) => u.label === 'Fire truck').length >= AGENT_CAPS.fireTrucks) break;
+      if (this.units.filter((u) => u.label === 'Fire truck').length >= capOf('fireTrucks')) break;
       const fx = i % m.size;
       const fy = (i - fx) / m.size;
       if (this.units.some((u) => u.label === 'Fire truck' && Math.abs((u.fire % m.size) - fx) <= 4 && Math.abs(Math.floor(u.fire / m.size) - fy) <= 4)) continue;

@@ -10,6 +10,7 @@ import { queryTile } from './tools/query';
 import { computeLedger } from './systems/budget';
 import { DIFFICULTY } from '@/shared/difficulty';
 import type { BudgetInfo, FieldName } from '@/shared/protocol';
+import { previewTerrain } from './preview';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -115,6 +116,11 @@ function handle(message: MainToWorker): void {
       if (!sim) throw new Error('Snapshot requested before init');
       const bytes = serialize(sim.state);
       post({ type: 'snapshot', requestId: message.requestId, bytes }, [bytes.buffer]);
+      return;
+    }
+    case 'generatePreview': {
+      const { heights, tiles } = previewTerrain({ name: 'Preview', seed: message.seed, size: message.size }, message.terrain);
+      post({ type: 'preview', requestId: message.requestId, size: message.size, heights, tiles }, [heights.buffer, tiles.buffer]);
       return;
     }
     case 'subscribeField':

@@ -2,7 +2,19 @@ import { useEffect } from 'preact/hooks';
 import { COSTS, POWER_SUPPLY } from '@/shared/costs';
 import type { BrushSize } from '@/shared/protocol';
 import { Icon } from './icons';
-import { activeTool, brush, type UiTool } from './store';
+import {
+  activeTool,
+  brush,
+  budgetOpen,
+  disastersOpen,
+  gameOver,
+  graphsOpen,
+  pauseOpen,
+  reportOpen,
+  savesOpen,
+  settingsOpen,
+  type UiTool,
+} from './store';
 
 interface ToolDef {
   id: UiTool;
@@ -82,7 +94,17 @@ export function Toolbar() {
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
       if ((e.target as HTMLElement | null)?.closest('input, textarea, select')) return;
       if (e.code === 'Escape') {
-        activeTool.value = null;
+        // Drop the tool, else close the open window, else pause.
+        if (activeTool.value) {
+          activeTool.value = null;
+          return;
+        }
+        const open = [settingsOpen, savesOpen, graphsOpen, reportOpen, disastersOpen].find((w) => w.value);
+        if (open) {
+          open.value = false;
+          return;
+        }
+        if (!budgetOpen.value && !gameOver.value) pauseOpen.value = !pauseOpen.value;
         return;
       }
       if (e.code === 'BracketLeft' || e.code === 'BracketRight') {

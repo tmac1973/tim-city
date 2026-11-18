@@ -7,6 +7,10 @@ test('building a road through the toolbar charges for it', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
 
+  // The welcome tip sits over the middle of the map, where this test hovers.
+  await page.addInitScript(() => {
+    localStorage.setItem('timcity.settings', JSON.stringify({ tips: false }));
+  });
   await page.goto('./?seed=e2e&water=0&forest=0&hills=0&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByTestId('funds')).not.toHaveText('$0');
@@ -23,7 +27,8 @@ test('building a road through the toolbar charges for it', async ({ page }) => {
     for (let x = 0.3; x <= 0.7; x += 0.08) {
       const point = { x: viewport.width * x, y: viewport.height * y };
       await page.mouse.move(point.x, point.y);
-      await expect(tag).toBeVisible();
+      // The first dry run waits on shader compiles; later ones are quick.
+      await expect(tag).toBeVisible({ timeout: x === 0.3 && y === 0.35 ? 20_000 : 5_000 });
       if ((await tag.getAttribute('class'))?.includes('ok')) {
         spot = point;
         break search;

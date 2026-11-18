@@ -32,6 +32,18 @@ Wrap the game in a polished front door. A title screen shows a slowly orbiting s
 6. Add the screen router and pause menu to `App.tsx`. Keep the `?seed=`, `?size=` and `?difficulty=` start parameters in `src/main.ts` only under `import.meta.env.DEV`; production builds always start on the title screen.
 7. Write the e2e test.
 
+## Implementation notes (changed during build)
+- **Start parameters stay in production builds.** The game opens on the title screen unless the address names a city (`load`, `seed`, `size` or `new`). Shared seed links and every end-to-end test start a city straight from the address, and the New City screen starts one the same way (`?new=1&name=…&seed=…`), as loading a save already did. This replaces step 6's DEV-only rule.
+- The title screen is the sample city itself: loaded into the normal renderer, paused, at golden hour (07:38 pm) in summer with clear weather, the camera slowly orbiting the built-up area. Agents keep moving; there are no autosaves, toasts or budget pop-ups in title mode.
+- `scripts/buildSampleCity.ts` (`pnpm sample`) levels and clears four neighbourhood sites on a coastal map, lays roads first (grading next to a building fails), places contiguous zones so power passes lot to lot, adds services, parks, a stadium, seaport and airport, and grows the city 40½ years (so the save is in summer). Population 6,200; the gzipped save is 13 KB.
+- **The New City preview runs in the existing worker** (`generatePreview` → `previewTerrain`), on a second small WebGL canvas that reuses the terrain, water and tree layers. A unit test checks it matches the map the game then starts with.
+- Quality presets (`src/shared/settings.ts`) switch live: shadows on/off and map size (materials recompile), pixel ratio, the post chain (bloom, tilt-shift with vignette, SMAA — rebuilt by `PostFx.configure`), agent caps (`AGENT_SCALE`; instance buffers are sized for Ultra) and particle emission (`FX_SCALE`). `?quality=` in the address still overrides the saved setting.
+- Esc order: drop the active tool, else close the open window, else toggle the pause menu (follow mode keeps its own Esc). The pause menu pauses the game and restores the speed on resume.
+- Tips (`onboarding/tips.ts`) read counts the main thread gathers from the mirror every 2 s (`cityFacts`) plus store state; each shows once, in order, and hides while a menu or window is open. An extra "press Play" tip sits between powering the zones and the first residents.
+- **Snow needs a December:** January to March of the founding year stay green, so a new city does not open under snow.
+- Toolbar tooltips already showed name, cost, shortcut and purpose (phase 06), so `Toolbar.tsx` needed no change there.
+- The tools e2e test turns tips off (the welcome tip covers the middle of the map it hovers) and allows 20 s for the first dry run while shaders compile.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

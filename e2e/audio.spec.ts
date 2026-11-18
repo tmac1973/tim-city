@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 test('sound starts on the first click, plays, and M mutes it', async ({ page, browserName }) => {
   // Headless Firefox and WebKit have no audio output to measure.
   test.skip(browserName !== 'chromium', 'audio level is measured in Chromium only');
+  // CI renders in software, so timers wait on slow frames.
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
   await page.goto('./?seed=e2e&debug&quality=low');
@@ -20,8 +22,8 @@ test('sound starts on the first click, plays, and M mutes it', async ({ page, br
       const a = (window as unknown as { __tim: { audio: { level(): number; play(n: string): void } } }).__tim.audio;
       a.play('milestone');
       let peak = 0;
-      for (let i = 0; i < 20; i++) {
-        await new Promise((r) => setTimeout(r, 30));
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 40));
         peak = Math.max(peak, a.level());
       }
       return peak;

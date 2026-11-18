@@ -40,6 +40,14 @@ export class CityCamera {
   private readonly look = new Vector3();
   private readonly chasePos = new Vector3();
   private readonly followListeners: ((agent: Agent | null) => void)[] = [];
+  /** Pan when the mouse is within 8 px of the window edge. */
+  edgeScroll = true;
+  /** Rotate and tilt speed multiplier. */
+  sensitivity = 1;
+  /** Radians per second of slow turning, for the title screen (0: off). */
+  autoOrbit = 0;
+  /** Last mouse position in the window, or null when it is outside. */
+  private mouse: { x: number; y: number } | null = null;
   /** Supplies the next vehicle when asked (Tab) or when the followed one is gone. */
   nextVehicle: (current: Agent | null) => Agent | null = () => null;
 
@@ -116,6 +124,11 @@ export class CityCamera {
     if (distance !== undefined) this.goal.distance = Math.min(this.maxDistance, Math.max(MIN_DISTANCE, distance));
   }
 
+  /** Set the viewing angle (radians above the horizon, clamped to the usual range). */
+  setPitch(pitch: number): void {
+    this.goal.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, pitch));
+  }
+
   /** Glide to a tile and zoom in close enough to see what is there. */
   flyTo(x: number, z: number): void {
     this.focus(x + 0.5, z + 0.5, Math.min(this.goal.distance, 26));
@@ -141,6 +154,12 @@ export class CityCamera {
         right += dir[1];
       }
     }
+    const edge = this.edgeScroll ? this.edgePush() : null;
+    if (edge) {
+      forward += edge[0];
+      right += edge[1];
+    }
+    g.yaw += this.autoOrbit * dt;
     if (forward !== 0 || right !== 0) {
       const speed = g.distance * 0.9 * dt;
       const sin = Math.sin(g.yaw);
@@ -172,6 +191,18 @@ export class CityCamera {
     // Never let the camera dip under a hill between it and the target.
     pos.y = Math.max(pos.y, this.heightAt(pos.x, pos.z) + 1.5);
     this.camera.lookAt(this.target);
+  }
+
+  /** Forward/right push from the mouse resting on a window edge, or null. */
+  private edgePush(): [number, number] | null {
+    const m = this.mouse;
+    if (!m || this.drag) return null;
+    const margin = 8;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const forward = m.y <= margin ? 1 : m.y >= h - margin ? -1 : 0;
+    const right = m.x <= margin ? -1 : m.x >= w - margin ? 1 : 0;
+    return forward !== 0 || right !== 0 ? [forward, right] : null;
   }
 
   private updateFollow(dt: number): void {
@@ -219,8 +250,8 @@ export class CityCamera {
       const dy = e.clientY - this.drag.y;
       this.drag.x = e.clientX;
       this.drag.y = e.clientY;
-      if (this.drag.button === 2) this.goal.yaw -= dx * 0.006;
-      else this.goal.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, this.goal.pitch + dy * 0.005));
+      if (this.drag.button === 2) this.goal.yaw -= dx * 0.006 * this.sensitivity;
+      else this.goal.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, this.goal.pitch + dy * 0.005 * this.sensitivity));
     });
     const endDrag = (e: PointerEvent) => {
       if (this.drag?.button !== e.button) return;
@@ -270,6 +301,13 @@ export class CityCamera {
     });
     window.addEventListener('blur', () => {
       this.keys.clear();
+      this.mouse = null;
+    });
+    window.addEventListener('mousemove', (e) => {
+      this.mouse = { x: e.clientX, y: e.clientY };
+    });
+    document.documentElement.addEventListener('mouseleave', () => {
+      this.mouse = null;
     });
   }
 }

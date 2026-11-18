@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "fixture": "tsx scripts/makeFixtureSave.ts"
+    "fixture": "tsx scripts/makeFixtureSave.ts",
+    "sample": "tsx scripts/buildSampleCity.ts"
   },
   "dependencies": {
     "@preact/signals": "^2.11.4",

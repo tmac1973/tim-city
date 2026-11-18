@@ -1,7 +1,7 @@
 import { Color, type Material, Vector3 } from 'three';
 import { isPark, isRoad, TileKind, ZoneType, zoneOf } from '@/shared/tiles';
 import type { CityMirror } from '../mirror';
-import { AGENT_CAPS, PEDESTRIAN_RANGE } from './budget';
+import { capOf, PEDESTRIAN_RANGE, poolSize } from './budget';
 import { InstancePool } from './core';
 import { MODELS } from './models';
 import { DX, DY } from './roadGraph';
@@ -40,7 +40,7 @@ export class PedestrianLayer {
     material: Material,
   ) {
     // Drawn at about 1.6× true scale, like the vehicles, so people read from above.
-    this.pool = new InstancePool(MODELS.pedestrian(), material, AGENT_CAPS.pedestrians, false, 1.6);
+    this.pool = new InstancePool(MODELS.pedestrian(), material, poolSize('pedestrians'), false, 1.6);
   }
 
   get meshes() {
@@ -140,6 +140,6 @@ export class PedestrianLayer {
       const j = this.rng.int(i + 1);
       [spots[i], spots[j]] = [spots[j] ?? (() => undefined), spots[i] ?? (() => undefined)];
     }
-    for (const spawn of spots.slice(0, AGENT_CAPS.pedestrians)) spawn();
+    for (const spawn of spots.slice(0, capOf('pedestrians'))) spawn();
   }
 }

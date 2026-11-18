@@ -14,6 +14,7 @@ import type {
   ToolId,
   Valves,
 } from '@/shared/protocol';
+import { loadSettings, saveSettings, type Settings } from '@/shared/settings';
 
 /** UI state shared by components and the input controllers. */
 export const cityInfo = signal<CityInfo | null>(null);
@@ -70,6 +71,21 @@ volumes.subscribe((v) => {
     // Private mode or blocked storage: the levels just are not remembered.
   }
 });
+
+/** Title screen (with the sample city behind it) or a city being played. */
+export const screen = signal<'title' | 'game'>('game');
+export const newCityOpen = signal(false);
+export const settingsOpen = signal(false);
+export const pauseOpen = signal(false);
+
+/** Player settings, saved to this browser whenever they change. */
+export const settings = signal<Settings>(loadSettings());
+settings.subscribe((s) => {
+  saveSettings(s);
+});
+
+/** Counts the onboarding tips watch, refreshed every couple of seconds. */
+export const cityFacts = signal({ roads: 0, lines: 0, zones: 0, plants: 0, unpowered: 0, pop: 0 });
 
 /** Set when the player triggers a disaster from the menu: the camera flies to it. */
 export const watchNext = signal(false);

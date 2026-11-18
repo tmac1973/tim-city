@@ -23,8 +23,10 @@ import type { Particles } from './particles';
 
 const RUBBLE = [new Color(0x8a8378), new Color(0x6f675d), new Color(0xa39a8c)];
 const MAX_FIRES = 4000;
-/** Flame particles per second across all fires; per-tile rates shrink to fit. */
+/** Flame particles per second across all fires at High quality; per-tile rates shrink to fit. */
 const FLAME_BUDGET = 2400;
+/** Scales particle emission with the graphics quality (Low 0.25 … Ultra 1.5). */
+export const FX_SCALE = { value: 1 };
 
 const sheetVertex = /* glsl */ `
   uniform float uTime;
@@ -270,7 +272,7 @@ export class TileFx {
     let count = 0;
     for (const c of this.chunks.values()) count += c.fires.length;
     if (count === 0) return;
-    const perTile = Math.min(14, FLAME_BUDGET / count);
+    const perTile = Math.min(14, (FLAME_BUDGET * FX_SCALE.value) / count);
     const flames = this.flameRate.take(perTile * count, dt);
     const smokes = this.smokeRate.take(Math.min(3, 600 / count) * count, dt);
     const embers = this.emberRate.take(Math.min(2, 300 / count) * count, dt);

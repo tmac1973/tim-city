@@ -1,6 +1,7 @@
 import { type Camera, HalfFloatType, type Scene, type WebGLRenderer } from 'three';
 import {
   BloomEffect,
+  type Effect,
   EffectComposer,
   EffectPass,
   KernelSize,
@@ -12,35 +13,44 @@ import {
   VignetteEffect,
 } from 'postprocessing';
 
+export interface PostOptions {
+  bloom: boolean;
+  tiltShift: boolean;
+  smaa: boolean;
+}
+
 /**
- * Render → tilt-shift + vignette + tone mapping → SMAA. Tilt-shift and SMAA
- * are both convolution effects, so they need separate passes.
+ * Render → tilt-shift + bloom + vignette + tone mapping → SMAA. Tilt-shift
+ * and SMAA are both convolution effects, so they need separate passes.
+ * Which effects run depends on the graphics quality.
  */
 export class PostFx {
   readonly composer: EffectComposer;
-  private readonly tiltShift: TiltShiftEffect;
+  private readonly tiltShift = new TiltShiftEffect({ focusArea: 0.45, feather: 0.3, kernelSize: KernelSize.MEDIUM });
 
-  /** `lite` keeps only tone mapping: no blur, vignette or anti-aliasing. */
-  constructor(renderer: WebGLRenderer, scene: Scene, camera: Camera, lite = false) {
+  constructor(
+    renderer: WebGLRenderer,
+    private readonly scene: Scene,
+    private readonly camera: Camera,
+    options: PostOptions,
+  ) {
     this.composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
-    this.composer.addPass(new RenderPass(scene, camera));
-    this.tiltShift = new TiltShiftEffect({ focusArea: 0.45, feather: 0.3, kernelSize: KernelSize.MEDIUM });
-    if (lite) {
-      this.composer.addPass(new EffectPass(camera, new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL })));
-      return;
-    }
-    this.composer.addPass(
-      new EffectPass(
-        camera,
-        this.tiltShift,
-        // Only HDR emissives (lit windows, lamps, headlights) pass the threshold.
-        new BloomEffect({ luminanceThreshold: 1.1, luminanceSmoothing: 0.25, intensity: 1.1, mipmapBlur: true, radius: 0.6 }),
-        new VignetteEffect({ offset: 0.35, darkness: 0.3 }),
-        // Neutral keeps the palette's saturation; AgX washed the greens out.
-        new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }),
-      ),
-    );
-    this.composer.addPass(new EffectPass(camera, new SMAAEffect()));
+    this.configure(options);
+  }
+
+  /** Rebuild the pass chain for a quality level. */
+  configure(options: PostOptions): void {
+    this.composer.removeAllPasses();
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    const effects: Effect[] = [];
+    if (options.tiltShift) effects.push(this.tiltShift);
+    // Only HDR emissives (lit windows, lamps, headlights) pass the bloom threshold.
+    if (options.bloom) effects.push(new BloomEffect({ luminanceThreshold: 1.1, luminanceSmoothing: 0.25, intensity: 1.1, mipmapBlur: true, radius: 0.6 }));
+    if (options.tiltShift) effects.push(new VignetteEffect({ offset: 0.35, darkness: 0.3 }));
+    // Neutral keeps the palette's saturation; AgX washed the greens out.
+    effects.push(new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }));
+    this.composer.addPass(new EffectPass(this.camera, ...effects));
+    if (options.smaa) this.composer.addPass(new EffectPass(this.camera, new SMAAEffect()));
   }
 
   /**

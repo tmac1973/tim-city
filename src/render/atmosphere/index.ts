@@ -43,6 +43,7 @@ export class Atmosphere {
   /** Game month (0 = January) and how far through it. */
   private month = 0;
   private through = 0;
+  private firstYear = false;
   paused = false;
   /** 0 by day … 1 at night. */
   night = 0;
@@ -76,9 +77,10 @@ export class Atmosphere {
     scene.background = null;
   }
 
-  setDate(month: number, through: number): void {
+  setDate(month: number, through: number, firstYear = false): void {
     this.month = month;
     this.through = through;
+    this.firstYear = firstYear;
   }
 
   update(dt: number, camera: Vector3, target: Vector3, distance: number): void {
@@ -153,7 +155,7 @@ export class Atmosphere {
     fog.near = this.fogBase.near + (3 - this.fogBase.near) * thick;
     fog.far = this.fogBase.far + (70 - this.fogBase.far) * thick;
 
-    const season = seasonBlend(this.month, this.through);
+    const season = seasonBlend(this.month, this.through, this.firstYear);
     ATMOSPHERE.uNight.value = this.night;
     ATMOSPHERE.uSnow.value = season.snow;
     ATMOSPHERE.uAutumn.value = season.autumn;

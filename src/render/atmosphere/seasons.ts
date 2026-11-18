@@ -4,8 +4,10 @@
  * and melts through March; leaves turn in September, stay turned through
  * October and November and fall as December's snow arrives.
  */
-export function seasonBlend(month: number, through: number): { snow: number; autumn: number } {
+export function seasonBlend(month: number, through: number, firstYear = false): { snow: number; autumn: number } {
   const t = Math.min(1, Math.max(0, through));
+  // Snow needs a December to build up: a city founded in January starts green.
+  if (firstYear && month <= 2) return { snow: 0, autumn: 0 };
   switch (month) {
     case 11:
       return { snow: t, autumn: 1 - t };

@@ -3,7 +3,7 @@ import { TileKind } from '@/shared/tiles';
 import { waterSide } from '@/sim/tools/place';
 import type { CityMirror } from '../mirror';
 import { WATER_Y } from '../units';
-import { AGENT_CAPS } from './budget';
+import { capOf, poolSize } from './budget';
 import { type Agent, InstancePool } from './core';
 import { MODELS } from './models';
 import { waterRoute } from './roadGraph';
@@ -61,7 +61,7 @@ export class ShipLayer {
     private readonly rng: VisualRng,
     material: Material,
   ) {
-    this.pool = new InstancePool(MODELS.ship(), material, AGENT_CAPS.ships);
+    this.pool = new InstancePool(MODELS.ship(), material, poolSize('ships'));
   }
 
   get meshes() {
@@ -102,7 +102,7 @@ export class ShipLayer {
       port.timer -= dt;
       if (port.timer > 0) continue;
       port.timer = this.rng.range(30, 60);
-      if (this.ships.length >= AGENT_CAPS.ships) continue;
+      if (this.ships.length >= capOf('ships')) continue;
       this.ships.push(new Ship(port));
     }
     for (const ship of this.ships) this.step(ship, dt);

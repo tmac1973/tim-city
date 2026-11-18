@@ -1,7 +1,7 @@
 import { Color, type Material, MeshBasicMaterial, Vector3 } from 'three';
 import { isRoad, isTunnel } from '@/shared/tiles';
 import type { CityMirror } from '../mirror';
-import { AGENT_CAPS } from './budget';
+import { capOf, poolSize } from './budget';
 import { type Agent, InstancePool, Mover, PAINT, placeOnSurface, VEHICLE_SCALE } from './core';
 import { MODELS } from './models';
 import { DX, DY, type Dir, exits, linkCount, links, reverse } from './roadGraph';
@@ -77,7 +77,7 @@ export class CarLayer {
   private roadsDirty = true;
   private clock = 0;
   private head: Int32Array;
-  private next = new Int32Array(AGENT_CAPS.cars);
+  private next = new Int32Array(poolSize('cars'));
   private readonly lights: InstancePool;
   private readonly lightMaterial = new MeshBasicMaterial({ vertexColors: true });
   private night = 0;
@@ -88,10 +88,10 @@ export class CarLayer {
     private readonly surface: (x: number, z: number) => number,
     material: Material,
   ) {
-    const pool = (m: CarModel) => new InstancePool(MODELS[m](), material, AGENT_CAPS.cars, true, VEHICLE_SCALE);
+    const pool = (m: CarModel) => new InstancePool(MODELS[m](), material, poolSize('cars'), true, VEHICLE_SCALE);
     this.pools = { sedan: pool('sedan'), hatchback: pool('hatchback'), van: pool('van'), truck: pool('truck'), bus: pool('bus'), taxi: pool('taxi') };
     this.head = new Int32Array(mirror.size * mirror.size);
-    this.lights = new InstancePool(MODELS.carLights(), this.lightMaterial, AGENT_CAPS.cars, false, VEHICLE_SCALE);
+    this.lights = new InstancePool(MODELS.carLights(), this.lightMaterial, poolSize('cars'), false, VEHICLE_SCALE);
   }
 
   get meshes() {
@@ -240,7 +240,7 @@ export class CarLayer {
       const j = this.rng.int(i + 1);
       [order[i], order[j]] = [order[j] ?? 0, order[i] ?? 0];
     }
-    const { spawn, cull } = planCars(targets, counts, total, AGENT_CAPS.cars, [...new Set(order)]);
+    const { spawn, cull } = planCars(targets, counts, total, capOf('cars'), [...new Set(order)]);
     for (const b of cull) {
       const victim = byBlock.get(b)?.pop();
       if (victim) victim.leaving = true;

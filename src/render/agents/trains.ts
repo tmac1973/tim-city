@@ -1,7 +1,7 @@
 import { Color, type Material, Vector3 } from 'three';
 import { isRail, isTunnel } from '@/shared/tiles';
 import type { CityMirror } from '../mirror';
-import { AGENT_CAPS } from './budget';
+import { capOf, poolSize } from './budget';
 import { type Agent, InstancePool, placeOnSurface } from './core';
 import { MODELS } from './models';
 import { components, DX, DY, type Dir, exits, links, type Pose2, reverse, Segment } from './roadGraph';
@@ -11,7 +11,7 @@ const SPACING = 0.56;
 const TRAIL = 12;
 
 /** One train per connected rail network per 30 tiles, up to the global cap. */
-export function trainsFor(networkSizes: readonly number[], cap = AGENT_CAPS.trains): number[] {
+export function trainsFor(networkSizes: readonly number[], cap = capOf('trains')): number[] {
   const want = networkSizes.map((n) => Math.floor(n / 30));
   let left = cap;
   return want.map((w) => {
@@ -106,9 +106,9 @@ export class TrainLayer {
     private readonly surface: (x: number, z: number) => number,
     material: Material,
   ) {
-    const cap = AGENT_CAPS.trains * 6;
+    const cap = poolSize('trains') * 6;
     this.pools = {
-      locomotive: new InstancePool(MODELS.locomotive(), material, AGENT_CAPS.trains * 2),
+      locomotive: new InstancePool(MODELS.locomotive(), material, poolSize('trains') * 2),
       coach: new InstancePool(MODELS.coach(), material, cap),
       freight: new InstancePool(MODELS.freight(), material, cap),
     };

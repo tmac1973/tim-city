@@ -58,7 +58,7 @@ export function TopBar() {
       <button class="topbar-button" type="button" onClick={() => (savesOpen.value = true)}>
         Save
       </button>
-      <button class="topbar-button" type="button" onClick={() => (disastersOpen.value = true)}>
+      <button class="topbar-button" type="button" data-menu="disasters" onClick={() => (disastersOpen.value = true)}>
         Disasters
       </button>
       <span class="spacer" />

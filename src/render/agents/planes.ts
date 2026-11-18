@@ -3,7 +3,7 @@ import { TileKind } from '@/shared/tiles';
 import { hash3 } from '../hash';
 import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT } from '../units';
-import { AGENT_CAPS } from './budget';
+import { capOf, poolSize } from './budget';
 import { type Agent, InstancePool } from './core';
 import { MODELS } from './models';
 import type { VisualRng } from './visualRng';
@@ -52,7 +52,7 @@ export class PlaneLayer {
     private readonly rng: VisualRng,
     material: Material,
   ) {
-    this.pool = new InstancePool(MODELS.plane(), material, AGENT_CAPS.planes);
+    this.pool = new InstancePool(MODELS.plane(), material, poolSize('planes'));
   }
 
   get meshes() {
@@ -103,7 +103,7 @@ export class PlaneLayer {
       r.timer -= dt;
       if (r.timer > 0) continue;
       r.timer = this.rng.range(20, 40);
-      if (this.planes.filter((p) => p.alive).length >= AGENT_CAPS.planes) continue;
+      if (this.planes.filter((p) => p.alive).length >= capOf('planes')) continue;
       const plane = new Plane(r, r.departNext);
       r.departNext = !r.departNext;
       if (plane.departing) {

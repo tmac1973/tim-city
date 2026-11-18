@@ -1,4 +1,4 @@
-import type { Speed } from '@/shared/constants';
+import type { MapSize, Speed } from '@/shared/constants';
 import type { DifficultyName } from '@/shared/difficulty';
 import type {
   CityInfo,
@@ -22,6 +22,7 @@ export class SimBridge {
   private readonly historyListeners = new Set<Listener<{ monthly: HistorySample[]; yearly: HistorySample[] }>>();
   private pendingInit: { resolve: Listener<CityInfo>; reject: Listener<Error> } | null = null;
   private readonly pendingSnapshots = new Map<number, Listener<Uint8Array>>();
+  private readonly pendingPreviews = new Map<number, Listener<{ size: MapSize; heights: Uint8Array; tiles: Uint16Array }>>();
   private nextSnapshot = 1;
 
   constructor() {
@@ -46,6 +47,15 @@ export class SimBridge {
     return new Promise((resolve, reject) => {
       this.pendingInit = { resolve, reject };
       this.send({ type: 'load', bytes });
+    });
+  }
+
+  /** Terrain for a would-be new city (the New City preview). */
+  preview(seed: string, size: MapSize, terrain: TerrainOptions): Promise<{ size: MapSize; heights: Uint8Array; tiles: Uint16Array }> {
+    return new Promise((resolve) => {
+      const requestId = this.nextSnapshot++;
+      this.pendingPreviews.set(requestId, resolve);
+      this.send({ type: 'generatePreview', requestId, seed, size, terrain });
     });
   }
 
@@ -107,6 +117,10 @@ export class SimBridge {
       case 'event':
         for (const listener of this.eventListeners) listener(message.event);
         return;
+      case 'preview':
+        this.pendingPreviews.get(message.requestId)?.(message);
+        this.pendingPreviews.delete(message.requestId);
+        break;
       case 'snapshot':
         this.pendingSnapshots.get(message.requestId)?.(message.bytes);
         this.pendingSnapshots.delete(message.requestId);
