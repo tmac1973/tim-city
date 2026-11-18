@@ -306,6 +306,8 @@ export interface TickMessage {
   disasters: ActiveDisaster[];
   /** The subscribed block field, when it changed (at month end, or on subscribing). */
   field?: { name: FieldName; data: Uint8Array };
+  /** The traffic field for visible agents, at each month start and on the first tick. */
+  traffic?: Uint8Array;
   chunks: ChunkSlice[];
 }
 

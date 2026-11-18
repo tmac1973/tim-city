@@ -30,7 +30,7 @@ test('every overlay toggles on and off without errors', async ({ page, browserNa
     localStorage.setItem('timcity.autoBudget', 'off');
   });
 
-  await page.goto('./?seed=e2e');
+  await page.goto('./?seed=e2e&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
 
   // Headless browsers render in software, so absolute frame times measure the

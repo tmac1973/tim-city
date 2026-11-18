@@ -25,8 +25,13 @@ function SaveLoadBody({ actions }: { actions: SaveActions }) {
   const [name, setName] = useState(() => currentSlot.value ?? cityInfo.value?.name ?? 'My city');
   const file = useRef<HTMLInputElement>(null);
 
+  // Only the newest listing counts: a slow first read must not overwrite a later one.
+  const latest = useRef(0);
   const refresh = () => {
-    void listSaves().then(setSaves, () => {
+    const ticket = ++latest.current;
+    void listSaves().then((list) => {
+      if (ticket === latest.current) setSaves(list);
+    }, () => {
       toast('Saved games are unavailable in this browser');
     });
   };

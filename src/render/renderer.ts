@@ -1,4 +1,6 @@
 import { Color, Fog, Raycaster, Scene, Vector2, WebGLRenderer, PCFShadowMap } from 'three';
+import { AgentLayer } from './agents';
+import type { Agent } from './agents/core';
 import { BuildingLayer } from './buildings/instances';
 import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
@@ -33,6 +35,8 @@ export class Renderer {
   private readonly buildings: BuildingLayer;
   readonly overlay: OverlayLayer;
   readonly disasters: DisasterLayer;
+  readonly agents: AgentLayer;
+  private recentlyFollowed: Agent[] = [];
   private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
   private readonly dirty = new Set<number>();
@@ -47,6 +51,8 @@ export class Renderer {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly mirror: CityMirror,
+    /** 'low' turns off shadows and the blur passes (slow software GL, e.g. CI). */
+    quality: 'low' | 'high' = 'high',
   ) {
     // postprocessing renders into its own buffers, so the default ones are off.
     this.webgl = new WebGLRenderer({
@@ -57,7 +63,7 @@ export class Renderer {
       depth: false,
     });
     this.webgl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.webgl.shadowMap.enabled = true;
+    this.webgl.shadowMap.enabled = quality === 'high';
     this.webgl.shadowMap.type = PCFShadowMap;
 
     this.scene.background = new Color(PALETTE.sky);
@@ -72,6 +78,17 @@ export class Renderer {
     this.networks = new NetworkLayer(mirror);
     this.buildings = new BuildingLayer(mirror);
     this.disasters = new DisasterLayer(mirror);
+    const networks = this.networks;
+    this.agents = new AgentLayer(
+      mirror,
+      (x, z) => networks.surfaceAt(x, z, 'road'),
+      (x, z) => networks.surfaceAt(x, z, 'rail'),
+    );
+    this.cityCamera.nextVehicle = (current) => {
+      const next = this.agents.nextAfter(current, this.recentlyFollowed);
+      if (next) this.recentlyFollowed = [next, ...this.recentlyFollowed].slice(0, 4);
+      return next;
+    };
     this.cursor = new TileCursor(mirror);
     this.preview = new ToolPreview(mirror);
     this.scene.add(
@@ -81,12 +98,13 @@ export class Renderer {
       this.networks.group,
       this.buildings.group,
       this.disasters.group,
+      this.agents.group,
       this.overlay.group,
       this.terrain.drapes,
       this.cursor.line,
       this.preview.mesh,
     );
-    this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera);
+    this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera, quality === 'low');
 
     mirror.onChunkChanged((id) => this.dirty.add(id));
     this.listenPointer();
@@ -135,6 +153,19 @@ export class Renderer {
     return scaled.toDataURL('image/jpeg', 0.75);
   }
 
+  /** The vehicle under the mouse pointer, if any. */
+  vehicleAtPointer(): Agent | null {
+    if (!this.pointerInside) return null;
+    this.raycaster.setFromCamera(this.pointer, this.cityCamera.camera);
+    return this.agents.pick(this.raycaster.ray);
+  }
+
+  /** Ride with a vehicle (null: stop following). */
+  follow(agent: Agent | null): void {
+    if (agent) this.recentlyFollowed = [agent, ...this.recentlyFollowed.filter((a) => a !== agent)].slice(0, 4);
+    this.cityCamera.follow(agent);
+  }
+
   /** Called whenever the hovered tile changes (null when off the map). */
   onHoverChange(listener: (tile: PickResult | null) => void): void {
     this.hoverListeners.push(listener);
@@ -170,12 +201,16 @@ export class Renderer {
     this.trees.flush();
 
     const cam = this.cityCamera;
+    // Agents move first so a chase camera sees this frame's position.
+    this.agents.update(dt, cam.target, cam.following ? 0 : cam.distance);
     cam.update(dt);
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
     this.water.update(this.elapsed, this.lighting.sunDir);
     this.buildings.update(dt);
     this.disasters.update(dt);
-    this.post.setView(cam.zoom, cam.topDown);
+    // Street level has no miniature look: the sharp band covers the screen.
+    if (cam.following) this.post.setView(0, 1);
+    else this.post.setView(cam.zoom, cam.topDown);
     this.updateHover();
     this.post.render(dt);
 

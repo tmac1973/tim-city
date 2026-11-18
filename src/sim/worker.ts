@@ -19,6 +19,8 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 /** The block field the main thread wants, and whether to send it on the next publish. */
 let subscribed: FieldName | null = null;
 let fieldDue = false;
+/** Agents always need traffic; send it with the first tick after (re)starting. */
+let trafficDue = true;
 
 function post(message: WorkerToMain, transfer: Transferable[] = []): void {
   ctx.postMessage(message, transfer);
@@ -35,6 +37,12 @@ function publish(current: Simulation): void {
     transfer.push(field.data.buffer);
     fieldDue = false;
   }
+  let traffic: Uint8Array | undefined;
+  if (trafficDue || current.state.date.tick === 0) {
+    traffic = current.state.field('traffic').slice();
+    transfer.push(traffic.buffer);
+    trafficDue = false;
+  }
   post(
     {
       type: 'tick',
@@ -47,6 +55,7 @@ function publish(current: Simulation): void {
       evaluation: current.state.evaluation,
       disasters: current.state.disasters,
       ...(field ? { field } : {}),
+      ...(traffic ? { traffic } : {}),
       chunks,
     },
     transfer,

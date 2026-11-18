@@ -20,6 +20,7 @@ import {
   currentSlot,
   date,
   evaluation,
+  following,
   formatDate,
   formatMoney,
   funds,
@@ -46,12 +47,14 @@ const slider = (key: keyof TerrainOptions): number => {
   return params.has(key) && Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : DEFAULT_TERRAIN[key];
 };
 
-/** Reload into a saved city (`?load=`), keeping the debug flag if present. */
+/** Reload into a saved city (`?load=`), keeping the debug and quality flags if present. */
 function reloadInto(slot: string, auto: boolean): void {
   const next = new URLSearchParams();
   next.set('load', slot);
   if (auto) next.set('auto', '1');
   if (params.has('debug')) next.set('debug', '');
+  const quality = params.get('quality');
+  if (quality) next.set('quality', quality);
   location.search = next.toString();
 }
 
@@ -90,13 +93,14 @@ async function start(): Promise<void> {
     evaluation.value = tick.evaluation;
     activeDisasters.value = tick.disasters;
     if (tick.field) fieldListener?.(tick.field.name, tick.field.data);
+    if (tick.traffic) renderer?.agents.setTraffic(tick.traffic);
   });
 
   // Mount the UI even if WebGL fails, so the failure can be reported on screen.
   let webglError: string | null = null;
   let renderer: Renderer | null = null;
   try {
-    const r = new Renderer(canvas, mirror);
+    const r = new Renderer(canvas, mirror, params.get('quality') === 'low' ? 'low' : 'high');
     renderer = r;
     const minimap = new MinimapPainter(mirror, r);
     bindMinimap = (c) => {
@@ -105,6 +109,13 @@ async function start(): Promise<void> {
     fieldListener = (name, data) => {
       r.overlay.setField(name, data);
     };
+    r.cityCamera.onFollowChange((agent) => {
+      following.value = agent?.label ?? null;
+    });
+    // Agents hold still while the game is paused.
+    speed.subscribe((s) => {
+      r.agents.paused = s === 'paused';
+    });
     activeDisasters.subscribe((list) => {
       r.disasters.setActive(list);
     });
@@ -177,6 +188,15 @@ async function start(): Promise<void> {
       },
       requestHistory: () => {
         sim.requestHistory();
+      },
+      follow: {
+        next: () => {
+          const cam = renderer?.cityCamera;
+          if (cam) renderer?.follow(cam.nextVehicle(cam.following));
+        },
+        stop: () => {
+          renderer?.follow(null);
+        },
       },
       saves: {
         save: saveAs,

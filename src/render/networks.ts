@@ -52,12 +52,60 @@ export class NetworkLayer {
   private readonly material = new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.85 });
   private readonly wireMaterial = new LineBasicMaterial({ color: PALETTE.wire });
   private readonly chunks = new Map<number, { group: Group; geometries: BufferGeometry[] }>();
+  /** Per-tile deck and ramp lookups for `surfaceAt`; cleared whenever a chunk changes. */
+  private readonly deckCache = new Map<number, number>();
+  private readonly rampCache = new Map<number, readonly [number, number, number] | null>();
 
   constructor(private readonly mirror: CityMirror) {
     this.group.name = 'networks';
   }
 
+  /**
+   * World Y where a vehicle's wheels touch a road (or a train's touch the
+   * rails) at world (px, pz): on the deck over a bridge, on the ramp beside
+   * one, and on the ground elsewhere.
+   */
+  surfaceAt(px: number, pz: number, network: 'road' | 'rail'): number {
+    const m = this.mirror;
+    const x = Math.min(m.size - 1, Math.max(0, Math.floor(px)));
+    const y = Math.min(m.size - 1, Math.max(0, Math.floor(pz)));
+    const kind = m.tile(x, y);
+    const lift = network === 'road' ? 0.03 : 0.1;
+    if (isBridge(kind)) {
+      const i = y * m.size + x;
+      let deck = this.deckCache.get(i);
+      if (deck === undefined) {
+        deck = this.deckY(x, y, kind);
+        this.deckCache.set(i, deck);
+      }
+      return deck + (network === 'road' ? 0.005 : 0.065);
+    }
+    const ground = m.heightAt(px, pz);
+    const key = (y * m.size + x) * 2 + (network === 'rail' ? 1 : 0);
+    let ramp = this.rampCache.get(key);
+    if (ramp === undefined) {
+      ramp = null;
+      for (const dir of DIRS) {
+        const nx = x + dir[0];
+        const ny = y + dir[1];
+        if (nx < 0 || ny < 0 || nx >= m.size || ny >= m.size) continue;
+        const nk = m.tile(nx, ny);
+        if (isBridge(nk) && carries(nk, network)) {
+          ramp = [dir[0], dir[1], this.deckY(nx, ny, nk)];
+          break;
+        }
+      }
+      this.rampCache.set(key, ramp);
+    }
+    if (!ramp) return ground + lift;
+    const [dx, dy, deck] = ramp;
+    const t = dx !== 0 ? (dx > 0 ? px - x : x + 1 - px) : dy > 0 ? pz - y : y + 1 - pz;
+    return ground + (Math.max(ground, deck) - ground) * Math.min(1, Math.max(0, t)) + lift;
+  }
+
   rebuild(id: number): void {
+    this.deckCache.clear();
+    this.rampCache.clear();
     const old = this.chunks.get(id);
     if (old) {
       for (const geometry of old.geometries) geometry.dispose();

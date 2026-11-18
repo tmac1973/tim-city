@@ -19,10 +19,15 @@ export class PostFx {
   readonly composer: EffectComposer;
   private readonly tiltShift: TiltShiftEffect;
 
-  constructor(renderer: WebGLRenderer, scene: Scene, camera: Camera) {
+  /** `lite` keeps only tone mapping: no blur, vignette or anti-aliasing. */
+  constructor(renderer: WebGLRenderer, scene: Scene, camera: Camera, lite = false) {
     this.composer = new EffectComposer(renderer, { frameBufferType: HalfFloatType });
     this.composer.addPass(new RenderPass(scene, camera));
     this.tiltShift = new TiltShiftEffect({ focusArea: 0.45, feather: 0.3, kernelSize: KernelSize.MEDIUM });
+    if (lite) {
+      this.composer.addPass(new EffectPass(camera, new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL })));
+      return;
+    }
     this.composer.addPass(
       new EffectPass(
         camera,

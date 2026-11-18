@@ -50,6 +50,8 @@ export function addHeadline(text: string, date: string, x: number | null, y: num
 export const budgetOpen = signal(false);
 /** Shown once the city goes bankrupt, until dismissed. */
 export const gameOver = signal(false);
+/** The kind of vehicle the camera is riding with, or null. */
+export const following = signal<string | null>(null);
 
 const AUTO_BUDGET_KEY = 'timcity.autoBudget';
 function readAutoBudget(): boolean {

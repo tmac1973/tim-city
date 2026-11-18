@@ -3,6 +3,7 @@ import type { SimCommand } from '@/shared/protocol';
 import { BudgetWindow } from './BudgetWindow';
 import { CityReport } from './CityReport';
 import { DisasterMenu } from './DisasterMenu';
+import { FollowHud } from './FollowHud';
 import { GraphsWindow } from './GraphsWindow';
 import { OverlayPanel } from './OverlayPanel';
 import { type SaveActions, SaveLoadWindow } from './SaveLoadWindow';
@@ -24,9 +25,10 @@ interface AppProps {
   bindMinimap: (canvas: HTMLCanvasElement) => void;
   requestHistory: () => void;
   saves: SaveActions;
+  follow: { next: () => void; stop: () => void };
 }
 
-export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMinimap, requestHistory, saves }: AppProps) {
+export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMinimap, requestHistory, saves, follow }: AppProps) {
   return (
     <>
       <TopBar />
@@ -43,6 +45,7 @@ export function App({ webglError, onSpeed, send, onBudgetClose, onShowMe, bindMi
       <GraphsWindow request={requestHistory} />
       <SaveLoadWindow actions={saves} />
       <DisasterMenu send={send} />
+      <FollowHud onNext={follow.next} onStop={follow.stop} />
       <GameOver />
       {webglError !== null && (
         <p class="panel notice" role="alert">

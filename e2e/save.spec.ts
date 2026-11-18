@@ -10,7 +10,7 @@ test('a saved city loads back with the same date and population', async ({ page 
     localStorage.setItem('timcity.autoBudget', 'off');
   });
 
-  await page.goto('./?seed=e2e&water=10&forest=10&hills=10&debug');
+  await page.goto('./?seed=e2e&water=10&forest=10&hills=10&debug&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
   expect(await buildStarter(page), 'no buildable site found').toBe(true);
 

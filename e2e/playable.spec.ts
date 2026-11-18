@@ -11,7 +11,7 @@ test('a powered, zoned neighbourhood grows a population', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
 
-  await page.goto('./?seed=e2e&water=10&forest=10&hills=10&debug');
+  await page.goto('./?seed=e2e&water=10&forest=10&hills=10&debug&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
 
   const built = await buildStarter(page);

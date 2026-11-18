@@ -6,7 +6,7 @@ test('the budget window opens at year end and tax changes update the estimate', 
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
 
-  await page.goto('./?seed=e2e&water=10&forest=10&hills=10&debug');
+  await page.goto('./?seed=e2e&water=10&forest=10&hills=10&debug&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
   expect(await buildStarter(page), 'no buildable site found').toBe(true);
 

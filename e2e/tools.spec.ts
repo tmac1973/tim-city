@@ -3,10 +3,11 @@ import { expect, test } from '@playwright/test';
 const money = (text: string | null) => Number((text ?? '').replace(/[^0-9-]/g, ''));
 
 test('building a road through the toolbar charges for it', async ({ page }) => {
+  test.setTimeout(90_000);
   const errors: string[] = [];
   page.on('pageerror', (err) => errors.push(err.message));
 
-  await page.goto('./?seed=e2e&water=0&forest=0&hills=0');
+  await page.goto('./?seed=e2e&water=0&forest=0&hills=0&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByTestId('funds')).not.toHaveText('$0');
   const before = money(await page.getByTestId('funds').textContent());

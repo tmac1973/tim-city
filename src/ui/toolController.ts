@@ -113,6 +113,12 @@ export class ToolController {
       const tool = activeTool.value;
       if (e.button !== 0 || !tool || !this.hovered) return;
       if (tool === 'query') {
+        // A vehicle under the pointer: ride along instead of querying the tile.
+        const vehicle = this.renderer.vehicleAtPointer();
+        if (vehicle) {
+          this.renderer.follow(vehicle);
+          return;
+        }
         this.sim.command({ type: 'query', x: this.hovered.x, y: this.hovered.y, requestId: ++this.requestId });
         return;
       }
