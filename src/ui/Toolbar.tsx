@@ -1,19 +1,24 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { COSTS, POWER_SUPPLY } from '@/shared/costs';
-import type { BrushSize } from '@/shared/protocol';
+import type { BrushSize, ToolId } from '@/shared/protocol';
+import { isUnlocked, lockedMessage, unlockLabel } from '@/shared/unlocks';
 import { Icon } from './icons';
 import {
   activeTool,
   brush,
   budgetOpen,
+  classReached,
   disastersOpen,
   gameOver,
   graphsOpen,
+  lastToolByCategory,
+  openCategory,
   pauseOpen,
   reportOpen,
   savesOpen,
   effectiveUiScale,
   settingsOpen,
+  toast,
   type UiTool,
   uiScale,
 } from './store';
@@ -116,13 +121,31 @@ function useFitHeight(interfaceScale: number) {
   return { ref, scale };
 }
 
+/**
+ * Pick a tool (or put it down if it is already active). A locked tool only
+ * explains when it unlocks. Returns whether the tool was picked or dropped.
+ */
+function choose(category: string, def: ToolDef): boolean {
+  if (def.id !== 'query' && !isUnlocked(def.id, classReached.value)) {
+    toast(lockedMessage(def.id));
+    return false;
+  }
+  lastToolByCategory.value = { ...lastToolByCategory.value, [category]: def.id };
+  activeTool.value = activeTool.value === def.id ? null : def.id;
+  return true;
+}
+
 export function Toolbar() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
       if ((e.target as HTMLElement | null)?.closest('input, textarea, select')) return;
       if (e.code === 'Escape') {
-        // Drop the tool, else close the open window, else pause.
+        // Close the flyout, else drop the tool, else close the open window, else pause.
+        if (openCategory.value) {
+          openCategory.value = null;
+          return;
+        }
         if (activeTool.value) {
           activeTool.value = null;
           return;
@@ -142,7 +165,7 @@ export function Toolbar() {
       }
       for (const group of GROUPS) {
         const def = group.tools.find((t) => t.code !== '' && t.code === e.code && (t.shift ?? false) === e.shiftKey);
-        if (def) activeTool.value = activeTool.value === def.id ? null : def.id;
+        if (def) choose(group.label, def);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -151,38 +174,92 @@ export function Toolbar() {
     };
   }, []);
 
+  // A click anywhere outside the toolbar closes an open flyout.
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      if (openCategory.value && !(e.target as HTMLElement | null)?.closest('.toolbar')) openCategory.value = null;
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+    };
+  }, []);
+
   const fit = useFitHeight(effectiveUiScale.value);
   const current = activeTool.value;
+  const open = openCategory.value;
   return (
     <nav ref={fit.ref} class="toolbar panel" aria-label="Tools" style={fit.scale < 1 ? { transform: `scale(${String(fit.scale)})` } : undefined}>
-      {GROUPS.map((group) => (
-        <div class="tool-group" key={group.label}>
-          <span class="group-label">{group.label}</span>
-          {group.tools.map((t) => (
+      {GROUPS.map((group) => {
+        const single = group.tools.length === 1 ? group.tools[0] : undefined;
+        const inGroup = group.tools.find((t) => t.id === current);
+        const shown = inGroup ?? group.tools.find((t) => t.id === lastToolByCategory.value[group.label]) ?? group.tools[0];
+        if (!shown) return null;
+        const isOpen = open === group.label;
+        return (
+          <div class="tool-category" key={group.label}>
             <button
-              key={t.id}
               type="button"
-              class={current === t.id ? 'tool active' : 'tool'}
-              aria-pressed={current === t.id}
-              aria-label={t.name}
-              data-tool={t.id}
+              class={inGroup ? 'tool active' : 'tool'}
+              aria-label={single ? single.name : group.label}
+              aria-expanded={single ? undefined : isOpen}
+              aria-pressed={single ? current === single.id : undefined}
+              data-category={group.label}
+              data-active={inGroup ? 'true' : 'false'}
+              data-tools={group.tools.map((t) => t.id).join(' ')}
+              {...(single ? { 'data-tool': single.id } : {})}
+              title={single ? undefined : group.label}
               // Keep focus on the canvas so Space still pauses the game.
               onMouseDown={(e) => {
                 e.preventDefault();
               }}
-              onClick={() => (activeTool.value = current === t.id ? null : t.id)}
+              onClick={() => {
+                if (single) {
+                  openCategory.value = null;
+                  choose(group.label, single);
+                } else openCategory.value = isOpen ? null : group.label;
+              }}
             >
-              <Icon name={t.id} />
-              <span class="tooltip">
-                <strong>{t.name}</strong>
-                {t.key ? <kbd>{t.key}</kbd> : <span />}
-                <span class="tooltip-cost">{t.cost}</span>
-                <span class="tooltip-hint">{t.hint}</span>
-              </span>
+              <Icon name={shown.id} />
+              <span class="tool-caption">{group.label}</span>
             </button>
-          ))}
-        </div>
-      ))}
+            {isOpen && (
+              <div class="flyout panel" role="menu" aria-label={group.label}>
+                <span class="group-label">{group.label}</span>
+                {group.tools.map((t) => {
+                  const locked = !isUnlocked(t.id as ToolId, classReached.value);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="menuitem"
+                      class={`flyout-tool${current === t.id ? ' active' : ''}${locked ? ' locked' : ''}`}
+                      aria-pressed={current === t.id}
+                      aria-disabled={locked}
+                      aria-label={t.name}
+                      data-tool={t.id}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                      }}
+                      onClick={() => {
+                        if (choose(group.label, t)) openCategory.value = null;
+                      }}
+                    >
+                      <span class="flyout-icon">
+                        <Icon name={locked ? 'lock' : t.id} />
+                      </span>
+                      <strong>{t.name}</strong>
+                      {t.key ? <kbd>{t.key}</kbd> : <span />}
+                      <span class="tooltip-cost">{locked ? unlockLabel(t.id as ToolId) : t.cost}</span>
+                      <span class="tooltip-hint">{t.hint}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
       {current && TERRAFORM.has(current) && (
         <div class="brush" role="group" aria-label="Brush size">
           <span class="group-label">Brush [ ]</span>

@@ -13,6 +13,7 @@ import { Renderer } from './render/renderer';
 import { autosave, deleteSave, exportFile, importFile, loadSave, saveSlot, type SaveDetails } from './save/saveManager';
 import { SimBridge } from './sim/bridge';
 import { peekSave } from './sim/serialize';
+import { unlockName } from './shared/unlocks';
 import { App } from './ui/App';
 import {
   activeDisasters,
@@ -26,6 +27,7 @@ import {
   cityInfo,
   currentSlot,
   date,
+  classReached,
   evaluation,
   following,
   formatDate,
@@ -136,6 +138,7 @@ async function start(): Promise<void> {
     valves.value = tick.valves;
     budget.value = tick.budget;
     evaluation.value = tick.evaluation;
+    classReached.value = tick.classReached;
     activeDisasters.value = tick.disasters;
     if (tick.field) fieldListener?.(tick.field.name, tick.field.data);
     if (tick.traffic) renderer?.agents.setTraffic(tick.traffic);
@@ -427,7 +430,10 @@ async function start(): Promise<void> {
       else audio?.play(activeTool.value === 'bulldoze' ? 'bulldoze' : 'place');
     }
     if (event.type === 'milestone') audio?.play('milestone');
-    if (event.type === 'milestone') toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}`, 'info', 6000);
+    if (event.type === 'milestone') {
+      const unlocked = event.unlocked.length > 0 ? `. Unlocked: ${event.unlocked.map(unlockName).join(', ')}` : '';
+      toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}${unlocked}`, 'info', 6000);
+    }
     if (event.type === 'yearBudget' && !titleMode) {
       audio?.play('coin');
       void sim.snapshot().then((bytes) => autosave(bytes, details())).then(() => {

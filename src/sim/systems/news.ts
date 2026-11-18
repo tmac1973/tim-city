@@ -1,4 +1,5 @@
 import type { DisasterType, SimEvent } from '@/shared/protocol';
+import { unlockName } from '@/shared/unlocks';
 import type { CityState } from '../state';
 
 type News = Extract<SimEvent, { type: 'news' }>;
@@ -25,7 +26,10 @@ export function headlineFor(event: SimEvent, state: CityState): News | null {
   const news = (headline: string, x: number | null = null, y: number | null = null): News => ({ type: 'news', headline, x, y });
   switch (event.type) {
     case 'milestone':
-      return news(`${state.name} is now a ${event.cityClass}! Population passes ${event.population.toLocaleString('en-US')}`);
+      return news(
+        `${state.name} is now a ${event.cityClass}! Population passes ${event.population.toLocaleString('en-US')}` +
+          (event.unlocked.length > 0 ? `. Now available: ${event.unlocked.map(unlockName).join(', ')}` : ''),
+      );
     case 'demandCap':
       return news(`${ZONE_WORDS[event.zone]} stop building until the city opens a ${event.needs}`);
     case 'brownout':

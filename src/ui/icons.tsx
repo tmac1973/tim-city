@@ -101,6 +101,12 @@ const paths: Record<string, JSX.Element> = {
   slow: <path d="M9 6v12l7-6z" />,
   normal: <path d="M5 6v12l6-6zM12 6v12l6-6z" />,
   fast: <path d="M3 6v12l5-6zM9 6v12l5-6zM15 6v12l5-6z" />,
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </>
+  ),
   copy: (
     <>
       <rect x="8" y="8" width="12" height="12" rx="2" />

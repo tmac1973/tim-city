@@ -1,5 +1,6 @@
 import { COSTS } from '@/shared/costs';
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
+import { isUnlocked, lockedMessage } from '@/shared/unlocks';
 import { AIRPORT_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
@@ -13,6 +14,7 @@ import { planTerraform } from './terraform';
 export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
   if (state.bankrupt) return fail('The city is bankrupt');
   if (!state.inBounds(cmd.x0, cmd.y0)) return fail('Off the map');
+  if (!isUnlocked(cmd.tool, state.classReached)) return fail(lockedMessage(cmd.tool));
   let plan: ToolPlan;
   switch (cmd.tool) {
     case 'road':

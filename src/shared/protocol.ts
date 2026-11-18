@@ -119,7 +119,7 @@ export type SimEvent =
   /** Out of money with no bonds left to issue. */
   | { type: 'bankrupt' }
   /** The city reached a new class. */
-  | { type: 'milestone'; cityClass: CityClass; population: number }
+  | { type: 'milestone'; cityClass: CityClass; population: number; unlocked: ToolId[] }
   /** Yearly verdict: approval and score, with the change since last year. */
   | { type: 'evaluation'; year: number; approval: number; approvalChange: number; score: number; scoreChange: number }
   /** A disaster began (or could not begin, with the reason). */
@@ -191,6 +191,8 @@ export interface Problem {
 
 export const CITY_CLASSES = ['Village', 'Town', 'City', 'Capital', 'Metropolis', 'Megalopolis'] as const;
 export type CityClass = (typeof CITY_CLASSES)[number];
+/** Population at which each class starts. */
+export const CLASS_THRESHOLDS = [0, 2_000, 10_000, 50_000, 100_000, 500_000] as const;
 
 export interface Evaluation {
   /** 0–100. */
@@ -304,6 +306,8 @@ export interface TickMessage {
   valves: Valves;
   budget: BudgetInfo;
   evaluation: Evaluation | null;
+  /** Highest city class reached (an index into CITY_CLASSES); it decides which tools are unlocked. */
+  classReached: number;
   /** Disasters in progress (empty most of the time). */
   disasters: ActiveDisaster[];
   /** The subscribed block field, when it changed (at month end, or on subscribing). */

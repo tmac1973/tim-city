@@ -1,13 +1,13 @@
 import { MONTHS_PER_YEAR } from '@/shared/constants';
-import { CITY_CLASSES, type CityClass, type Evaluation, type Problem, type ProblemId, type SimEvent } from '@/shared/protocol';
+import { CITY_CLASSES, CLASS_THRESHOLDS, type CityClass, type Evaluation, type Problem, type ProblemId, type SimEvent, type ToolId } from '@/shared/protocol';
+import { unlocksAt } from '@/shared/unlocks';
 import { isRoad, TileFlag, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { blockGeometry } from './fields';
 import { findHotspot } from './hotspots';
 
-/** Population at which each class starts. */
-export const CLASS_THRESHOLDS = [0, 2_000, 10_000, 50_000, 100_000, 500_000] as const;
+export { CLASS_THRESHOLDS };
 
 export function cityClassFor(population: number): number {
   let index = 0;
@@ -133,8 +133,11 @@ export function evaluationSystem(emit: (event: SimEvent) => void): System {
       state.evaluation = evaluation;
       const reached = cityClassFor(evaluation.population);
       if (reached > state.classReached) {
+        // Every class passed this month unlocks its tools.
+        const unlocked: ToolId[] = [];
+        for (let c = state.classReached + 1; c <= reached; c++) unlocked.push(...unlocksAt(c));
         state.classReached = reached;
-        emit({ type: 'milestone', cityClass: evaluation.cityClass, population: evaluation.population });
+        emit({ type: 'milestone', cityClass: evaluation.cityClass, population: evaluation.population, unlocked });
       }
       if (state.date.month !== MONTHS_PER_YEAR - 1) return;
       emit({

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { pickTool } from './helpers';
 
 const money = (text: string | null) => Number((text ?? '').replace(/[^0-9-]/g, ''));
 
@@ -16,8 +17,10 @@ test('building a road through the toolbar charges for it', async ({ page }) => {
   await expect(page.getByTestId('funds')).not.toHaveText('$0');
   const before = money(await page.getByTestId('funds').textContent());
 
-  await page.getByRole('button', { name: 'Road' }).click();
-  await expect(page.getByRole('button', { name: 'Road' })).toHaveAttribute('aria-pressed', 'true');
+  await pickTool(page, 'Transport', 'Road');
+  // The flyout closes and the category button shows the road as active.
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await expect(page.locator('[data-category="Transport"]')).toHaveAttribute('data-active', 'true');
 
   // Terrain decides where a road fits; hover until the preview turns green.
   const tag = page.getByTestId('cost-tag');
@@ -54,7 +57,6 @@ test('the interface size setting zooms the UI and keeps the cost tag by the mous
   await page.goto('./?seed=e2e&water=0&forest=0&hills=0&quality=low');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
   const viewport = page.viewportSize() ?? { width: 1280, height: 720 };
-  const road = page.getByRole('button', { name: 'Road' });
   const budget = await page.getByRole('button', { name: 'Budget' }).boundingBox();
   // 32 px tall at 100%.
   expect(budget?.height ?? 0).toBeGreaterThan(46);
@@ -62,7 +64,7 @@ test('the interface size setting zooms the UI and keeps the cost tag by the mous
   const toolbar = await page.getByRole('navigation', { name: 'Tools' }).boundingBox();
   expect((toolbar?.y ?? 0) + (toolbar?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
 
-  await road.click();
+  await pickTool(page, 'Transport', 'Road');
   const point = { x: viewport.width * 0.5, y: viewport.height * 0.5 };
   await page.mouse.move(point.x, point.y);
   const tag = page.getByTestId('cost-tag');
@@ -71,4 +73,29 @@ test('the interface size setting zooms the UI and keeps the cost tag by the mous
   // 18 interface pixels right of and below the mouse, at 1.5× scale.
   expect(Math.abs((box?.x ?? 0) - (point.x + 27))).toBeLessThan(3);
   expect(Math.abs((box?.y ?? 0) - (point.y + 27))).toBeLessThan(3);
+});
+
+test('toolbar flyouts open by category, keys pick tools directly and Escape closes them', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    localStorage.setItem('timcity.settings', JSON.stringify({ tips: false }));
+  });
+  await page.goto('./?seed=e2e&water=0&forest=0&hills=0&quality=low');
+  await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
+
+  await pickTool(page, 'Zones', 'Residential zone');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await expect(page.locator('[data-category="Zones"]')).toHaveAttribute('data-active', 'true');
+
+  // A shortcut picks its tool without opening a flyout.
+  await page.keyboard.press('r');
+  await expect(page.locator('[data-category="Transport"]')).toHaveAttribute('data-active', 'true');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+
+  await page.locator('[data-category="Power"]').click();
+  await expect(page.getByRole('menu', { name: 'Power' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  // Escape closed only the flyout: the road is still picked.
+  await expect(page.locator('[data-category="Transport"]')).toHaveAttribute('data-active', 'true');
 });

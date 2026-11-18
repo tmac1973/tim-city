@@ -25,6 +25,8 @@ export const census = signal<Census | null>(null);
 export const valves = signal<Valves>({ r: 0, c: 0, i: 0 });
 export const budget = signal<BudgetInfo | null>(null);
 export const evaluation = signal<Evaluation | null>(null);
+/** Highest city class reached; it decides which tools are unlocked. */
+export const classReached = signal(0);
 export const reportOpen = signal(false);
 export const overlay = signal<OverlayName | null>(null);
 export const graphsOpen = signal(false);
@@ -144,6 +146,10 @@ export const queryResult = signal<QueryResult | null>(null);
 export type UiTool = ToolId | 'query';
 export const activeTool = signal<UiTool | null>(null);
 export const brush = signal<BrushSize>(3);
+/** The toolbar category whose flyout is open. */
+export const openCategory = signal<string | null>(null);
+/** The tool last picked in each toolbar category, shown on its button. */
+export const lastToolByCategory = signal<Record<string, UiTool>>({});
 
 /** Text that follows the mouse while a tool is active: cost or the reason it can't build. */
 export const costTag = signal<{ x: number; y: number; text: string; ok: boolean } | null>(null);

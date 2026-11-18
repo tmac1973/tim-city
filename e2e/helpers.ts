@@ -97,3 +97,9 @@ export async function placeLandmarks(page: Page, tools: string[]): Promise<strin
     return placed;
   }, tools);
 }
+
+/** Open a toolbar category's flyout and pick one of its tools by name. */
+export async function pickTool(page: Page, category: string, name: string): Promise<void> {
+  await page.locator(`[data-category="${category}"]`).click();
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}

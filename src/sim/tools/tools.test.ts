@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BrushSize, ToolCommand, ToolId } from '@/shared/protocol';
 import { registerFootprint, TileFlag, TileKind } from '@/shared/tiles';
+import { setUnlockTableForTest } from '@/shared/unlocks';
 import { CityState } from '../state';
 import { placeFootprint } from './footprint';
 import { runTool } from './index';
@@ -292,5 +293,23 @@ describe('terraform', () => {
     const s = flatCity();
     runTool(s, tool('road', 10, 10, 14, 10));
     expect(runTool(s, tool('raise', 12, 11))).toMatchObject({ ok: false, reason: "Can't reshape under buildings" });
+  });
+});
+
+describe('unlocks', () => {
+  it('refuses a locked tool without changing tiles or funds, and allows it once the class is reached', () => {
+    const restore = setUnlockTableForTest([{ tool: 'coal', name: 'Coal plant', cityClass: 1 }]);
+    try {
+      const s = flatCity();
+      const before = s.funds;
+      expect(runTool(s, tool('coal', 20, 20))).toMatchObject({ ok: false, reason: 'Unlocks at Town (2,000 people)' });
+      expect(s.funds).toBe(before);
+      expect(kindAt(s, 20, 20)).toBe(TileKind.Empty);
+      s.classReached = 1;
+      expect(runTool(s, tool('coal', 20, 20))).toMatchObject({ ok: true });
+      expect(kindAt(s, 20, 20)).toBe(TileKind.CoalPlant);
+    } finally {
+      restore();
+    }
   });
 });

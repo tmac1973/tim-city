@@ -54,6 +54,7 @@ function publish(current: Simulation): void {
       valves: { ...current.state.valves },
       budget: budgetInfo(current),
       evaluation: current.state.evaluation,
+      classReached: current.state.classReached,
       disasters: current.state.disasters,
       ...(field ? { field } : {}),
       ...(traffic ? { traffic } : {}),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HistorySample, SimEvent, ToolCommand, ToolId } from '@/shared/protocol';
+import { setUnlockTableForTest } from '@/shared/unlocks';
 import { CityState } from '../state';
 import { runTool } from '../tools';
 import { takeCensus } from './census';
@@ -82,6 +83,27 @@ describe('city class', () => {
     expect(milestones).toEqual(['Town', 'City']);
     const headline = headlineFor(events.find((e) => e.type === 'milestone') ?? { type: 'bankrupt' }, s);
     expect(headline?.headline).toBe('Testville is now a Town! Population passes 2,500');
+  });
+
+  it('lists the tools each passed class unlocks, even when a jump skips a class', () => {
+    const restore = setUnlockTableForTest([
+      { tool: 'stadium', name: 'Stadium', cityClass: 1 },
+      { tool: 'airport', name: 'Airport', cityClass: 2 },
+    ]);
+    try {
+      const s = flatCity();
+      const events: SimEvent[] = [];
+      const system = evaluationSystem((e) => events.push(e));
+      s.census = { ...s.census, resPop: 12_000 };
+      system.run(s, 13);
+      const milestone = events.find((e) => e.type === 'milestone');
+      expect(milestone).toMatchObject({ cityClass: 'City', unlocked: ['stadium', 'airport'] });
+      expect(headlineFor(milestone ?? { type: 'bankrupt' }, s)?.headline).toBe(
+        'Testville is now a City! Population passes 12,000. Now available: Stadium, Airport',
+      );
+    } finally {
+      restore();
+    }
   });
 });
 
