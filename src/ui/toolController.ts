@@ -98,12 +98,12 @@ export class ToolController {
     }
     if (result.requestId !== this.latestDryRun || !activeTool.value) return;
     this.renderer.preview.show(result.tiles, result.bad, result.ok);
-    const label = activeTool.value === 'bulldoze' ? 'Clear' : this.shift && result.ok ? 'Tunnel' : '';
+    const label = result.label ?? (activeTool.value === 'bulldoze' ? 'Clear' : this.shift && result.ok ? 'Tunnel' : '');
     costTag.value = {
       x: this.mouse.x,
       y: this.mouse.y,
       text: result.ok
-        ? `${label ? `${label} ` : ''}${formatMoney(result.cost)}${ZONES.has(activeTool.value) ? ` · ${TIER_NAMES[zoneTier.value] ?? ''}` : ''}`
+        ? `${label ? `${label} ` : ''}${formatMoney(result.cost)}${ZONES.has(activeTool.value) && !result.label ? ` · ${TIER_NAMES[zoneTier.value] ?? ''}` : ''}`
         : (result.reason ?? "Can't build"),
       ok: result.ok,
     };

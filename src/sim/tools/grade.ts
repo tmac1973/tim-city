@@ -1,5 +1,7 @@
 import { MAX_HEIGHT, SEA_LEVEL } from '@/shared/constants';
-import { TileKind } from '@/shared/tiles';
+import { isNetwork, TileKind } from '@/shared/tiles';
+import { footprintAt } from './footprint';
+import { MAX_LOT_SLOPE } from './place';
 import type { CityState } from '../state';
 import type { Axis } from './plan';
 
@@ -14,11 +16,16 @@ export function heightOf(state: CityState, edits: HeightEdits, corner: number): 
  * Set `seeds` in `edits`, then move neighbouring corners until no two
  * 4-neighbour corners differ by more than one step.
  */
-export function spread(state: CityState, edits: HeightEdits, seeds: Iterable<[number, number]>): void {
+export function spread(state: CityState, edits: HeightEdits, seeds: Iterable<[number, number]>, pinned: ReadonlySet<number> = NO_PINS): boolean {
+  let held = true;
   const side = state.size + 1;
   const queue: number[] = [];
   for (const [c, h] of seeds) {
     const clamped = Math.min(MAX_HEIGHT, Math.max(0, h));
+    if (pinned.has(c)) {
+      if (heightOf(state, edits, c) !== clamped) held = false;
+      continue;
+    }
     if (heightOf(state, edits, c) !== clamped) {
       edits.set(c, clamped);
       queue.push(c);
@@ -35,6 +42,11 @@ export function spread(state: CityState, edits: HeightEdits, seeds: Iterable<[nu
       const nh = heightOf(state, edits, n);
       const fixed = nh < h - 1 ? h - 1 : nh > h + 1 ? h + 1 : nh;
       if (fixed !== nh) {
+        // A pinned corner never moves; the slope it would need is refused.
+        if (pinned.has(n)) {
+          held = false;
+          continue;
+        }
         edits.set(n, fixed);
         queue.push(n);
       }
@@ -42,7 +54,10 @@ export function spread(state: CityState, edits: HeightEdits, seeds: Iterable<[nu
   }
   // Drop edits that ended where they started.
   for (const [c, h] of edits) if ((state.heights[c] ?? 0) === h) edits.delete(c);
+  return held;
 }
+
+const NO_PINS: ReadonlySet<number> = new Set();
 
 /** Total corner steps moved, which is what the player pays for. */
 export function stepCount(state: CityState, edits: HeightEdits): number {
@@ -86,9 +101,11 @@ export function reshapeable(kind: number): boolean {
 }
 
 /**
- * Why a set of corner edits may not be applied, or null if it may: edits
- * must not move ground under built tiles (other than those `buildingOn`,
- * which are being built now) and must not flood or drain any tile.
+ * Why a set of corner edits may not be applied, or null if it may. Edits
+ * must not flood or drain any tile, and must not move ground under built
+ * tiles other than those `buildingOn` (being built now), with one
+ * exception: a building may stand on moved ground if its lot stays within
+ * the slope its plinth can fill. `bad` lists the tiles in the way.
  */
 export function checkEdits(
   state: CityState,
@@ -96,7 +113,30 @@ export function checkEdits(
   buildingOn: ReadonlySet<number>,
 ): { reason: string; bad: number[] } | null {
   const touched = touchedTiles(state, edits);
-  const blocked = [...touched].filter((i) => !buildingOn.has(i) && !reshapeable(state.tiles[i] ?? 0));
+  const lotOk = new Map<number, boolean>();
+  const absorbs = (i: number): boolean => {
+    const x = i % state.size;
+    const y = (i - x) / state.size;
+    const lot = isNetwork(state.tiles[i] ?? 0) ? null : footprintAt(state, x, y);
+    if (!lot) return false;
+    const key = state.index(lot.x, lot.y);
+    let ok = lotOk.get(key);
+    if (ok === undefined) {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let dy = 0; dy <= lot.size; dy++) {
+        for (let dx = 0; dx <= lot.size; dx++) {
+          const h = heightOf(state, edits, state.cornerIndex(lot.x + dx, lot.y + dy));
+          lo = Math.min(lo, h);
+          hi = Math.max(hi, h);
+        }
+      }
+      ok = hi - lo <= MAX_LOT_SLOPE;
+      lotOk.set(key, ok);
+    }
+    return ok;
+  };
+  const blocked = [...touched].filter((i) => !buildingOn.has(i) && !reshapeable(state.tiles[i] ?? 0) && !absorbs(i));
   if (blocked.length > 0) return { reason: "Can't grade next to buildings", bad: blocked };
   const flooded = [...touched].filter((i) => {
     const x = i % state.size;
@@ -105,6 +145,14 @@ export function checkEdits(
   });
   if (flooded.length > 0) return { reason: 'Too close to the water', bad: flooded };
   return null;
+}
+
+/** The four corners of tile `i`. */
+function tileCorners(state: CityState, i: number): number[] {
+  const side = state.size + 1;
+  const x = i % state.size;
+  const nw = ((i - x) / state.size) * side + x;
+  return [nw, nw + 1, nw + side, nw + side + 1];
 }
 
 export interface GradeTile {
@@ -124,12 +172,36 @@ export function planGrade(
   tiles: readonly GradeTile[],
   buildingOn: ReadonlySet<number>,
 ): { edits: HeightEdits; steps: number } | { reason: string; bad: number[] } {
+  // First let nearby buildings take the change on their plinths. Where one
+  // can't, or a road or rail is in the way, hold that ground still and
+  // grade the new road to it instead.
+  const pinned = new Set<number>();
+  let result = gradeWith(state, tiles, buildingOn, pinned);
+  for (let attempt = 0; attempt < 3 && 'bad' in result && result.reason === "Can't grade next to buildings"; attempt++) {
+    const before = pinned.size;
+    for (const i of result.bad) for (const c of tileCorners(state, i)) pinned.add(c);
+    if (pinned.size === before) break;
+    result = gradeWith(state, tiles, buildingOn, pinned);
+  }
+  return result;
+}
+
+function gradeWith(
+  state: CityState,
+  tiles: readonly GradeTile[],
+  buildingOn: ReadonlySet<number>,
+  pinned: ReadonlySet<number>,
+): { edits: HeightEdits; steps: number } | { reason: string; bad: number[] } {
   const side = state.size + 1;
   const edits: HeightEdits = new Map();
+  let held = true;
   const level = (cs: number[]): [number, number][] => {
     const hs = cs.map((c) => heightOf(state, edits, c));
+    const fixed = cs.filter((c) => pinned.has(c)).map((c) => heightOf(state, edits, c));
     const lo = Math.min(...hs);
-    const target = lo > SEA_LEVEL ? lo : Math.max(...hs);
+    // Level to held ground when there is some; otherwise cut down to the low side.
+    const target = fixed.length > 0 ? (fixed[0] ?? lo) : lo > SEA_LEVEL ? lo : Math.max(...hs);
+    if (fixed.some((h) => h !== target)) held = false;
     return cs.map((c) => [c, target]);
   };
 
@@ -156,7 +228,8 @@ export function planGrade(
       const refused = checkEdits(state, edits, buildingOn);
       return refused ?? { edits, steps: stepCount(state, edits) };
     }
-    spread(state, edits, seeds);
+    if (!spread(state, edits, seeds, pinned)) held = false;
+    if (!held) break;
   }
-  return { reason: 'Too steep', bad: tiles.map((t) => state.index(t.x, t.y)) };
+  return { reason: held ? 'Too steep' : 'Too steep beside buildings', bad: tiles.map((t) => state.index(t.x, t.y)) };
 }

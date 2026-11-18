@@ -100,6 +100,7 @@ export function toResult(cmd: ToolCommand, plan: ToolPlan): ToolResult {
     bad: plan.bad,
   };
   if (plan.reason !== undefined) result.reason = plan.reason;
+  if (plan.label !== undefined) result.label = plan.label;
   return result;
 }
 

@@ -100,11 +100,40 @@ describe('road, rail and power', () => {
     expect(s.heights[s.cornerIndex(11, 11)]).toBe(LAND);
   });
 
-  it('will not grade ground under a neighbouring road', () => {
+  it('grades a new road to the ground under a neighbouring road instead of moving it', () => {
     const s = flatCity();
     runTool(s, tool('road', 8, 11, 12, 11));
     setCorner(s, 10, 11, 4);
-    expect(runTool(s, tool('road', 8, 10, 12, 10))).toMatchObject({ ok: false, reason: "Can't grade next to buildings" });
+    expect(runTool(s, tool('road', 8, 10, 12, 10))).toMatchObject({ ok: true });
+    // The old road's corner stays put; the new road rises to meet it.
+    expect(s.heights[s.cornerIndex(10, 11)]).toBe(4);
+    expect(s.heights[s.cornerIndex(10, 10)]).toBe(4);
+  });
+
+  it('lets a built zone take a regrade on its plinth', () => {
+    const s = flatCity();
+    // A zone lot (tiles 9–11 × 12–14) and a bump on the corner it shares with the road row above.
+    expect(runTool(s, tool('residential', 10, 13)).ok).toBe(true);
+    setCorner(s, 10, 12, 4);
+    expect(runTool(s, tool('road', 8, 11, 12, 11))).toMatchObject({ ok: true });
+    expect(s.heights[s.cornerIndex(10, 12)]).toBe(LAND);
+  });
+
+  it('holds a zone still when the regrade would tip it past its plinth', () => {
+    const s = flatCity();
+    // The lot rises two steps southward (3 → 5); the road row above sits one step lower.
+    expect(runTool(s, tool('residential', 10, 13)).ok).toBe(true);
+    for (let x = 9; x <= 12; x++) {
+      setCorner(s, x, 11, 2);
+      setCorner(s, x, 14, 4);
+      setCorner(s, x, 15, 5);
+    }
+    setCorner(s, 10, 11, 3);
+    // Cutting the lot's north edge down to 2 would tip it three steps, so it holds at 3
+    // and the road is graded up to meet it.
+    expect(runTool(s, tool('road', 8, 11, 12, 11))).toMatchObject({ ok: true });
+    expect(s.heights[s.cornerIndex(10, 12)]).toBe(LAND);
+    expect(s.heights[s.cornerIndex(11, 12)]).toBe(LAND);
   });
 
   it('will not grade the shore into or out of the water', () => {
@@ -151,7 +180,7 @@ describe('road, rail and power', () => {
     runTool(s, tool('power', 5, 11, 20, 11));
     // A 3×3 lot centred on (11, 11) covers three line tiles.
     const zoned = runTool(s, tool('residential', 11, 11));
-    expect(zoned).toMatchObject({ ok: true, cost: 103 });
+    expect(zoned).toMatchObject({ ok: true, cost: 203 });
     for (const x of [10, 11, 12]) expect(kindAt(s, x, 11)).not.toBe(TileKind.PowerLine);
     // The line on either side now touches the zone, which conducts.
     for (const x of [9, 13]) expect(kindAt(s, x, 11)).toBe(TileKind.PowerLine);
@@ -318,11 +347,15 @@ describe('unlocks', () => {
 describe('density tiers', () => {
   it('paints medium by default and rezones only lots whose tier changes', () => {
     const s = flatCity();
-    expect(runTool(s, tool('residential', 20, 20))).toMatchObject({ ok: true, cost: 100 });
+    expect(runTool(s, tool('residential', 20, 20))).toMatchObject({ ok: true, cost: 200 });
     expect(s.zoneTier[s.index(19, 19)]).toBe(ZoneTier.Medium);
     expect(runTool(s, { ...tool('residential', 20, 20), tier: ZoneTier.Medium })).toMatchObject({ ok: false, reason: 'Already medium density' });
     expect(runTool(s, { ...tool('residential', 21, 21), tier: ZoneTier.Low })).toMatchObject({ ok: true, cost: 50 });
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) expect(s.zoneTier[s.index(20 + dx, 20 + dy)]).toBe(ZoneTier.Low);
+    // Moving up pays the difference in price: low $100 → high $400.
+    s.classReached = 1;
+    expect(runTool(s, { ...tool('residential', 20, 20), tier: ZoneTier.High })).toMatchObject({ ok: true, cost: 300, label: 'Rezone to high' });
+    expect(s.zoneTier[s.index(20, 20)]).toBe(ZoneTier.High);
     // Another zone type is still in the way.
     expect(runTool(s, tool('commercial', 20, 20))).toMatchObject({ ok: false });
   });

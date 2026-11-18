@@ -1,4 +1,4 @@
-import { COSTS } from '@/shared/costs';
+import { COSTS, zoneCost } from '@/shared/costs';
 import type { ToolCommand } from '@/shared/protocol';
 import { isUnlocked, lockedMessage } from '@/shared/unlocks';
 import { TIER_NAMES, TileFlag, TileKind, ZONE_SIZE, zoneKind, zoneOf, ZoneTier, type ZoneType } from '@/shared/tiles';
@@ -99,7 +99,8 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
           continue;
         }
         rezoned.push(lot);
-        cost += COSTS.rezone;
+        // Moving up a tier pays the difference; moving down costs the minimum.
+        cost += Math.max(COSTS.rezone, zoneCost(tier) - zoneCost(state.zoneTier[lot.tiles[0] ?? 0] ?? 0));
         continue;
       }
       const lot = lotAt(state, cx - 1, cy - 1, ZONE_SIZE);
@@ -116,7 +117,7 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
         continue;
       }
       accepted.push(lot);
-      cost += COSTS.zone + checked.clearing;
+      cost += zoneCost(tier) + checked.clearing;
     }
   }
   if (accepted.length === 0 && rezoned.length === 0) return fail(reason ?? 'Nothing to zone', tiles, bad);
@@ -126,6 +127,7 @@ export function planZones(state: CityState, cmd: ToolCommand, type: ZoneType): T
     cost,
     tiles,
     bad,
+    ...(accepted.length === 0 ? { label: `Rezone to ${(TIER_NAMES[tier] ?? '').toLowerCase()}` } : {}),
     apply: () => {
       for (const lot of accepted) {
         placeFootprint(state, lot.x, lot.y, zoneKind(type, 0));

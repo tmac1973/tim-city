@@ -104,6 +104,8 @@ export interface ToolResult {
   tiles: number[];
   /** Tile indices that block it. */
   bad: number[];
+  /** A word before the cost tag's price, such as "Rezone". */
+  label?: string;
 }
 
 export interface QueryResult {

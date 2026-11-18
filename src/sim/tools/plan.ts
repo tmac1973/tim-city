@@ -12,6 +12,8 @@ export interface ToolPlan {
   tiles: number[];
   /** Tile indices that block it. */
   bad: number[];
+  /** A word before the cost tag's price, such as "Rezone". */
+  label?: string;
   apply: () => void;
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { COSTS, POWER_SUPPLY } from '@/shared/costs';
+import { COSTS, POWER_SUPPLY, zoneCost } from '@/shared/costs';
 import type { BrushSize, ToolId } from '@/shared/protocol';
 import { isUnlocked, lockedMessage, unlockLabel } from '@/shared/unlocks';
 import { TIER_CAP, TIER_NAMES, ZoneTier } from '@/shared/tiles';
@@ -37,14 +37,16 @@ interface ToolDef {
 }
 
 const price = (n: number, unit = '') => `$${n.toLocaleString('en-US')}${unit}`;
+/** Replaced with the chosen tier's price when drawn. */
+const ZONE_COST_LABEL = 'zone';
 
 const GROUPS: { label: string; tools: ToolDef[] }[] = [
   {
     label: 'Zones',
     tools: [
-      { id: 'residential', name: 'Residential zone', key: 'Z', code: 'KeyZ', cost: price(COSTS.zone, ' per lot'), hint: 'Homes. Drag to paint 3×3 lots. Needs power and a road within 3 tiles.' },
-      { id: 'commercial', name: 'Commercial zone', key: 'X', code: 'KeyX', cost: price(COSTS.zone, ' per lot'), hint: 'Shops and offices. Grows when residents need services.' },
-      { id: 'industrial', name: 'Industrial zone', key: 'C', code: 'KeyC', cost: price(COSTS.zone, ' per lot'), hint: 'Factories. Provides jobs and exports.' },
+      { id: 'residential', name: 'Residential zone', key: 'Z', code: 'KeyZ', cost: ZONE_COST_LABEL, hint: 'Homes. Drag to paint 3×3 lots. Needs power and a road within 3 tiles.' },
+      { id: 'commercial', name: 'Commercial zone', key: 'X', code: 'KeyX', cost: ZONE_COST_LABEL, hint: 'Shops and offices. Grows when residents need services.' },
+      { id: 'industrial', name: 'Industrial zone', key: 'C', code: 'KeyC', cost: ZONE_COST_LABEL, hint: 'Factories. Provides jobs and exports.' },
     ],
   },
   {
@@ -174,7 +176,7 @@ function TierPicker() {
             class={`tier-chip${zoneTier.value === tier ? ' active' : ''}${locked ? ' locked' : ''}`}
             aria-pressed={zoneTier.value === tier}
             aria-disabled={locked}
-            title={locked ? lockedMessage('zoneHigh') : `${TIER_NAMES[tier]} density: up to level ${String(TIER_CAP[tier])}`}
+            title={locked ? lockedMessage('zoneHigh') : `${TIER_NAMES[tier]} density: up to level ${String(TIER_CAP[tier])}, ${price(zoneCost(tier))} per lot`}
             onMouseDown={(e) => {
               e.preventDefault();
             }}
@@ -296,6 +298,7 @@ export function Toolbar() {
               <div class="flyout panel" role="menu" aria-label={group.label}>
                 <span class="group-label">{group.label}</span>
                 {group.label === 'Zones' && <TierPicker />}
+                {group.label === 'Zones' && <span class="flyout-note">Paint over a zone of the same type to change its density. Its buildings stay.</span>}
                 {group.tools.map((t) => {
                   const locked = !isUnlocked(t.id as ToolId, classReached.value);
                   return (
@@ -320,7 +323,9 @@ export function Toolbar() {
                       </span>
                       <strong>{t.name}</strong>
                       {t.key ? <kbd>{t.key}</kbd> : <span />}
-                      <span class="tooltip-cost">{locked ? unlockLabel(t.id as ToolId) : t.cost}</span>
+                      <span class="tooltip-cost">
+                        {locked ? unlockLabel(t.id as ToolId) : t.cost === ZONE_COST_LABEL ? price(zoneCost(zoneTier.value), ` per lot · ${TIER_NAMES[zoneTier.value] ?? ''}`) : t.cost}
+                      </span>
                       <span class="tooltip-hint">{t.hint}</span>
                     </button>
                   );

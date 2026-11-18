@@ -297,7 +297,7 @@ describe('placing zones and plants', () => {
     const s = flatCity();
     s.heights[s.cornerIndex(41, 41)] = 4;
     s.heights[s.cornerIndex(42, 41)] = 5;
-    expect(runTool(s, tool('industrial', 41, 41))).toMatchObject({ ok: true, cost: 100 });
+    expect(runTool(s, tool('industrial', 41, 41))).toMatchObject({ ok: true, cost: 200 });
     expect(s.heights[s.cornerIndex(42, 41)]).toBe(5);
   });
 

@@ -59,6 +59,9 @@ interface Placed {
   position: Vector3;
   rotation: Quaternion;
   emitters: number[];
+  /** Ground under the lot when placed, so a regrade can re-seat the building. */
+  ground: { bottom: number; top: number };
+  size: number;
 }
 
 interface Anim {
@@ -225,7 +228,16 @@ export class BuildingLayer {
       if (placed && now?.key !== placed.key) this.remove(origin, animate && !now);
     }
     for (const [origin, want] of wanted) {
-      if (!this.placed.has(origin)) this.add(origin, want.key, want.size, animate);
+      const placed = this.placed.get(origin);
+      if (placed) {
+        // Grading beside a lot can move its ground: stand the building on the new height.
+        const tx = origin % m.size;
+        const now = this.lotHeights(tx, (origin - tx) / m.size, placed.size);
+        if (now.top !== placed.ground.top || now.bottom !== placed.ground.bottom) {
+          this.remove(origin, false);
+          this.add(origin, want.key, want.size, false);
+        }
+      } else this.add(origin, want.key, want.size, animate);
     }
     this.chunkOrigins.set(id, new Set(wanted.keys()));
     // A building with fire on its lot is scorched dark until it falls.
@@ -357,7 +369,7 @@ export class BuildingLayer {
       this.scale.set(1, top - bottom + 0.02, 1);
       this.mesh.setMatrixAt(plinthId, this.matrix.compose(new Vector3(position.x, bottom - 0.02, position.z), new Quaternion(), this.scale));
     }
-    this.placed.set(origin, { key, instanceId, geometryId, plinthId, position, rotation, emitters });
+    this.placed.set(origin, { key, instanceId, geometryId, plinthId, position, rotation, emitters, ground: { bottom, top }, size });
     if (key === WIND_KEY) {
       const hub = new Vector3(...TURBINE_HUB).applyQuaternion(rotation).add(position);
       const powered = ((this.mirror.flags[origin] ?? 0) & TileFlag.POWERED) !== 0;

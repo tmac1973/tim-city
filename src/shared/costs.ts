@@ -13,8 +13,9 @@ export const COSTS = {
   bulldozeBuilding: 5,
   /** Per corner, per height step. */
   terraform: 20,
+  /** Zoning a lot at low density; see ZONE_TIER_COSTS for the others. */
   zone: 100,
-  /** Changing a lot's density tier. */
+  /** Least a change of density tier costs (a move up pays the difference). */
   rezone: 50,
   coalPlant: 3000,
   nuclearPlant: 5000,
@@ -32,6 +33,10 @@ export const COSTS = {
 } as const;
 
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */
+/** Zoning one lot at low, medium and high density. */
+export const ZONE_TIER_COSTS = [100, 200, 400] as const;
+export const zoneCost = (tier: number): number => ZONE_TIER_COSTS[Math.min(2, Math.max(0, tier)) as 0 | 1 | 2];
+
 export const POWER_SUPPLY = { coal: 700, nuclear: 2000, solar: 300, wind: 40, gas: 500, oil: 1000 } as const;
 export type PlantName = keyof typeof POWER_SUPPLY;
 /** Smoke each plant puts out, relative to a coal plant. */
