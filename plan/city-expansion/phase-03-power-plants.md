@@ -44,7 +44,7 @@ months. Oil unlocks at City. The others are available from the start.
   modifiers.
 - `src/shared/unlocks.ts`: `oil` → class 2 (City).
 - `src/ui/Toolbar.tsx`: add the four tools to the Power category. Wind uses
-  key W, which is free today.
+  key E, which is free today (W pans the camera).
 - `src/render/buildings/plants.ts`: models for the four plants and spinning
   turbine blades.
 - `src/render/atmosphere/weather.ts`: weather odds take `overcast`.

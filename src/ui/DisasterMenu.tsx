@@ -27,7 +27,7 @@ function blocked(type: DisasterType): string | null {
     case 'meltdown':
       return c.plants.nuclear > 0 ? null : 'Needs a nuclear plant';
     case 'fire':
-      return c.zones.r + c.zones.c + c.zones.i + c.plants.coal + c.plants.nuclear > 0 ? null : 'Nothing built to burn';
+      return c.zones.r + c.zones.c + c.zones.i + Object.values(c.plants).reduce((a, b) => a + b, 0) > 0 ? null : 'Nothing built to burn';
     default:
       return null;
   }

@@ -18,6 +18,10 @@ export const COSTS = {
   rezone: 50,
   coalPlant: 3000,
   nuclearPlant: 5000,
+  solarFarm: 2500,
+  windTurbine: 400,
+  gasPlant: 2200,
+  oilPlant: 2600,
   policeStation: 500,
   fireStation: 500,
   park: 10,
@@ -28,7 +32,13 @@ export const COSTS = {
 } as const;
 
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */
-export const POWER_SUPPLY = { coal: 700, nuclear: 2000 } as const;
+export const POWER_SUPPLY = { coal: 700, nuclear: 2000, solar: 300, wind: 40, gas: 500, oil: 1000 } as const;
+export type PlantName = keyof typeof POWER_SUPPLY;
+/** Smoke each plant puts out, relative to a coal plant. */
+export const PLANT_POLLUTION: Record<PlantName, number> = { coal: 1, nuclear: 0, solar: 0, wind: 0, gas: 0.5, oil: 1.5 };
+/** Solar output in an overcast month, and wind output on high ground, as factors. */
+export const SOLAR_OVERCAST = 0.6;
+export const WIND_HIGH_GROUND = 1.5
 
 export function networkCost(network: Network): number {
   return COSTS[network];

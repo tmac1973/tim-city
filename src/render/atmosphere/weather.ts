@@ -3,12 +3,18 @@ import { isWinter } from './seasons';
 
 export type WeatherKind = 'clear' | 'overcast' | 'rain' | 'storm' | 'snow' | 'fog';
 
-/** Relative odds of each kind by season. Snow only in winter. */
-function odds(month: number): [WeatherKind, number][] {
-  if (isWinter(month)) return [['clear', 30], ['overcast', 22], ['snow', 30], ['fog', 13], ['rain', 5]];
-  const wet = (month >= 2 && month <= 4) || (month >= 8 && month <= 10);
-  if (wet) return [['clear', 30], ['overcast', 20], ['rain', 30], ['storm', 10], ['fog', 10]];
-  return [['clear', 50], ['overcast', 15], ['rain', 15], ['storm', 15], ['fog', 5]];
+/**
+ * Relative odds of each kind by season. Snow only in winter. In a month the
+ * sim calls overcast, clear skies are rare and cloud and storms twice as likely.
+ */
+export function odds(month: number, overcast = false): [WeatherKind, number][] {
+  const base: [WeatherKind, number][] = isWinter(month)
+    ? [['clear', 30], ['overcast', 22], ['snow', 30], ['fog', 13], ['rain', 5]]
+    : (month >= 2 && month <= 4) || (month >= 8 && month <= 10)
+      ? [['clear', 30], ['overcast', 20], ['rain', 30], ['storm', 10], ['fog', 10]]
+      : [['clear', 50], ['overcast', 15], ['rain', 15], ['storm', 15], ['fog', 5]];
+  if (!overcast) return base;
+  return base.map(([k, w]) => [k, k === 'clear' ? w * 0.2 : k === 'overcast' || k === 'storm' ? w * 2 : w]);
 }
 
 /** How strongly each effect shows, eased toward the current kind's targets. */
@@ -43,6 +49,9 @@ export class Weather {
     this.timer = rng.range(120, 360);
   }
 
+  /** The sim says this month is overcast (solar farms give less). */
+  overcast = false;
+
   /** Weather held fixed (benchmarks), or null to change normally. */
   private forced: WeatherKind | null = null;
 
@@ -70,7 +79,7 @@ export class Weather {
       this.kind = kind;
       return;
     }
-    const table = odds(month);
+    const table = odds(month, this.overcast);
     let roll = this.rng.next() * table.reduce((sum, [, w]) => sum + w, 0);
     for (const [k, w] of table) {
       roll -= w;

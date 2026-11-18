@@ -1,7 +1,7 @@
 import { COSTS } from '@/shared/costs';
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
 import { isUnlocked, lockedMessage } from '@/shared/unlocks';
-import { AIRPORT_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, ZONE_SIZE, ZoneType } from '@/shared/tiles';
+import { AIRPORT_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { planBulldoze } from './bulldoze';
@@ -44,6 +44,19 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
       break;
     case 'nuclear':
       plan = planBuilding(state, cmd, TileKind.NuclearPlant, PLANT_SIZE, COSTS.nuclearPlant);
+      break;
+    case 'solar':
+      plan = planBuilding(state, cmd, TileKind.SolarFarm, PLANT_SIZE, COSTS.solarFarm);
+      break;
+    case 'wind':
+      // A turbine stands on any open tile, hillsides included.
+      plan = planBuilding(state, cmd, TileKind.WindTurbine, WIND_SIZE, COSTS.windTurbine, { maxSlope: Infinity });
+      break;
+    case 'gas':
+      plan = planBuilding(state, cmd, TileKind.GasPlant, PLANT_SIZE, COSTS.gasPlant);
+      break;
+    case 'oil':
+      plan = planBuilding(state, cmd, TileKind.OilPlant, PLANT_SIZE, COSTS.oilPlant);
       break;
     case 'police':
       plan = planBuilding(state, cmd, TileKind.PoliceStation, ZONE_SIZE, COSTS.policeStation);

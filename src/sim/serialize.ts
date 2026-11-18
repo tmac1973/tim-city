@@ -4,7 +4,7 @@ import type { ActiveDisaster, Bond, Census, Evaluation, Funding, GameDate, Histo
 import { migrate, type RawSave } from './migrate';
 import type { RngState } from './rng';
 import { FORMAT_VERSION, savedArrays, savedHeader } from './serializeRegistry';
-import { CityState } from './state';
+import { CityState, emptyCensus } from './state';
 
 const MAGIC = 'TIMC';
 
@@ -87,10 +87,13 @@ export function deserialize(bytes: Uint8Array): CityState {
   state.bankrupt = h.bankrupt as boolean;
   state.brownout = h.brownout as boolean;
   Object.assign(state.capNotified, h.capNotified as CityState['capNotified']);
-  state.census = h.census as Census;
+  // Saves from before a census field existed get it zeroed until the next count.
+  const census = h.census as Census;
+  state.census = { ...emptyCensus(), ...census, plants: { ...emptyCensus().plants, ...census.plants } };
   Object.assign(state.valves, h.valves as Valves);
   state.evaluation = h.evaluation as Evaluation | null;
   state.classReached = h.classReached as number;
+  state.overcast = (h.overcast as boolean | undefined) ?? false;
   state.lastYearApproval = h.lastYearApproval as number | null;
   state.lastYearScore = h.lastYearScore as number;
   state.lastYearPop = h.lastYearPop as number;

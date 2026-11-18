@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { VisualRng } from '../agents/visualRng';
-import { Weather, type WeatherKind } from './weather';
+import { odds, Weather, type WeatherKind } from './weather';
 
 describe('weather', () => {
   it('never starts snow outside December to February', () => {
@@ -41,5 +41,14 @@ describe('weather', () => {
       return kinds;
     };
     expect(run()).toEqual(run());
+  });
+
+  it('makes clear skies rare and cloud and storms likelier in an overcast month', () => {
+    const plain = new Map(odds(6));
+    const dull = new Map(odds(6, true));
+    expect(dull.get('clear')).toBeCloseTo((plain.get('clear') ?? 0) * 0.2);
+    expect(dull.get('overcast')).toBe((plain.get('overcast') ?? 0) * 2);
+    expect(dull.get('storm')).toBe((plain.get('storm') ?? 0) * 2);
+    expect(dull.get('rain')).toBe(plain.get('rain'));
   });
 });

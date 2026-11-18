@@ -13,6 +13,9 @@ export const MAX_HEIGHT = 15;
 /** A tile whose four corners are all at or below this height is water. */
 export const SEA_LEVEL = 2;
 
+/** December, January and February (months are 0-based). */
+export const isWinter = (month: number): boolean => month === 11 || month === 0 || month === 1;
+
 /** Starting funds until phase 11 adds difficulty levels. */
 export const DEFAULT_FUNDS = 10_000;
 

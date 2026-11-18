@@ -6,6 +6,7 @@ import { CityState } from '../state';
 import { placeFootprint } from './footprint';
 import { runTool } from './index';
 import { connectionAxis, linePath } from './network';
+import { queryTile } from './query';
 
 const LAND = 3;
 
@@ -339,5 +340,19 @@ describe('density tiers', () => {
     runTool(s, tool('bulldoze', 19, 19, 21, 21));
     expect(s.zoneTier[s.index(20, 20)]).toBe(0);
     expect(s.zoneTier.every((v) => v === 0)).toBe(true);
+  });
+});
+
+describe('wind turbines', () => {
+  it('stand on the clicked tile, slopes included, and report their output', () => {
+    const s = flatCity();
+    setCorner(s, 31, 30, LAND + 3);
+    setCorner(s, 31, 31, LAND + 3);
+    expect(runTool(s, tool('wind', 30, 30))).toMatchObject({ ok: true, cost: 400 });
+    expect(kindAt(s, 30, 30)).toBe(TileKind.WindTurbine);
+    expect(kindAt(s, 29, 29)).toBe(TileKind.Empty);
+    const q = queryTile(s, 30, 30, 1);
+    expect(q.title).toBe('Wind turbine');
+    expect(q.details).toContainEqual(['Output', '40 units']);
   });
 });

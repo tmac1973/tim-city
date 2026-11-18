@@ -1,4 +1,4 @@
-import { BatchedMesh, type BufferGeometry, Color, Group, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
+import { BatchedMesh, type BufferGeometry, Color, Group, InstancedMesh, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CHUNK_SIZE } from '@/shared/constants';
 import { AIRPORT_SIZE, FOOTPRINTS, PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
 import { patchMaterial } from '../atmosphere/uniforms';
@@ -8,7 +8,7 @@ import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT } from '../units';
 import { PuffLayer } from './particles';
 import { Kit } from './kit';
-import { coalPlant, nuclearPlant } from './plants';
+import { coalPlant, gasPlant, nuclearPlant, oilPlant, rotorGeometry, solarFarm, TURBINE_HUB, windTurbine } from './plants';
 import { fireStation, largePark, park, policeStation } from './services';
 import { airport, seaport, stadium } from './specials';
 import { waterSide } from '@/sim/tools/place';
@@ -26,7 +26,15 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.Stadium]: -10,
   [TileKind.Seaport]: -11,
   [TileKind.Airport]: -12,
+  [TileKind.SolarFarm]: -14,
+  [TileKind.WindTurbine]: -15,
+  [TileKind.GasPlant]: -16,
+  [TileKind.OilPlant]: -17,
 };
+const WIND_KEY = -15;
+/** Turbine blades turn this fast, in radians a second. */
+const ROTOR_SPEED = 0.6;
+const MAX_ROTORS = 512;
 const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9, [AIRPORT_SIZE]: -13 };
 const PLINTH_VALUES = new Set(Object.values(PLINTH_KEYS));
 /** Seaport models face their quay to +z; turns that point it at each water side (N, E, S, W). */
@@ -90,10 +98,17 @@ export class BuildingLayer {
   private readonly matrix = new Matrix4();
   private readonly scale = new Vector3();
   private readonly tint = new Color();
+  /** Wind turbine blades, turned every frame while the turbine has power. */
+  private readonly rotors: InstancedMesh;
+  private readonly rotorMaterial = new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.6 });
+  private readonly turbines = new Map<number, { hub: Vector3; facing: Quaternion; angle: number; powered: boolean }>();
+  /** Blades hold still while the game is paused. */
+  paused = false;
 
   constructor(private readonly mirror: CityMirror) {
     this.group.name = 'buildings';
     patchMaterial(this.material, { snow: true, windows: true });
+    patchMaterial(this.rotorMaterial, {});
     for (const [key, variant] of buildVariants()) this.variants.set(key, variant);
     const models = {
       [TileKind.CoalPlant]: coalPlant(),
@@ -105,6 +120,10 @@ export class BuildingLayer {
       [TileKind.Stadium]: stadium(),
       [TileKind.Seaport]: seaport(),
       [TileKind.Airport]: airport(),
+      [TileKind.SolarFarm]: solarFarm(),
+      [TileKind.WindTurbine]: windTurbine(),
+      [TileKind.GasPlant]: gasPlant(),
+      [TileKind.OilPlant]: oilPlant(),
     };
     for (const [kind, model] of Object.entries(models)) {
       const key = BUILDING_KEYS[Number(kind)];
@@ -133,7 +152,11 @@ export class BuildingLayer {
     this.mesh.frustumCulled = false;
 
     this.lots = new LotLayer(mirror);
-    this.group.add(this.mesh, this.lots.group, this.puffs.points, this.bolts.points);
+    this.rotors = new InstancedMesh(rotorGeometry().build(), this.rotorMaterial, MAX_ROTORS);
+    this.rotors.count = 0;
+    this.rotors.castShadow = true;
+    this.rotors.frustumCulled = false;
+    this.group.add(this.mesh, this.lots.group, this.puffs.points, this.bolts.points, this.rotors);
   }
 
   /** Total vertices across all building models, for budget checks. */
@@ -150,6 +173,11 @@ export class BuildingLayer {
     material.opacity = on ? 0.3 : 1;
     material.depthWrite = !on;
     material.needsUpdate = true;
+    const rotor = this.rotorMaterial;
+    rotor.transparent = on;
+    rotor.opacity = on ? 0.3 : 1;
+    rotor.depthWrite = !on;
+    rotor.needsUpdate = true;
   }
 
   private readonly riseListeners: ((at: Vector3) => void)[] = [];
@@ -218,6 +246,10 @@ export class BuildingLayer {
       const shade = (0.9 + 0.2 * hash3(tx, ty, 7)) * (burning ? 0.3 : 1);
       this.mesh.setColorAt(placed.instanceId, this.tint.setRGB(shade, shade * (burning ? 0.92 : 1), shade * (burning ? 0.85 : 1)));
     }
+    for (const origin of wanted.keys()) {
+      const turbine = this.turbines.get(origin);
+      if (turbine) turbine.powered = (m.flags[origin] ?? 0) & TileFlag.POWERED ? true : false;
+    }
     this.chunkBolts.set(id, bolts);
     this.boltsDirty = true;
     this.lots.rebuild(id);
@@ -264,6 +296,23 @@ export class BuildingLayer {
     }
     this.bolts.update(t);
     this.puffs.update(t);
+    this.updateRotors(dt);
+  }
+
+  private readonly spin = new Quaternion();
+  private readonly zAxis = new Vector3(0, 0, 1);
+
+  private updateRotors(dt: number): void {
+    let n = 0;
+    for (const turbine of this.turbines.values()) {
+      if (n >= MAX_ROTORS) break;
+      if (turbine.powered && !this.paused) turbine.angle = (turbine.angle + ROTOR_SPEED * dt) % (Math.PI * 2);
+      this.spin.setFromAxisAngle(this.zAxis, turbine.angle).premultiply(turbine.facing);
+      this.scale.set(1, 1, 1);
+      this.rotors.setMatrixAt(n++, this.matrix.compose(turbine.hub, this.spin, this.scale));
+    }
+    this.rotors.count = n;
+    this.rotors.instanceMatrix.needsUpdate = true;
   }
 
   /** Lowest and highest ground under a lot; buildings stand at the top. */
@@ -309,6 +358,11 @@ export class BuildingLayer {
       this.mesh.setMatrixAt(plinthId, this.matrix.compose(new Vector3(position.x, bottom - 0.02, position.z), new Quaternion(), this.scale));
     }
     this.placed.set(origin, { key, instanceId, geometryId, plinthId, position, rotation, emitters });
+    if (key === WIND_KEY) {
+      const hub = new Vector3(...TURBINE_HUB).applyQuaternion(rotation).add(position);
+      const powered = ((this.mirror.flags[origin] ?? 0) & TileFlag.POWERED) !== 0;
+      this.turbines.set(origin, { hub, facing: rotation.clone(), angle: hash3(tx, ty, 8) * Math.PI * 2, powered });
+    }
     if (animate) {
       this.anims.push({ instanceId, position, rotation, start: this.time, duration: RISE_SECONDS, rising: true });
       this.puffs.burst(position, 14, this.time);
@@ -320,6 +374,7 @@ export class BuildingLayer {
     const placed = this.placed.get(origin);
     if (!placed) return;
     this.placed.delete(origin);
+    this.turbines.delete(origin);
     for (const e of placed.emitters) this.puffs.removeEmitter(e);
     if (placed.plinthId !== null) this.mesh.deleteInstance(placed.plinthId);
     // Drop any running rise animation for this instance.

@@ -5,7 +5,7 @@ import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/p
 import type { CityAudio } from './audio';
 import { gunzip } from './save/compress';
 import { QUALITY, type QualityName } from './shared/settings';
-import { isPower, isRoad, TileKind, zoneOf } from './shared/tiles';
+import { isPlant, isPower, isRoad, zoneOf } from './shared/tiles';
 import { CityMirror } from './render/mirror';
 import { isTileOverlay } from './render/overlays';
 import { AutoQuality, lowerQuality } from './render/quality';
@@ -140,6 +140,7 @@ async function start(): Promise<void> {
     budget.value = tick.budget;
     evaluation.value = tick.evaluation;
     classReached.value = tick.classReached;
+    if (renderer) renderer.atmosphere.weather.overcast = tick.overcast;
     activeDisasters.value = tick.disasters;
     if (tick.field) fieldListener?.(tick.field.name, tick.field.data);
     if (tick.traffic) renderer?.agents.setTraffic(tick.traffic);
@@ -177,6 +178,7 @@ async function start(): Promise<void> {
     // Agents, the clock and the weather hold still while the game is paused.
     speed.subscribe((s) => {
       r.agents.paused = s === 'paused' && !titleMode;
+      r.buildings.paused = s === 'paused' && !titleMode;
       r.atmosphere.paused = s === 'paused' || titleMode;
     });
     if (titleMode) {
@@ -289,7 +291,7 @@ async function start(): Promise<void> {
       if (isPower(k)) lines++;
       if (mirror.parts[i] === 1) {
         if (zoneOf(k)) zones++;
-        else if (k === TileKind.CoalPlant || k === TileKind.NuclearPlant) plants++;
+        else if (isPlant(k)) plants++;
       }
     }
     const c = census.value;

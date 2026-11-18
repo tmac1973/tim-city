@@ -1,5 +1,5 @@
-import { POWER_SUPPLY } from '@/shared/costs';
-import { MAX_DENSITY, TileFlag, TileKind, zoneOf } from '@/shared/tiles';
+import { type PlantName, POWER_SUPPLY, SOLAR_OVERCAST, WIND_HIGH_GROUND } from '@/shared/costs';
+import { isPlant, MAX_DENSITY, TileFlag, TileKind, zoneOf } from '@/shared/tiles';
 import { footprintAt } from '../tools/footprint';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
@@ -9,8 +9,46 @@ export function zoneDemand(density: number): number {
   return Math.max(1, Math.min(MAX_DENSITY, density));
 }
 
-function plantSupply(kind: number): number {
-  return kind === TileKind.CoalPlant ? POWER_SUPPLY.coal : kind === TileKind.NuclearPlant ? POWER_SUPPLY.nuclear : 0;
+const PLANT_NAMES: Partial<Record<number, PlantName>> = {
+  [TileKind.CoalPlant]: 'coal',
+  [TileKind.NuclearPlant]: 'nuclear',
+  [TileKind.SolarFarm]: 'solar',
+  [TileKind.WindTurbine]: 'wind',
+  [TileKind.GasPlant]: 'gas',
+  [TileKind.OilPlant]: 'oil',
+};
+
+export const plantName = (kind: number): PlantName | undefined => PLANT_NAMES[kind];
+
+/** Height steps a turbine must stand above the lowest ground near it to catch the stronger wind. */
+export const HIGH_GROUND_STEPS = 4;
+/** Half the side of the box searched for that lowest ground. */
+const HIGH_GROUND_REACH = 8;
+
+/**
+ * Whether the turbine on tile (x, y) stands on high ground: its highest
+ * corner is HIGH_GROUND_STEPS above the lowest corner in the 17×17 tiles
+ * around it.
+ */
+export function windOnHighGround(state: CityState, x: number, y: number): boolean {
+  const top = Math.max(...[0, 1].flatMap((dy) => [0, 1].map((dx) => state.heights[state.cornerIndex(x + dx, y + dy)] ?? 0)));
+  let low = Infinity;
+  for (let cy = Math.max(0, y - HIGH_GROUND_REACH); cy <= Math.min(state.size, y + 1 + HIGH_GROUND_REACH); cy++) {
+    for (let cx = Math.max(0, x - HIGH_GROUND_REACH); cx <= Math.min(state.size, x + 1 + HIGH_GROUND_REACH); cx++) {
+      low = Math.min(low, state.heights[state.cornerIndex(cx, cy)] ?? 0);
+    }
+  }
+  return top - low >= HIGH_GROUND_STEPS;
+}
+
+/** Output of the plant whose top-left tile is `i`, this month. */
+export function plantSupply(state: CityState, i: number): number {
+  const name = PLANT_NAMES[state.tiles[i] ?? 0];
+  if (!name) return 0;
+  const base = POWER_SUPPLY[name];
+  if (name === 'solar' && state.overcast) return Math.floor(base * SOLAR_OVERCAST);
+  if (name === 'wind' && windOnHighGround(state, i % state.size, Math.floor(i / state.size))) return Math.floor(base * WIND_HIGH_GROUND);
+  return base;
 }
 
 /**
@@ -33,7 +71,7 @@ export function updatePower(state: CityState): { unpowered: number; atCapacity: 
   const plants: number[] = [];
   for (let i = 0; i < count; i++) {
     const kind = tiles[i] ?? 0;
-    if ((kind === TileKind.CoalPlant || kind === TileKind.NuclearPlant) && state.parts[i] === 1) plants.push(i);
+    if (isPlant(kind) && state.parts[i] === 1) plants.push(i);
   }
 
   const component = new Int32Array(count).fill(-1);
@@ -50,11 +88,11 @@ export function updatePower(state: CityState): { unpowered: number; atCapacity: 
   const supply: number[] = [];
   for (const p of plants) {
     if (component[p] !== -1) {
-      supply[component[p] ?? 0] = (supply[component[p] ?? 0] ?? 0) + plantSupply(tiles[p] ?? 0);
+      supply[component[p] ?? 0] = (supply[component[p] ?? 0] ?? 0) + plantSupply(state, p);
       continue;
     }
     const id = supply.length;
-    supply.push(plantSupply(tiles[p] ?? 0));
+    supply.push(plantSupply(state, p));
     const queue = [p];
     component[p] = id;
     for (let q = 0; q < queue.length; q++) {

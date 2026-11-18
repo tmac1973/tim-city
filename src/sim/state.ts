@@ -36,7 +36,7 @@ export function emptyCensus(): Census {
     comJobs: 0,
     indJobs: 0,
     zones: { r: 0, c: 0, i: 0 },
-    plants: { coal: 0, nuclear: 0 },
+    plants: { coal: 0, nuclear: 0, solar: 0, wind: 0, gas: 0, oil: 0 },
     specials: { stadium: 0, seaport: 0, airport: 0 },
     landmarks: { airport: 0, seaport: 0 },
     water: 0,
@@ -87,6 +87,8 @@ export class CityState {
   evaluation: Evaluation | null = null;
   /** Highest city class reached (index into CITY_CLASSES), so promotions announce once. */
   classReached = 0;
+  /** This month is overcast (climate.ts): solar farms give less. */
+  overcast = false;
   /** Approval and population at the last year end, for yearly changes. */
   lastYearApproval: number | null = null;
   lastYearScore = 0;

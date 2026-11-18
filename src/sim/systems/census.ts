@@ -1,8 +1,7 @@
-import { POWER_SUPPLY } from '@/shared/costs';
 import { TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import { type CityState, emptyCensus } from '../state';
-import { zoneDemand } from './power';
+import { plantName, plantSupply, zoneDemand } from './power';
 import { JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from './zones';
 
 export function takeCensus(state: CityState): void {
@@ -17,12 +16,10 @@ export function takeCensus(state: CityState): void {
       if (lit && kind === TileKind.Stadium) census.specials.stadium++;
       else if (lit && kind === TileKind.Seaport) census.specials.seaport++;
       else if (lit && kind === TileKind.Airport) census.specials.airport++;
-      if (kind === TileKind.CoalPlant) {
-        census.plants.coal++;
-        census.powerSupply += POWER_SUPPLY.coal;
-      } else if (kind === TileKind.NuclearPlant) {
-        census.plants.nuclear++;
-        census.powerSupply += POWER_SUPPLY.nuclear;
+      const plant = plantName(kind);
+      if (plant) {
+        census.plants[plant]++;
+        census.powerSupply += plantSupply(state, i);
       }
     }
     if (kind === TileKind.Water) census.water++;

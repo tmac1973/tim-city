@@ -5,9 +5,10 @@ import { isBridge, TileFlag, TileKind } from '@/shared/tiles';
 import { runScript } from '../replay';
 import { serialize } from '../serialize';
 import { Simulation } from '../sim';
-import type { CityState } from '../state';
+import { Rng } from '../rng';
+import { CityState } from '../state';
 import { runTool } from '../tools';
-import { ignite } from './common';
+import { ignite, randomTile } from './common';
 import { updateFires } from './fire';
 import { rollRandomDisaster, triggerDisaster } from './index';
 import { radiationSystem } from './meltdown';
@@ -184,5 +185,19 @@ describe('random disasters', () => {
     const a = runScript(info, actions, 6).sim;
     const b = runScript(info, actions, 6).sim;
     expect(serialize(b.state)).toEqual(serialize(a.state));
+  });
+});
+
+describe('fire starts', () => {
+  it('picks weighted tiles more often', () => {
+    const s = new CityState({ name: 'T', seed: 'weights', size: 128 });
+    const rng = new Rng('weights');
+    let heavy = 0;
+    for (let n = 0; n < 2000; n++) {
+      const at = randomTile(s, rng, (i) => i === 0 || i === 1, (i) => (i === 1 ? 3 : 1));
+      if (at?.[0] === 1) heavy++;
+    }
+    expect(heavy / 2000).toBeGreaterThan(0.7);
+    expect(heavy / 2000).toBeLessThan(0.8);
   });
 });

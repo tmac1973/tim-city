@@ -65,6 +65,32 @@ const paths: Record<string, JSX.Element> = {
       <path d="M17 20V13h3v7M8 4c1-1 3-1 4 0" />
     </>
   ),
+  wind: (
+    <>
+      <path d="M12 11v10M9 21h6" />
+      <circle cx="12" cy="9" r="1.4" />
+      <path d="M12 7.6V2.5M13.2 9.7l4.4 2.6M10.8 9.7l-4.4 2.6" />
+    </>
+  ),
+  solar: (
+    <>
+      <path d="M4 16l2-7h12l2 7z" />
+      <path d="M5 12.5h14M10 9l-1 7M14 9l1 7M12 16v4M8 20h8" />
+    </>
+  ),
+  gas: (
+    <>
+      <circle cx="8" cy="14" r="4" />
+      <circle cx="17" cy="15" r="3" />
+      <path d="M8 18v3M17 18v3M4 21h16M13 3v6" />
+    </>
+  ),
+  oil: (
+    <>
+      <path d="M6 21V10h4v11M14 21V6h4v15M3 21h18" />
+      <path d="M16 6c0-2 1.5-2.5 1-4" />
+    </>
+  ),
   police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
   fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
   park: (

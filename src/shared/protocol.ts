@@ -37,6 +37,10 @@ export type ToolId =
   | 'industrial'
   | 'coal'
   | 'nuclear'
+  | 'solar'
+  | 'wind'
+  | 'gas'
+  | 'oil'
   | 'police'
   | 'fire'
   | 'park'
@@ -254,7 +258,7 @@ export interface Census {
   comJobs: number;
   indJobs: number;
   zones: { r: number; c: number; i: number };
-  plants: { coal: number; nuclear: number };
+  plants: { coal: number; nuclear: number; solar: number; wind: number; gas: number; oil: number };
   /** Powered special buildings. */
   specials: { stadium: number; seaport: number; airport: number };
   /** Landmarks built, powered or not (for disasters that need them). */
@@ -314,6 +318,8 @@ export interface TickMessage {
   evaluation: Evaluation | null;
   /** Highest city class reached (an index into CITY_CLASSES); it decides which tools are unlocked. */
   classReached: number;
+  /** This month is overcast: solar farms give less, and the sky leans cloudy. */
+  overcast: boolean;
   /** Disasters in progress (empty most of the time). */
   disasters: ActiveDisaster[];
   /** The subscribed block field, when it changed (at month end, or on subscribing). */

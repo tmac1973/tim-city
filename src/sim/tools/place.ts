@@ -148,7 +148,8 @@ function markBuilt(state: CityState, lot: Lot): void {
 
 /**
  * A single building (plant, station, large park) of `size` × `size` tiles
- * whose top-left is one tile up and left of the click.
+ * whose top-left is one tile up and left of the click (a 1×1 building sits
+ * on the click).
  */
 export function planBuilding(
   state: CityState,
@@ -158,7 +159,8 @@ export function planBuilding(
   price: number,
   rules: { maxSlope?: number; needsWaterEdge?: boolean } = {},
 ): ToolPlan {
-  const lot = lotAt(state, cmd.x1 - 1, cmd.y1 - 1, size);
+  const offset = size === 1 ? 0 : 1;
+  const lot = lotAt(state, cmd.x1 - offset, cmd.y1 - offset, size);
   if (!lot) return fail('Too close to the edge');
   const checked = checkLot(state, lot, new Set(), rules.maxSlope);
   if ('reason' in checked) return fail(checked.reason, lot.tiles, lot.tiles);

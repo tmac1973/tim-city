@@ -2,6 +2,7 @@ import { POWER_SUPPLY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
 import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, MAX_DENSITY, TIER_CAP, TIER_NAMES, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { COVERAGE_RADIUS } from '../systems/coverage';
+import { HIGH_GROUND_STEPS, plantName, plantSupply, windOnHighGround } from '../systems/power';
 import type { CityState } from '../state';
 import { type GrowthBlock, growthBlock, hasRoadAccess, JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from '../systems/zones';
 import { footprintAt } from './footprint';
@@ -25,6 +26,10 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.RailTunnel]: 'Rail tunnel',
   [TileKind.CoalPlant]: 'Coal power plant',
   [TileKind.NuclearPlant]: 'Nuclear power plant',
+  [TileKind.SolarFarm]: 'Solar farm',
+  [TileKind.WindTurbine]: 'Wind turbine',
+  [TileKind.GasPlant]: 'Gas power plant',
+  [TileKind.OilPlant]: 'Oil power plant',
   [TileKind.PoliceStation]: 'Police station',
   [TileKind.FireStation]: 'Fire station',
   [TileKind.Park]: 'Park',
@@ -106,9 +111,17 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
   }
 
   result.title = NAMES[kind] ?? 'Unknown';
-  if (kind === TileKind.CoalPlant || kind === TileKind.NuclearPlant) {
-    const output = kind === TileKind.CoalPlant ? POWER_SUPPLY.coal : POWER_SUPPLY.nuclear;
-    details.push(['Output', `${String(output)} units`]);
+  const plant = plantName(kind);
+  if (plant && lot) {
+    const origin = state.index(lot.x, lot.y);
+    const output = plantSupply(state, origin);
+    const base = POWER_SUPPLY[plant];
+    details.push(['Output', output === base ? `${String(output)} units` : `${String(output)} units (${String(base)} base)`]);
+    if (plant === 'wind') {
+      details.push(['Wind', windOnHighGround(state, lot.x, lot.y) ? 'High ground +50%' : `Sheltered: build ${String(HIGH_GROUND_STEPS)} steps above nearby ground for +50%`]);
+    } else if (plant === 'solar') {
+      details.push(['Sun', state.overcast ? 'Overcast month −40%' : 'Clear month']);
+    }
     details.push(['City load', `${String(state.census.powerDemand)} of ${String(state.census.powerSupply)} units`]);
   } else if (isPower(kind)) {
     details.push(['Power', powered ? 'Live' : 'Not connected to a plant']);

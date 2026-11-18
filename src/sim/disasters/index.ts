@@ -37,11 +37,20 @@ interface DisasterDef {
 
 const hasKind = (state: CityState, kind: number) => state.tiles.includes(kind);
 
+/** How much likelier an oil plant tile is to be where a fire starts. */
+export const OIL_FIRE_WEIGHT = 3;
+
 export const DEFS: Record<DisasterType, DisasterDef> = {
   fire: {
     blocked: (s) => (s.tiles.some((k) => isFlammable(k) && k !== TileKind.Tree) ? null : 'Nothing built to burn'),
     start(state, rng) {
-      const at = randomTile(state, rng, (i) => isFlammable(state.tiles[i] ?? 0) && state.tiles[i] !== TileKind.Tree);
+      // Oil plants catch fire three times as easily as anything else.
+      const at = randomTile(
+        state,
+        rng,
+        (i) => isFlammable(state.tiles[i] ?? 0) && state.tiles[i] !== TileKind.Tree,
+        (i) => (state.tiles[i] === TileKind.OilPlant ? OIL_FIRE_WEIGHT : 1),
+      );
       if (!at) return null;
       ignite(state, rng, at[0], at[1]);
       return { id: state.nextDisasterId++, type: 'fire', x: at[0], y: at[1], age: 0, duration: 1, heading: 0, targetX: at[0], targetY: at[1] };

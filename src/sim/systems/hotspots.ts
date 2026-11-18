@@ -41,7 +41,7 @@ function pollutionSource(state: CityState, x: number, y: number): string {
     const kind = state.tiles[i] ?? 0;
     const zone = zoneOf(kind);
     if (zone?.type === ZoneType.I && (state.flags[i] ?? 0) & TileFlag.ZONE_CENTER) weight.industry = (weight.industry ?? 0) + 20 * zone.density;
-    if (kind === TileKind.CoalPlant) weight['a power plant'] = (weight['a power plant'] ?? 0) + 16;
+    if (kind === TileKind.CoalPlant || kind === TileKind.OilPlant || kind === TileKind.GasPlant) weight['a power plant'] = (weight['a power plant'] ?? 0) + 16;
     if (kind === TileKind.Airport) weight['the airport'] = (weight['the airport'] ?? 0) + 4;
     if (kind === TileKind.Seaport) weight['the seaport'] = (weight['the seaport'] ?? 0) + 4;
   });

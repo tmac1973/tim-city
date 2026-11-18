@@ -12,7 +12,10 @@ interface Unlock {
  * Tools that start locked, in the order they are announced. A tool not
  * listed is available from the start. Later phases add their tools here.
  */
-let UNLOCKS: readonly Unlock[] = [{ tool: 'zoneHigh', name: 'High-density zones', cityClass: 1 }];
+let UNLOCKS: readonly Unlock[] = [
+  { tool: 'zoneHigh', name: 'High-density zones', cityClass: 1 },
+  { tool: 'oil', name: 'Oil plant', cityClass: 2 },
+];
 
 /** Swap the table for a test; returns a function that restores it. */
 export function setUnlockTableForTest(table: readonly Unlock[]): () => void {

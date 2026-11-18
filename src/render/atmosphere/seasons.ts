@@ -26,4 +26,4 @@ export function seasonBlend(month: number, through: number, firstYear = false): 
   }
 }
 
-export const isWinter = (month: number): boolean => month === 11 || month === 0 || month === 1;
+export { isWinter } from '@/shared/constants';

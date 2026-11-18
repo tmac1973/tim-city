@@ -60,6 +60,10 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
       { id: 'power', name: 'Power line', key: 'P', code: 'KeyP', cost: price(COSTS.power, '/tile'), hint: 'Drag to carry power. Zones that touch each other share it.' },
       { id: 'coal', name: 'Coal plant', key: 'G', code: 'KeyG', cost: price(COSTS.coalPlant), hint: `${String(POWER_SUPPLY.coal)} units of power. Cheap but dirty.` },
       { id: 'nuclear', name: 'Nuclear plant', key: 'N', code: 'KeyN', cost: price(COSTS.nuclearPlant), hint: `${String(POWER_SUPPLY.nuclear)} units of power. Clean, with a small risk.` },
+      { id: 'wind', name: 'Wind turbine', key: 'E', code: 'KeyE', cost: price(COSTS.windTurbine), hint: `${String(POWER_SUPPLY.wind)} units, ${String(POWER_SUPPLY.wind * 1.5)} on high ground. Clean and small.` },
+      { id: 'solar', name: 'Solar farm', key: '', code: '', cost: price(COSTS.solarFarm), hint: `${String(POWER_SUPPLY.solar)} units, less in cloudy months. Clean.` },
+      { id: 'gas', name: 'Gas plant', key: '', code: '', cost: price(COSTS.gasPlant), hint: `${String(POWER_SUPPLY.gas)} units. Half the smoke of coal.` },
+      { id: 'oil', name: 'Oil plant', key: '', code: '', cost: price(COSTS.oilPlant), hint: `${POWER_SUPPLY.oil.toLocaleString('en-US')} units. Smoky, and it catches fire easily.` },
     ],
   },
   {

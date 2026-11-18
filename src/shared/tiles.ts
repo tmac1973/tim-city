@@ -36,6 +36,10 @@ export const TileKind = {
 
   CoalPlant: 64,
   NuclearPlant: 65,
+  SolarFarm: 66,
+  WindTurbine: 67,
+  GasPlant: 68,
+  OilPlant: 69,
 
   PoliceStation: 230,
   FireStation: 231,
@@ -166,6 +170,22 @@ for (const type of [ZoneType.R, ZoneType.C, ZoneType.I]) {
 }
 registerFootprint(TileKind.CoalPlant, PLANT_SIZE);
 registerFootprint(TileKind.NuclearPlant, PLANT_SIZE);
+registerFootprint(TileKind.SolarFarm, PLANT_SIZE);
+registerFootprint(TileKind.GasPlant, PLANT_SIZE);
+registerFootprint(TileKind.OilPlant, PLANT_SIZE);
+export const WIND_SIZE = 1;
+registerFootprint(TileKind.WindTurbine, WIND_SIZE);
+
+/** Every power plant kind. */
+export const PLANT_KINDS: readonly number[] = [
+  TileKind.CoalPlant,
+  TileKind.NuclearPlant,
+  TileKind.SolarFarm,
+  TileKind.WindTurbine,
+  TileKind.GasPlant,
+  TileKind.OilPlant,
+];
+export const isPlant = (kind: number): boolean => kind >= TileKind.CoalPlant && kind <= TileKind.OilPlant;
 registerFootprint(TileKind.PoliceStation, ZONE_SIZE);
 registerFootprint(TileKind.FireStation, ZONE_SIZE);
 registerFootprint(TileKind.Park, 1);

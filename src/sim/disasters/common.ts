@@ -56,9 +56,13 @@ export function begin(state: CityState, type: DisasterType, x: number, y: number
 }
 
 /** A random tile matching the test, or null after a bounded search. */
-export function randomTile(state: CityState, rng: Rng, test: (i: number) => boolean): [number, number] | null {
+export function randomTile(state: CityState, rng: Rng, test: (i: number) => boolean, weight: (i: number) => number = () => 1): [number, number] | null {
   const candidates: number[] = [];
-  for (let i = 0; i < state.size * state.size; i++) if (test(i)) candidates.push(i);
+  for (let i = 0; i < state.size * state.size; i++) {
+    if (!test(i)) continue;
+    // A tile with weight w is w times as likely to be picked.
+    for (let w = weight(i); w > 0; w--) candidates.push(i);
+  }
   if (candidates.length === 0) return null;
   const i = candidates[rng.nextInt(candidates.length)] ?? 0;
   return [i % state.size, Math.floor(i / state.size)];

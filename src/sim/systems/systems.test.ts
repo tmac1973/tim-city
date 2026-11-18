@@ -9,7 +9,9 @@ import { runTool } from '../tools';
 import { queryTile } from '../tools/query';
 import { takeCensus } from './census';
 import { demandTargets } from './demand';
-import { updatePower } from './power';
+import { overcastChance, rollClimate } from './climate';
+import { updatePollution } from './pollution';
+import { updatePower, windOnHighGround } from './power';
 import { growthBlock, zoneSystem } from './zones';
 
 function flatCity(): CityState {
@@ -43,6 +45,88 @@ function poweredZone(): CityState {
   expect(runTool(s, tool('residential', 22, 12)).ok).toBe(true);
   return s;
 }
+
+describe('new power plants', () => {
+  const supplyOf = (s: CityState) => {
+    takeCensus(s);
+    return s.census.powerSupply;
+  };
+
+  it('gives each plant its stated output', () => {
+    for (const [t, out] of [['solar', 300], ['wind', 40], ['gas', 500], ['coal', 700]] as const) {
+      const s = flatCity();
+      s.classReached = 2;
+      expect(runTool(s, tool(t, 20, 20)).ok).toBe(true);
+      expect(supplyOf(s)).toBe(out);
+    }
+    const s = flatCity();
+    s.classReached = 2;
+    expect(runTool(s, tool('oil', 20, 20)).ok).toBe(true);
+    expect(supplyOf(s)).toBe(1000);
+    expect(s.census.plants.oil).toBe(1);
+  });
+
+  it('gives a turbine on high ground half as much again, and solar less when overcast', () => {
+    const s = flatCity();
+    // A hill four steps above the plain around tile (40, 40).
+    for (let y = 40; y <= 41; y++) for (let x = 40; x <= 41; x++) s.heights[s.cornerIndex(x, y)] = 7;
+    expect(runTool(s, tool('wind', 40, 40)).ok).toBe(true);
+    expect(windOnHighGround(s, 40, 40)).toBe(true);
+    expect(supplyOf(s)).toBe(60);
+
+    const sun = flatCity();
+    runTool(sun, tool('solar', 20, 20));
+    sun.overcast = true;
+    expect(supplyOf(sun)).toBe(180);
+  });
+
+  it('powers zones from a wind turbine', () => {
+    const s = flatCity();
+    expect(runTool(s, tool('wind', 20, 12)).ok).toBe(true);
+    expect(runTool(s, tool('residential', 22, 12)).ok).toBe(true);
+    updatePower(s);
+    expect(powered(s, 22, 12)).toBe(true);
+  });
+
+  it('refuses an oil plant before City', () => {
+    const s = flatCity();
+    expect(runTool(s, tool('oil', 20, 20))).toMatchObject({ ok: false, reason: 'Unlocks at City (10,000 people)' });
+  });
+
+  it('scales plant smoke: gas half of coal, oil more, solar none', () => {
+    const smoke = (t: ToolId) => {
+      const s = flatCity();
+      s.classReached = 2;
+      runTool(s, tool(t, 60, 60));
+      updatePollution(s);
+      return s.field('pollution')[s.blockIndex(61, 61)] ?? 0;
+    };
+    const coal = smoke('coal');
+    expect(smoke('gas')).toBeCloseTo(coal / 2, -1);
+    expect(smoke('oil')).toBeGreaterThan(coal);
+    expect(smoke('solar')).toBe(0);
+  });
+});
+
+describe('climate', () => {
+  it('rolls overcast months deterministically, near the seasonal odds', () => {
+    const run = () => {
+      const s = flatCity();
+      const out: boolean[] = [];
+      for (let m = 0; m < 1200; m++) {
+        s.date.month = m % 12;
+        rollClimate(s);
+        out.push(s.overcast);
+      }
+      return out;
+    };
+    const a = run();
+    expect(run()).toEqual(a);
+    const expected = a.reduce((sum, _, m) => sum + overcastChance(m % 12), 0) / a.length;
+    const actual = a.filter(Boolean).length / a.length;
+    expect(Math.abs(actual - expected)).toBeLessThan(0.05);
+  });
+});
 
 describe('power grid', () => {
   it('powers a zone connected to a plant', () => {

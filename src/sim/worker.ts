@@ -55,6 +55,7 @@ function publish(current: Simulation): void {
       budget: budgetInfo(current),
       evaluation: current.state.evaluation,
       classReached: current.state.classReached,
+      overcast: current.state.overcast,
       disasters: current.state.disasters,
       ...(field ? { field } : {}),
       ...(traffic ? { traffic } : {}),

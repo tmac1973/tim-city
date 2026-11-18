@@ -48,6 +48,7 @@ export function savedHeader(state: CityState): Record<string, unknown> {
     valves: { ...state.valves },
     evaluation: state.evaluation,
     classReached: state.classReached,
+    overcast: state.overcast,
     lastYearApproval: state.lastYearApproval,
     lastYearScore: state.lastYearScore,
     lastYearPop: state.lastYearPop,

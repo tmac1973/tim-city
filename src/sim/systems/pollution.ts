@@ -1,10 +1,12 @@
-import { isPark, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { PLANT_POLLUTION } from '@/shared/costs';
+import { isPark, isPlant, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { SPILL_POLLUTION } from '../disasters/impacts';
 import { blockGeometry, blur, store } from './fields';
+import { plantName } from './power';
 
-/** Pollution a coal plant puts into its block before spreading. */
+/** Pollution a coal plant puts into its block before spreading; other plants scale it by PLANT_POLLUTION. */
 export const COAL_POLLUTION = 255;
 const AIRPORT_POLLUTION = 120;
 const SEAPORT_POLLUTION = 60;
@@ -32,9 +34,10 @@ export function updatePollution(state: CityState): void {
     if ((flags[i] ?? 0) & TileFlag.ZONE_CENTER) {
       const zone = zoneOf(kind);
       if (zone?.type === ZoneType.I) acc[b] = (acc[b] ?? 0) + INDUSTRY_PER_LEVEL * zone.density;
-    } else if (kind === TileKind.CoalPlant && parts[i] === 1) {
+    } else if (isPlant(kind) && parts[i] === 1) {
+      const smoke = PLANT_POLLUTION[plantName(kind) ?? 'nuclear'];
       const c = state.blockIndex(x + 2, y + 2);
-      acc[c] = (acc[c] ?? 0) + COAL_POLLUTION;
+      if (smoke > 0) acc[c] = (acc[c] ?? 0) + COAL_POLLUTION * smoke;
     } else if (kind === TileKind.Airport && parts[i] === 1) {
       const c = state.blockIndex(x + 3, y + 3);
       acc[c] = (acc[c] ?? 0) + AIRPORT_POLLUTION;

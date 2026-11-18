@@ -5,6 +5,7 @@ import { fireSystem } from '../disasters/fire';
 import { radiationSystem } from '../disasters/meltdown';
 import { budgetSystem } from './budget';
 import { censusSystem } from './census';
+import { climateSystem } from './climate';
 import { coverageSystem } from './coverage';
 import { crimeSystem } from './crime';
 import { landValueSystem } from './landValue';
@@ -20,6 +21,7 @@ import { zoneSystem } from './zones';
 
 /** Every sim system, in the order they run within a tick. */
 export function registerSystems(scheduler: Scheduler, emit: (event: SimEvent) => void): void {
+  scheduler.register(climateSystem);
   scheduler.register(powerSystem(emit));
   scheduler.register(demandSystem(emit));
   scheduler.register(trafficSystem);
