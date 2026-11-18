@@ -2,6 +2,7 @@ import { h, render } from 'preact';
 import { type MapSize, type Speed, TICKS_PER_MONTH } from './shared/constants';
 import type { DifficultyName } from './shared/difficulty';
 import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/protocol';
+import { CityAudio } from './audio';
 import { CityMirror } from './render/mirror';
 import { MinimapPainter } from './render/minimap';
 import { Renderer } from './render/renderer';
@@ -11,6 +12,7 @@ import { peekSave } from './sim/serialize';
 import { App } from './ui/App';
 import {
   activeDisasters,
+  activeTool,
   addHeadline,
   autoBudget,
   budget,
@@ -32,6 +34,7 @@ import {
   speed,
   toast,
   valves,
+  volumes,
   watchNext,
 } from './ui/store';
 import { onDisasterStarted } from './ui/cameraEvents';
@@ -103,6 +106,7 @@ async function start(): Promise<void> {
   // Mount the UI even if WebGL fails, so the failure can be reported on screen.
   let webglError: string | null = null;
   let renderer: Renderer | null = null;
+  let audio: CityAudio | null = null;
   try {
     const r = new Renderer(canvas, mirror, params.get('quality') === 'low' ? 'low' : 'high');
     renderer = r;
@@ -146,9 +150,20 @@ async function start(): Promise<void> {
     });
     new ToolController(canvas, r, sim);
     r.start();
+    // Sound: synthesized live, started by the first click or key press.
+    const a = new CityAudio(r, mirror);
+    audio = a;
+    a.listenForGesture();
+    a.approval = () => evaluation.value?.approval ?? 50;
+    volumes.subscribe((v) => {
+      a.setVolumes(v);
+    });
+    setInterval(() => {
+      a.update(0.05);
+    }, 50);
     if (import.meta.env.DEV || params.has('debug')) {
       // Debug handle for scripted checks: the dev server, or any build with ?debug.
-      (window as unknown as { __tim: unknown }).__tim = { sim, mirror, renderer: r };
+      (window as unknown as { __tim: unknown }).__tim = { sim, mirror, renderer: r, audio: a };
     }
   } catch (err) {
     webglError = err instanceof Error ? err.message : String(err);
@@ -231,6 +246,22 @@ async function start(): Promise<void> {
     appRoot,
   );
 
+  // M mutes and unmutes.
+  window.addEventListener('keydown', (e) => {
+    const el = e.target as HTMLElement | null;
+    if (e.code !== 'KeyM' || e.ctrlKey || e.metaKey || e.altKey || el?.closest('input, textarea, select')) return;
+    const muted = !volumes.value.muted;
+    volumes.value = { ...volumes.value, muted };
+    toast(muted ? 'Sound off (M)' : 'Sound on (M)', 'info', 1500);
+  });
+  // A soft click for every button in the interface.
+  appRoot.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement | null)?.closest('button')) audio?.play('click');
+  });
+  budgetOpen.subscribe((open) => {
+    if (open) audio?.play('budgetOpen');
+  });
+
   // Ctrl+S saves to the current slot, or one named after the city.
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
@@ -246,8 +277,14 @@ async function start(): Promise<void> {
     // Keep open graphs current, a month at a time.
     if (event.type === 'monthEnd' && graphsOpen.value) sim.requestHistory();
     if (event.type === 'news') addHeadline(event.headline, formatDate(date.value), event.x, event.y);
+    if (event.type === 'toolResult' && !event.dryRun) {
+      if (!event.ok) audio?.play('cannotPlace');
+      else audio?.play(activeTool.value === 'bulldoze' ? 'bulldoze' : 'place');
+    }
+    if (event.type === 'milestone') audio?.play('milestone');
     if (event.type === 'milestone') toast(`${event.cityClass}! Population ${event.population.toLocaleString('en-US')}`, 'info', 6000);
     if (event.type === 'yearBudget') {
+      audio?.play('coin');
       void sim.snapshot().then((bytes) => autosave(bytes, details()));
       if (autoBudget.value) openBudget();
       else toast(`${String(event.year)} closed: ${event.net >= 0 ? 'surplus' : 'deficit'} of ${formatMoney(Math.abs(event.net))}`, 'info', 5000);

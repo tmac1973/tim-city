@@ -12,8 +12,21 @@ import { TornadoFx } from './tornado';
  * Cinematic disaster effects. Everything here follows the sim (tile flags,
  * rubble, the active disaster list) and never feeds back into it.
  */
+/** Moments other systems (audio) react to; drained by whoever listens. */
+export interface FxEvent {
+  type: 'explosion' | 'meltdown' | 'roar' | 'footfall' | 'collapse';
+  x: number;
+  y: number;
+  z: number;
+}
+
 export class FxLayer {
   readonly group = new Group();
+  readonly events: FxEvent[] = [];
+  private readonly emit = (e: FxEvent) => {
+    // Nobody listening yet: do not let the queue grow forever.
+    if (this.events.length < 64) this.events.push(e);
+  };
   readonly particles = new Particles();
   readonly tiles: TileFx;
   readonly shake = new Shake();
@@ -42,12 +55,13 @@ export class FxLayer {
       // A disaster first seen part-way through (a loaded game) skips its opening.
       const fresh = d.age <= 2;
       if (d.type === 'tornado') this.addMover(d.id, new TornadoFx(this.mirror, this.particles, x, z));
-      else if (d.type === 'mirebeast') this.addMover(d.id, new MirebeastFx(this.mirror, this.particles, x, z, d.heading));
+      else if (d.type === 'mirebeast') this.addMover(d.id, new MirebeastFx(this.mirror, this.particles, x, z, d.heading, this.emit));
       else if (!fresh) continue;
-      else if (d.type === 'planeCrash') this.addImpact(new PlaneCrash(this.particles, this.mirror, x, z));
+      else if (d.type === 'planeCrash') this.addImpact(new PlaneCrash(this.particles, this.mirror, x, z, this.emit));
       else if (d.type === 'shipwreck') this.addImpact(new Shipwreck(this.particles, x, z));
       else if (d.type === 'meltdown') {
         this.addImpact(new Meltdown(this.particles, this.mirror, x, z));
+        this.emit({ type: 'meltdown', x, y: this.mirror.heightAt(x, z), z });
         this.shake.add(0.6);
       } else if (d.type === 'earthquake') {
         this.addImpact(new QuakeCracks(this.mirror, x, z));
@@ -55,6 +69,11 @@ export class FxLayer {
     }
     const live = new Set(disasters.map((d) => d.id));
     for (const [id, mover] of this.movers) if (!live.has(id)) mover.ending = true;
+  }
+
+  /** Where each tornado funnel is now. */
+  tornadoPositions(): Vector3[] {
+    return [...this.movers.values()].filter((m) => m instanceof TornadoFx && !m.ending).map((m) => m.group.position);
   }
 
   private addMover(id: number, mover: TornadoFx | MirebeastFx): void {
@@ -100,6 +119,8 @@ export class FxLayer {
     for (const [x, y] of this.tiles.collapses) {
       if (Math.hypot(x - target.x, y - target.z) < 25) this.shake.add(0.03);
     }
+    const first = this.tiles.collapses[0];
+    if (first) this.emit({ type: 'collapse', x: first[0] + 0.5, y: this.mirror.heightAt(first[0] + 0.5, first[1] + 0.5), z: first[1] + 0.5 });
     this.tiles.collapses.length = 0;
     this.shake.update(dt);
   }

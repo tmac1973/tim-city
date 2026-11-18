@@ -33,7 +33,7 @@ export class Renderer {
   private readonly water: WaterLayer;
   private readonly trees: TreeLayer;
   private readonly networks: NetworkLayer;
-  private readonly buildings: BuildingLayer;
+  readonly buildings: BuildingLayer;
   readonly overlay: OverlayLayer;
   readonly fx: FxLayer;
   readonly agents: AgentLayer;

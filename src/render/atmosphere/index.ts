@@ -50,6 +50,8 @@ export class Atmosphere {
   light = 1;
   private readonly rng = new VisualRng(0x11647);
   private flash = 0;
+  /** Lightning strikes so far (audio plays thunder on each new one). */
+  strikes = 0;
   private flashTimer = 5;
   private secondFlash = -1;
   private time = 0;
@@ -103,6 +105,7 @@ export class Atmosphere {
       this.flashTimer -= dt;
       if (this.flashTimer <= 0) {
         this.flash = 1;
+        this.strikes++;
         this.secondFlash = 0.12;
         this.flashTimer = this.rng.range(4, 12);
       }

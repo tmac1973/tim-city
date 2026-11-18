@@ -52,6 +52,25 @@ export const budgetOpen = signal(false);
 export const gameOver = signal(false);
 /** Time of day and weather for the top bar badge (null until the renderer runs). */
 export const skyState = signal<{ time: string; night: boolean; weather: 'clear' | 'overcast' | 'rain' | 'storm' | 'snow' | 'fog' } | null>(null);
+/** Sound levels, 0–1, kept in this browser. */
+function storedVolumes(): { master: number; music: number; sfx: number; ambience: number; muted: boolean } {
+  const fallback = { master: 0.8, music: 0.45, sfx: 0.8, ambience: 0.6, muted: false };
+  try {
+    const raw = localStorage.getItem('timcity.volumes');
+    return raw ? { ...fallback, ...(JSON.parse(raw) as Partial<typeof fallback>) } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+export const volumes = signal(storedVolumes());
+volumes.subscribe((v) => {
+  try {
+    localStorage.setItem('timcity.volumes', JSON.stringify(v));
+  } catch {
+    // Private mode or blocked storage: the levels just are not remembered.
+  }
+});
+
 /** Set when the player triggers a disaster from the menu: the camera flies to it. */
 export const watchNext = signal(false);
 /** The kind of vehicle the camera is riding with, or null. */

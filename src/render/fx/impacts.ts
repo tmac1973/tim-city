@@ -107,6 +107,7 @@ export class PlaneCrash implements Impact {
     mirror: CityMirror,
     x: number,
     z: number,
+    private readonly emit: (e: { type: 'explosion'; x: number; y: number; z: number }) => void = () => undefined,
   ) {
     this.to = new Vector3(x, mirror.heightAt(x, z), z);
     const a = Math.random() * Math.PI * 2;
@@ -136,6 +137,7 @@ export class PlaneCrash implements Impact {
       this.exploded = true;
       this.plane.visible = false;
       explosion(this.particles, this.to, 1.2);
+      this.emit({ type: 'explosion', x: this.to.x, y: this.to.y, z: this.to.z });
     }
     const left = 26 - this.time;
     if (left > 0) smokeColumn(this.particles, this.to, this.smokeRate.take(9 * Math.min(1, left / 6), dt), 1);

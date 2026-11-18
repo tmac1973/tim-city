@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('loads the canvas and title without console errors', async ({ page }) => {
+  // Full quality under software GL is slow when other tests share the CPU.
+  test.setTimeout(90_000);
   const errors: string[] = [];
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text());

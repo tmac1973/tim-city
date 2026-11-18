@@ -169,6 +169,7 @@ export class MirebeastFx {
     x: number,
     z: number,
     heading: number,
+    private readonly emit: (e: { type: 'roar' | 'footfall'; x: number; y: number; z: number }) => void = () => undefined,
   ) {
     const { mesh, bones } = build();
     this.mesh = mesh;
@@ -228,6 +229,8 @@ export class MirebeastFx {
     if (this.nextRoar <= 0 && emerge >= 1) {
       this.roar = 1.6;
       this.nextRoar = 6 + Math.random() * 5;
+      const p = this.group.position;
+      this.emit({ type: 'roar', x: p.x, y: p.y + 2, z: p.z });
     }
     this.roar = Math.max(0, this.roar - dt);
     const r = this.roar > 0 ? Math.sin(Math.min(1, (1.6 - this.roar) / 1.6) * Math.PI) : 0;
@@ -249,6 +252,7 @@ export class MirebeastFx {
     const x = this.group.position.x + lx * cos + lz * sin;
     const z = this.group.position.z - lx * sin + lz * cos;
     const y = this.mirror.heightAt(x, z);
+    this.emit({ type: 'footfall', x, y, z });
     for (let n = 0; n < 10; n++) {
       const a = Math.random() * Math.PI * 2;
       this.particles.smoke.emit({

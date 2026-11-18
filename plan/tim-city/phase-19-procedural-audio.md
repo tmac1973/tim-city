@@ -26,6 +26,15 @@ Add sound with zero audio files. All effects, ambience and music are synthesized
 6. Add volume signals; settings UI comes in phase 20, so `M` is the only control here.
 7. Write tests.
 
+## Implementation notes (changed during build)
+- `src/audio/index.ts` (`CityAudio`) samples the scene itself every 50 ms — camera, weather mix, nearby tiles and cars, burning tiles, fire trucks, tornado positions, quake trauma — instead of `main.ts` pushing each value; `main.ts` only wires sim events (tool results, milestones, the year's budget) and the UI.
+- Effects report moments through `FxLayer.events` (explosion, meltdown, roar, footfall, collapse), the atmosphere counts lightning strikes (thunder follows after a delay), and the building layer reports each building that rises (a soft positional chime, at most about three a second).
+- Sirens play only for fire trucks driving to a fire (police patrol silently), up to the three nearest, with Doppler from their frame-to-frame velocity; the speed of sound is scaled down so the shift is audible at toy scale.
+- The listener sits 30% of the way from the camera target toward the camera, so the street you look at sounds close even when the camera is high.
+- Volumes live in a `volumes` store signal kept in localStorage (`timcity.volumes`); `M` toggles mute. Phase 20 adds sliders.
+- A debug `level()` (an analyser on the master) lets `e2e/audio.spec.ts` check that sound plays after a click and stops when muted (Chromium only; headless Firefox and WebKit have no audio output).
+- Measured over 20 s on the starter city: master RMS median 0.025, peak 0.05, no silent gaps.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

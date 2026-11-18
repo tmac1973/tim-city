@@ -141,6 +141,13 @@ export class BuildingLayer {
     material.needsUpdate = true;
   }
 
+  private readonly riseListeners: ((at: Vector3) => void)[] = [];
+
+  /** Called when a new building rises out of the ground (not on first load). */
+  onRise(listener: (at: Vector3) => void): void {
+    this.riseListeners.push(listener);
+  }
+
   rebuild(id: number): void {
     const m = this.mirror;
     const animate = this.seenChunks.has(id);
@@ -275,6 +282,7 @@ export class BuildingLayer {
     if (animate) {
       this.anims.push({ instanceId, position, rotation, start: this.time, duration: RISE_SECONDS, rising: true });
       this.puffs.burst(position, 14, this.time);
+      for (const listener of this.riseListeners) listener(position);
     }
   }
 
