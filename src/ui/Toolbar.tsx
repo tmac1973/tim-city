@@ -51,6 +51,14 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
     ],
   },
   {
+    label: 'Landmarks',
+    tools: [
+      { id: 'stadium', name: 'Stadium', key: '', code: '', cost: price(COSTS.stadium), hint: 'Homes stop growing past 50,000 residents without one. 4×4.' },
+      { id: 'seaport', name: 'Seaport', key: '', code: '', cost: price(COSTS.seaport), hint: 'Industry stops growing past 7,000 jobs without one. Place along open water. 4×4.' },
+      { id: 'airport', name: 'Airport', key: '', code: '', cost: price(COSTS.airport), hint: 'Commerce stops growing past 10,000 jobs without one. Needs flat ground. 6×6.' },
+    ],
+  },
+  {
     label: 'Land',
     tools: [
       { id: 'bulldoze', name: 'Bulldoze', key: 'B', code: 'KeyB', cost: price(COSTS.bulldoze, '/tile'), hint: 'Drag a box to clear trees, rubble and anything built.' },
@@ -83,7 +91,7 @@ export function Toolbar() {
         return;
       }
       for (const group of GROUPS) {
-        const def = group.tools.find((t) => t.code === e.code && (t.shift ?? false) === e.shiftKey);
+        const def = group.tools.find((t) => t.code !== '' && t.code === e.code && (t.shift ?? false) === e.shiftKey);
         if (def) activeTool.value = activeTool.value === def.id ? null : def.id;
       }
     };
@@ -116,7 +124,7 @@ export function Toolbar() {
               <Icon name={t.id} />
               <span class="tooltip">
                 <strong>{t.name}</strong>
-                <kbd>{t.key}</kbd>
+                {t.key ? <kbd>{t.key}</kbd> : <span />}
                 <span class="tooltip-cost">{t.cost}</span>
                 <span class="tooltip-hint">{t.hint}</span>
               </span>

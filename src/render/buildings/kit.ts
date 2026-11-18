@@ -135,7 +135,7 @@ export class Kit {
   }
 
   /** Cooling-tower style surface of revolution through (radius, height) profile points. */
-  lathe(cx: number, cz: number, y0: number, profile: readonly [number, number][], color: ColorLike, sides = 14): void {
+  lathe(cx: number, cz: number, y0: number, profile: readonly [number, number][], color: ColorLike, sides = 14, inward = false): void {
     for (let p = 0; p + 1 < profile.length; p++) {
       const [r0, h0] = profile[p] ?? [0, 0];
       const [r1, h1] = profile[p + 1] ?? [0, 0];
@@ -143,7 +143,10 @@ export class Kit {
         const a0 = (i / sides) * Math.PI * 2, a1 = ((i + 1) / sides) * Math.PI * 2;
         const pt = (r: number, a: number, h: number) => new Vector3(cx + Math.cos(a) * r, y0 + h, cz + Math.sin(a) * r);
         const mid = (a0 + a1) / 2;
-        this.quad(pt(r0, a0, h0), pt(r0, a1, h0), pt(r1, a1, h1), pt(r1, a0, h1), new Vector3(Math.cos(mid), 0, Math.sin(mid)), color);
+        // Surfaces like stadium stands face up and in rather than out.
+        const out = new Vector3(Math.cos(mid), 0, Math.sin(mid)).multiplyScalar(inward ? -1 : 1);
+        if (inward) out.y = 1;
+        this.quad(pt(r0, a0, h0), pt(r0, a1, h0), pt(r1, a1, h1), pt(r1, a0, h1), out, color);
       }
     }
   }

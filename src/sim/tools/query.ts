@@ -29,6 +29,15 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.FireStation]: 'Fire station',
   [TileKind.Park]: 'Park',
   [TileKind.LargePark]: 'Large park',
+  [TileKind.Stadium]: 'Stadium',
+  [TileKind.Seaport]: 'Seaport',
+  [TileKind.Airport]: 'Airport',
+};
+
+const UNLOCKS: Partial<Record<number, string>> = {
+  [TileKind.Stadium]: 'Homes past 50,000 residents',
+  [TileKind.Seaport]: 'Industry past 7,000 jobs, and exports',
+  [TileKind.Airport]: 'Commerce past 10,000 jobs',
 };
 
 /** A 0–255 field value as a word and a number. */
@@ -90,6 +99,9 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
     details.push(['City load', `${String(state.census.powerDemand)} of ${String(state.census.powerSupply)} units`]);
   } else if (isPower(kind)) {
     details.push(['Power', powered ? 'Live' : 'Not connected to a plant']);
+  } else if (UNLOCKS[kind]) {
+    details.push(['Unlocks', UNLOCKS[kind] ?? '']);
+    details.push(['Power', powered ? 'On' : 'Off — has no effect until powered']);
   } else if (kind === TileKind.PoliceStation || kind === TileKind.FireStation) {
     const funding = kind === TileKind.PoliceStation ? state.funding.police : state.funding.fire;
     details.push(['Covers', `${String(COVERAGE_RADIUS)} tiles around`]);

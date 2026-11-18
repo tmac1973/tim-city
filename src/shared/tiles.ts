@@ -41,6 +41,10 @@ export const TileKind = {
   FireStation: 231,
   Park: 232,
   LargePark: 233,
+
+  Stadium: 256,
+  Seaport: 257,
+  Airport: 258,
 } as const;
 export type TileKind = (typeof TileKind)[keyof typeof TileKind];
 
@@ -131,5 +135,11 @@ registerFootprint(TileKind.PoliceStation, ZONE_SIZE);
 registerFootprint(TileKind.FireStation, ZONE_SIZE);
 registerFootprint(TileKind.Park, 1);
 registerFootprint(TileKind.LargePark, ZONE_SIZE);
+export const STADIUM_SIZE = 4;
+export const SEAPORT_SIZE = 4;
+export const AIRPORT_SIZE = 6;
+registerFootprint(TileKind.Stadium, STADIUM_SIZE);
+registerFootprint(TileKind.Seaport, SEAPORT_SIZE);
+registerFootprint(TileKind.Airport, AIRPORT_SIZE);
 
 export const isPark = (kind: number): boolean => kind === TileKind.Park || kind === TileKind.LargePark;

@@ -1,4 +1,4 @@
-import type { Valves } from '@/shared/protocol';
+import type { SimEvent, Valves } from '@/shared/protocol';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
 
@@ -31,14 +31,38 @@ export function demandTargets(state: CityState): Valves {
   };
 }
 
-export const demandSystem: System = {
-  name: 'demand',
-  phaseTicks: [1],
-  run(state) {
-    const target = demandTargets(state);
-    const v = state.valves;
-    v.r = Math.round(v.r + (target.r - v.r) * VALVE_EASING);
-    v.c = Math.round(v.c + (target.c - v.c) * VALVE_EASING);
-    v.i = Math.round(v.i + (target.i - v.i) * VALVE_EASING);
-  },
-};
+/**
+ * Growth caps from the classic rules: past a size, a sector stops wanting
+ * to grow until the city has the special building it needs.
+ */
+export const DEMAND_CAPS = [
+  { zone: 'r', needs: 'stadium', limit: 50_000, measure: 'resPop' },
+  { zone: 'i', needs: 'seaport', limit: 7_000, measure: 'indJobs' },
+  { zone: 'c', needs: 'airport', limit: 10_000, measure: 'comJobs' },
+] as const;
+
+/** Which caps hold right now. */
+export function activeCaps(state: CityState): (typeof DEMAND_CAPS)[number][] {
+  return DEMAND_CAPS.filter((cap) => state.census[cap.measure] > cap.limit && state.census.specials[cap.needs] === 0);
+}
+
+export function demandSystem(emit: (event: SimEvent) => void): System {
+  return {
+    name: 'demand',
+    phaseTicks: [1],
+    run(state) {
+      const target = demandTargets(state);
+      const v = state.valves;
+      v.r = Math.round(v.r + (target.r - v.r) * VALVE_EASING);
+      v.c = Math.round(v.c + (target.c - v.c) * VALVE_EASING);
+      v.i = Math.round(v.i + (target.i - v.i) * VALVE_EASING);
+      for (const cap of activeCaps(state)) {
+        v[cap.zone] = Math.min(0, v[cap.zone]);
+        if (state.capNotified[cap.zone] !== state.date.year) {
+          state.capNotified[cap.zone] = state.date.year;
+          emit({ type: 'demandCap', zone: cap.zone, needs: cap.needs });
+        }
+      }
+    },
+  };
+}

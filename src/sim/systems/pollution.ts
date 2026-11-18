@@ -5,6 +5,8 @@ import { blockGeometry, blur, store } from './fields';
 
 /** Pollution a coal plant puts into its block before spreading. */
 export const COAL_POLLUTION = 255;
+const AIRPORT_POLLUTION = 120;
+const SEAPORT_POLLUTION = 60;
 const INDUSTRY_PER_LEVEL = 20;
 const PARK_CLEANING = 30;
 const TREE_CLEANING = 5;
@@ -32,6 +34,12 @@ export function updatePollution(state: CityState): void {
     } else if (kind === TileKind.CoalPlant && parts[i] === 1) {
       const c = state.blockIndex(x + 2, y + 2);
       acc[c] = (acc[c] ?? 0) + COAL_POLLUTION;
+    } else if (kind === TileKind.Airport && parts[i] === 1) {
+      const c = state.blockIndex(x + 3, y + 3);
+      acc[c] = (acc[c] ?? 0) + AIRPORT_POLLUTION;
+    } else if (kind === TileKind.Seaport && parts[i] === 1) {
+      const c = state.blockIndex(x + 2, y + 2);
+      acc[c] = (acc[c] ?? 0) + SEAPORT_POLLUTION;
     } else if (isPark(kind)) {
       acc[b] = (acc[b] ?? 0) - PARK_CLEANING;
     } else if (kind === TileKind.Tree) {

@@ -23,6 +23,13 @@ Add the three special buildings that unlock growth, as in the classic rules. Wit
 3. Write `specials.ts` models with the phase-07 kit parts and new parts (cranes, runway markings, floodlight masts).
 4. Write tests.
 
+## Implementation notes (changed during build)
+- Specials follow the plinth rule (no levelling); the airport allows at most 1 step of slope, others 2.
+- A seaport needs one whole lot edge on water; the model turns so its cranes face that side.
+- Powered specials are counted in the census (`census.specials`); caps also clamp the current valve to ≤ 0 so growth stops at once. Each cap's toast repeats at most once per game year.
+- Specials have no keyboard shortcuts (the toolbar shows none for them).
+- A debug `setFunds` command joined `setTile` for scripted checks and tests.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

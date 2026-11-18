@@ -36,7 +36,12 @@ export const MAX_LOT_SLOPE = 2;
  * two steps and the building stands on a plinth reaching down to its lowest
  * corner. Returns the clearing cost, or why the lot can't be used.
  */
-function checkLot(state: CityState, lot: Lot, taken: Set<number>): { clearing: number } | { reason: string } {
+function checkLot(
+  state: CityState,
+  lot: Lot,
+  taken: Set<number>,
+  maxSlope = MAX_LOT_SLOPE,
+): { clearing: number } | { reason: string } {
   let clearing = 0;
   for (const i of lot.tiles) {
     const kind = state.tiles[i] ?? 0;
@@ -46,7 +51,7 @@ function checkLot(state: CityState, lot: Lot, taken: Set<number>): { clearing: n
     if (kind !== TileKind.Empty) clearing += COSTS.bulldoze;
   }
   const heights = lotCorners(state, lot).map((c) => state.heights[c] ?? 0);
-  if (Math.max(...heights) - Math.min(...heights) > MAX_LOT_SLOPE) return { reason: 'Too steep' };
+  if (Math.max(...heights) - Math.min(...heights) > maxSlope) return { reason: 'Too steep' };
   for (const i of lot.tiles) taken.add(i);
   return { clearing };
 }
@@ -117,11 +122,21 @@ function markBuilt(state: CityState, lot: Lot): void {
  * A single building (plant, station, large park) of `size` × `size` tiles
  * whose top-left is one tile up and left of the click.
  */
-export function planBuilding(state: CityState, cmd: ToolCommand, kind: number, size: number, price: number): ToolPlan {
+export function planBuilding(
+  state: CityState,
+  cmd: ToolCommand,
+  kind: number,
+  size: number,
+  price: number,
+  rules: { maxSlope?: number; needsWaterEdge?: boolean } = {},
+): ToolPlan {
   const lot = lotAt(state, cmd.x1 - 1, cmd.y1 - 1, size);
   if (!lot) return fail('Too close to the edge');
-  const checked = checkLot(state, lot, new Set());
+  const checked = checkLot(state, lot, new Set(), rules.maxSlope);
   if ('reason' in checked) return fail(checked.reason, lot.tiles, lot.tiles);
+  if (rules.needsWaterEdge && waterSide(state, lot.x, lot.y, size) === null) {
+    return fail('Must face open water along one side', lot.tiles, lot.tiles);
+  }
   return {
     ok: true,
     cost: price + checked.clearing,
@@ -132,6 +147,28 @@ export function planBuilding(state: CityState, cmd: ToolCommand, kind: number, s
       markBuilt(state, lot);
     },
   };
+}
+
+/**
+ * The side of a size × size lot (0 north, 1 east, 2 south, 3 west) whose
+ * whole edge borders water, or null. Seaports need one for their quay.
+ */
+export function waterSide(state: { size: number; tiles: Uint16Array }, x: number, y: number, size: number): number | null {
+  const isWater = (tx: number, ty: number) =>
+    tx >= 0 && ty >= 0 && tx < state.size && ty < state.size && state.tiles[ty * state.size + tx] === TileKind.Water;
+  const edges: [number, number, number, number][] = [
+    [x, y - 1, 1, 0],
+    [x + size, y, 0, 1],
+    [x, y + size, 1, 0],
+    [x - 1, y, 0, 1],
+  ];
+  for (let side = 0; side < 4; side++) {
+    const [sx, sy, dx, dy] = edges[side] ?? [0, 0, 0, 0];
+    let all = true;
+    for (let k = 0; k < size; k++) if (!isWater(sx + dx * k, sy + dy * k)) all = false;
+    if (all) return side;
+  }
+  return null;
 }
 
 /** Small parks: drag a box; every open tile in it gets one. */

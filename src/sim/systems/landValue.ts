@@ -4,6 +4,9 @@ import type { CityState } from '../state';
 import { blockGeometry, countAround, store } from './fields';
 import { RESIDENTS_PER_LEVEL } from './zones';
 
+const AIRPORT_NOISE = 60;
+const AIRPORT_NOISE_REACH = 6;
+
 /** Population-weighted centre of the city, or the map centre before anyone lives there. */
 export function cityCentre(state: CityState): [number, number] {
   let sx = 0;
@@ -42,6 +45,8 @@ export function updateLandValue(state: CityState): void {
     v += Math.min(40, 5 * countAround(state, tx, ty, 2, (k) => k === TileKind.Tree));
     if (countAround(state, tx, ty, 4, isPark) > 0) v += 40;
     v += 3 * (state.heights[state.cornerIndex(tx, ty)] ?? 0);
+    // Aircraft noise.
+    if (countAround(state, tx, ty, AIRPORT_NOISE_REACH, (k) => k === TileKind.Airport) > 0) v -= AIRPORT_NOISE;
     v -= (pollution[b] ?? 0) / 2 + (crime[b] ?? 0) / 2;
     values[b] = v;
   }

@@ -59,6 +59,10 @@ const onSpeed = (next: Speed) => {
 render(h(App, { webglError, onSpeed }), appRoot);
 
 sim.onEvent((event) => {
+  if (event.type === 'demandCap') {
+    const what = { r: 'Homes', c: 'Commerce', i: 'Industry' }[event.zone];
+    toast(`${what} have stopped growing. The city needs a powered ${event.needs}.`, 'error', 7000);
+  }
   if (event.type === 'brownout') {
     toast(`Brownout: ${String(event.unpowered)} zones have no power. Build another power plant.`, 'error', 6000);
   }

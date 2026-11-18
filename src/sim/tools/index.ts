@@ -1,6 +1,6 @@
 import { COSTS } from '@/shared/costs';
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
-import { PLANT_SIZE, TileKind, ZONE_SIZE, ZoneType } from '@/shared/tiles';
+import { AIRPORT_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { planBulldoze } from './bulldoze';
@@ -53,6 +53,16 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
       break;
     case 'park':
       plan = planParks(state, cmd);
+      break;
+    case 'stadium':
+      plan = planBuilding(state, cmd, TileKind.Stadium, STADIUM_SIZE, COSTS.stadium);
+      break;
+    case 'seaport':
+      plan = planBuilding(state, cmd, TileKind.Seaport, SEAPORT_SIZE, COSTS.seaport, { needsWaterEdge: true });
+      break;
+    case 'airport':
+      // Runways need nearly flat ground.
+      plan = planBuilding(state, cmd, TileKind.Airport, AIRPORT_SIZE, COSTS.airport, { maxSlope: 1 });
       break;
   }
   if (plan.ok && plan.cost > state.funds) return fail('Not enough funds', plan.tiles);

@@ -39,7 +39,10 @@ export type ToolId =
   | 'police'
   | 'fire'
   | 'park'
-  | 'largePark';
+  | 'largePark'
+  | 'stadium'
+  | 'seaport'
+  | 'airport';
 export type BrushSize = 1 | 3 | 5;
 
 /**
@@ -69,6 +72,8 @@ export interface ToolCommand {
 export type SimCommand =
   /** Debug and test command: overwrite one tile's kind. */
   | { type: 'setTile'; x: number; y: number; kind: number }
+  /** Debug and test command: set the treasury. */
+  | { type: 'setFunds'; amount: number }
   | ToolCommand
   /** Read-only: answered at once, never queued. */
   | { type: 'query'; x: number; y: number; requestId: number };
@@ -102,6 +107,8 @@ export type SimEvent =
   | { type: 'yearEnd'; year: number }
   /** Some zones lost power because the grid's plants are at capacity. */
   | { type: 'brownout'; unpowered: number }
+  /** A zone type stopped growing until the city builds a special building. */
+  | { type: 'demandCap'; zone: 'r' | 'c' | 'i'; needs: 'stadium' | 'seaport' | 'airport' }
   | ToolResult
   | QueryResult;
 
@@ -112,6 +119,8 @@ export interface Census {
   indJobs: number;
   zones: { r: number; c: number; i: number };
   plants: { coal: number; nuclear: number };
+  /** Powered special buildings. */
+  specials: { stadium: number; seaport: number; airport: number };
   powerSupply: number;
   powerDemand: number;
   unpoweredZones: number;

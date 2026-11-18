@@ -11,6 +11,10 @@ export function takeCensus(state: CityState): void {
   for (let i = 0; i < size * size; i++) {
     const kind = tiles[i] ?? 0;
     if (parts[i] === 1) {
+      const lit = ((flags[i] ?? 0) & TileFlag.POWERED) !== 0;
+      if (lit && kind === TileKind.Stadium) census.specials.stadium++;
+      else if (lit && kind === TileKind.Seaport) census.specials.seaport++;
+      else if (lit && kind === TileKind.Airport) census.specials.airport++;
       if (kind === TileKind.CoalPlant) {
         census.plants.coal++;
         census.powerSupply += POWER_SUPPLY.coal;

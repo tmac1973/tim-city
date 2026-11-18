@@ -1,5 +1,5 @@
 import { TICKS_PER_MONTH } from '@/shared/constants';
-import { isRoad, TileFlag, zoneOf, ZoneType } from '@/shared/tiles';
+import { isRoad, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { isTransport, stepCost } from '../graph';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
@@ -47,6 +47,12 @@ export function buildServiceMap(state: CityState): Uint8Array {
   }
   for (let k = 0; k < size; k++) {
     for (const i of [k, (size - 1) * size + k, k * size, k * size + size - 1]) map[i] = (map[i] ?? 0) | SERVES_EDGE;
+  }
+  // A powered seaport is a way out for goods too.
+  for (let i = 0; i < size * size; i++) {
+    if (state.tiles[i] !== TileKind.Seaport || state.parts[i] !== 1) continue;
+    if (!((state.flags[i] ?? 0) & TileFlag.POWERED)) continue;
+    reachBox(state, (i % size) + 1, Math.floor(i / size) + 1, (t) => (map[t] = (map[t] ?? 0) | SERVES_EDGE));
   }
   serviceMaps.set(state, map);
   return map;

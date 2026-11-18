@@ -20,6 +20,9 @@ export const COSTS = {
   fireStation: 500,
   park: 10,
   largePark: 150,
+  stadium: 5000,
+  seaport: 3000,
+  airport: 10000,
 } as const;
 
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */

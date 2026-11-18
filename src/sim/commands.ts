@@ -39,4 +39,7 @@ export function registerCoreCommands(queue: CommandQueue): void {
     state.tiles[state.index(x, y)] = kind;
     state.markDirty(x, y);
   });
+  queue.on('setFunds', (state, { amount }) => {
+    state.funds = amount;
+  });
 }

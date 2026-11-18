@@ -78,6 +78,19 @@ const paths: Record<string, JSX.Element> = {
       <ellipse cx="17" cy="14" rx="4" ry="2.5" />
     </>
   ),
+  stadium: (
+    <>
+      <ellipse cx="12" cy="13" rx="9" ry="5" />
+      <ellipse cx="12" cy="13" rx="4.5" ry="2.2" />
+      <path d="M4 8v-3M20 8v-3" />
+    </>
+  ),
+  seaport: (
+    <>
+      <path d="M3 19c2 1.5 4 1.5 6 0s4-1.5 6 0 4 1.5 6 0M7 15V5h10v3M17 8v7M9 9h4v6" />
+    </>
+  ),
+  airport: <path d="M21 15.5 13 11V5a1.5 1.5 0 0 0-3 0v6l-8 4.5V17l8-2v3.5L8 20v1.5l3.5-1 3.5 1V20l-2-1.5V15l8 2z" />,
   query: (
     <>
       <circle cx="10.5" cy="10.5" r="6" />

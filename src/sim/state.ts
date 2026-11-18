@@ -25,6 +25,7 @@ export function emptyCensus(): Census {
     indJobs: 0,
     zones: { r: 0, c: 0, i: 0 },
     plants: { coal: 0, nuclear: 0 },
+    specials: { stadium: 0, seaport: 0, airport: 0 },
     powerSupply: 0,
     powerDemand: 0,
     unpoweredZones: 0,
@@ -63,6 +64,8 @@ export class CityState {
   readonly valves: Valves = { r: 0, c: 0, i: 0 };
   /** True while some zones are unpowered because plants are at capacity. */
   brownout = false;
+  /** Year each demand cap was last announced, so it repeats only yearly. */
+  readonly capNotified: Record<'r' | 'c' | 'i', number> = { r: -1, c: -1, i: -1 };
   /** Service funding, percent of full. Phase 11's budget window edits it. */
   readonly funding = { road: 100, police: 100, fire: 100 };
 

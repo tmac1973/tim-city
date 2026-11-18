@@ -1,6 +1,6 @@
 import { BatchedMesh, Color, Group, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CHUNK_SIZE } from '@/shared/constants';
-import { FOOTPRINTS, PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
+import { AIRPORT_SIZE, FOOTPRINTS, PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
 import { hash3 } from '../hash';
 import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT } from '../units';
@@ -8,6 +8,8 @@ import { PuffLayer } from './particles';
 import { Kit } from './kit';
 import { coalPlant, nuclearPlant } from './plants';
 import { fireStation, largePark, park, policeStation } from './services';
+import { airport, seaport, stadium } from './specials';
+import { waterSide } from '@/sim/tools/place';
 import { buildVariants, type Variant, variantKey } from './variants';
 import { BoltLayer, LotLayer } from './zoneMarkers';
 
@@ -19,8 +21,13 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.FireStation]: -6,
   [TileKind.Park]: -7,
   [TileKind.LargePark]: -8,
+  [TileKind.Stadium]: -10,
+  [TileKind.Seaport]: -11,
+  [TileKind.Airport]: -12,
 };
-const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9 };
+const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9, [AIRPORT_SIZE]: -13 };
+/** Seaport models face their quay to +z; turns that point it at each water side (N, E, S, W). */
+const QUAY_TURNS = [2, 1, 0, 3];
 const PLINTH_COLOR = 0x9c968a;
 
 /** Unit-tall stone base for a size × size lot, scaled to the slope it fills. */
@@ -85,6 +92,9 @@ export class BuildingLayer {
       [TileKind.FireStation]: fireStation(),
       [TileKind.Park]: park(),
       [TileKind.LargePark]: largePark(),
+      [TileKind.Stadium]: stadium(),
+      [TileKind.Seaport]: seaport(),
+      [TileKind.Airport]: airport(),
     };
     for (const [kind, model] of Object.entries(models)) {
       const key = BUILDING_KEYS[Number(kind)];
@@ -212,7 +222,8 @@ export class BuildingLayer {
     const instanceId = this.mesh.addInstance(geometryId);
     const { bottom, top } = this.lotHeights(tx, ty, size);
     const position = new Vector3(tx + size / 2, top, ty + size / 2);
-    const turns = Math.floor(hash3(tx, ty, 6) * 4);
+    const side = key === BUILDING_KEYS[TileKind.Seaport] ? waterSide(this.mirror, tx, ty, size) : null;
+    const turns = side !== null ? (QUAY_TURNS[side] ?? 0) : Math.floor(hash3(tx, ty, 6) * 4);
     const rotation = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), (turns * Math.PI) / 2);
     const shade = 0.9 + 0.2 * hash3(tx, ty, 7);
     this.mesh.setColorAt(instanceId, this.tint.setRGB(shade, shade, shade));
