@@ -4,6 +4,8 @@ import type { Ledger, SimEvent } from '@/shared/protocol';
 import { isRail, isRoad, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
+import { landmarkUpkeep } from './landmarks';
+import { EDUCATED } from './pollution';
 import { JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from './zones';
 
 /** Tax per resident or job, per point of land value, per percent of tax. */
@@ -67,7 +69,8 @@ export function computeLedger(state: CityState): Ledger {
     const tax = people * lv * state.taxRate * TAX_FACTOR;
     if (zone.type === ZoneType.R) ledger.residentialTax += tax;
     else if (zone.type === ZoneType.C) ledger.commercialTax += tax;
-    else ledger.industrialTax += tax;
+    // Industry near a university earns a quarter more.
+    else ledger.industrialTax += tax * ((state.field('educationCover')[state.blockIndex(i % size, Math.floor(i / size))] ?? 0) >= EDUCATED ? 1.25 : 1);
   }
   ledger.residentialTax = Math.round(ledger.residentialTax);
   ledger.commercialTax = Math.round(ledger.commercialTax);
@@ -77,6 +80,8 @@ export function computeLedger(state: CityState): Ledger {
   ledger.fire = Math.round((fire * STATION_UPKEEP * state.funding.fire) / 100);
   // Utility upkeep is monthly; the ledger is yearly.
   ledger.utilities = Math.round((utilities * MONTHS_PER_YEAR * state.funding.utilities) / 100);
+  ledger.landmarks = landmarkUpkeep(state, UPKEEP) * MONTHS_PER_YEAR;
+  ledger.tourism = state.tourism * MONTHS_PER_YEAR;
   ledger.bonds = state.bonds.reduce((sum, b) => sum + bondPayment(b), 0);
   return ledger;
 }

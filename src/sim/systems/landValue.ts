@@ -2,6 +2,7 @@ import { isPark, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { blockGeometry, countAround, store } from './fields';
+import { landmarkLandValue } from './landmarks';
 import { GARBAGE_PENALTY, hasGarbage, utilityRulesActive } from './utilityRules';
 import { RESIDENTS_PER_LEVEL } from './zones';
 
@@ -34,7 +35,8 @@ export function cityCentre(state: CityState): [number, number] {
  *   + 30 with water within 3 tiles, + 5 per tree within 2 tiles (at most 40)
  *   + 40 with a park within 4 tiles, + 3 per step of height
  *   − half of pollution and crime, − 30 within 4 tiles of a landfill,
- *   − 40 where people live and garbage isn't collected (once the rules apply).
+ *   − 40 where people live and garbage isn't collected (once the rules apply)
+ *   + the boost from leisure landmarks and monuments nearby.
  */
 export function updateLandValue(state: CityState): void {
   const { side, centre } = blockGeometry(state);
@@ -44,6 +46,7 @@ export function updateLandValue(state: CityState): void {
   const popDensity = state.field('popDensity');
   const rules = utilityRulesActive(state);
   const values = new Float32Array(side * side);
+  const landmarks = landmarkLandValue(state);
   for (let b = 0; b < values.length; b++) {
     const [tx, ty] = centre(b);
     let v = 128 - 1.5 * Math.hypot(tx - cx, ty - cy);
@@ -57,6 +60,7 @@ export function updateLandValue(state: CityState): void {
     // Nobody wants to live beside a landfill, or where rubbish piles up.
     if (countAround(state, tx, ty, LANDFILL_REACH, (k) => k === TileKind.Landfill) > 0) v -= LANDFILL_NUISANCE;
     if (rules && (popDensity[b] ?? 0) > 0 && !hasGarbage(state, tx, ty)) v -= GARBAGE_PENALTY;
+    v += landmarks[b] ?? 0;
     values[b] = v;
   }
   store(state.field('landValue'), values);

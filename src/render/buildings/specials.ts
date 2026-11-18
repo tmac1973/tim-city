@@ -1,3 +1,4 @@
+import { Vector3 } from 'three';
 import { Kit } from './kit';
 import type { Variant } from './variants';
 
@@ -81,5 +82,219 @@ export function airport(): Variant {
   k.block(0.65, -0.4, 0.2, 1.0, 0.12, 0.03, WHITE);
   k.block(0.18, -0.4, 0.1, 0.03, 0.2, 0.22, 0x2e86de);
   k.block(0.6, -0.4, 0.9, 0.15, 0.12, 0.03, 0x2e86de);
+  return done(k);
+}
+
+const STONE = 0xe6dfcf;
+const BRICK = 0xa45a3f;
+const ROOF_GREY = 0x6b7078;
+const LAWN = 0x7fb35a;
+const PATH_STONE = 0xd8c9a3;
+
+/** Columns along the front (+z) of a building, from x0 to x1. */
+function colonnade(k: Kit, x0: number, x1: number, z: number, h: number, n: number): void {
+  for (let c = 0; c < n; c++) k.cylinder(x0 + ((x1 - x0) * c) / (n - 1), z, 0.06, 0.12, h, STONE, 8);
+}
+
+/** 3×3 City Hall: steps, a columned front and a dome. */
+export function cityHall(): Variant {
+  const k = new Kit();
+  k.ground(-1.45, -1.45, 1.45, 1.45, CONCRETE);
+  k.block(0, 0.95, 2.2, 0.4, 0, 0.12, STONE);
+  k.block(0, -0.2, 2.2, 1.6, 0.12, 0.85, STONE, 0xcfc7b5);
+  k.windows(0, -0.2, 2.2, 1.6, 0.12, 3, 'punched');
+  colonnade(k, -0.9, 0.9, 0.7, 0.8, 6);
+  k.block(0, 0.7, 2.0, 0.2, 0.92, 0.1, STONE);
+  k.gable(0, 0.7, 2.0, 0.22, 1.02, 0.25, STONE, true);
+  k.cylinder(0, -0.2, 0.42, 0.97, 0.3, STONE, 16);
+  k.lathe(0, -0.2, 1.27, [[0.42, 0], [0.36, 0.2], [0.22, 0.36], [0.02, 0.44]], 0x7fae9b, 16);
+  return done(k);
+}
+
+/** 3×3 hospital: a white block with a red cross and a rooftop helipad. */
+export function hospital(): Variant {
+  const k = new Kit();
+  k.ground(-1.45, -1.45, 1.45, 1.45, CONCRETE);
+  k.block(-0.25, -0.2, 2.2, 1.8, 0, 1.3, WHITE, 0xd8d8d4);
+  k.windows(-0.25, -0.2, 2.2, 1.8, 0, 5, 'band');
+  k.block(0.95, 0.85, 0.7, 0.8, 0, 0.5, WHITE, 0xd8d8d4);
+  k.windows(0.95, 0.85, 0.7, 0.8, 0, 2, 'shop');
+  // The cross on the front, and the helipad.
+  k.block(-0.25, 0.71, 0.36, 0.02, 0.85, 0.12, 0xd63031);
+  k.block(-0.25, 0.71, 0.12, 0.02, 0.73, 0.36, 0xd63031);
+  k.cylinder(-0.25, -0.2, 0.5, 1.3, 0.03, 0x5b6068, 16);
+  k.ground(-0.4, -0.25, -0.1, -0.15, WHITE, 1.34);
+  return done(k);
+}
+
+/** 4×4 university: brick halls around a green quad, and a spired clock tower. */
+export function university(): Variant {
+  const k = new Kit();
+  k.ground(-1.95, -1.95, 1.95, 1.95, LAWN);
+  k.ground(-0.2, -1.95, 0.2, 1.95, PATH_STONE);
+  k.block(0, -1.45, 3.4, 0.8, 0, 0.75, BRICK, ROOF_GREY);
+  k.windows(0, -1.45, 3.4, 0.8, 0, 3, 'punched');
+  k.gable(0, -1.45, 3.4, 0.8, 0.75, 0.35, ROOF_GREY, true, BRICK);
+  for (const x of [-1.45, 1.45]) {
+    k.block(x, 0.3, 0.8, 2.2, 0, 0.6, BRICK, ROOF_GREY);
+    k.windows(x, 0.3, 0.8, 2.2, 0, 2, 'punched');
+    k.gable(x, 0.3, 0.8, 2.2, 0.6, 0.3, ROOF_GREY, false, BRICK);
+  }
+  k.block(0, -1.45, 0.45, 0.45, 0.75, 0.9, BRICK);
+  k.block(0, -1.22, 0.2, 0.02, 1.3, 0.2, 0xf4f1ea);
+  k.cylinder(0, -1.45, 0.3, 1.65, 0.55, ROOF_GREY, 4, undefined, 0.01);
+  for (const [x, z] of [[-0.7, 0.6], [0.7, 1.2]] as const) k.tree(x, z, 0.7, 0x4f8a3a, false);
+  return done(k);
+}
+
+
+/** 3×3 museum: a stepped classical front with a pediment. */
+export function museum(): Variant {
+  const k = new Kit();
+  k.ground(-1.45, -1.45, 1.45, 1.45, CONCRETE);
+  k.block(0, 0.9, 2.4, 0.6, 0, 0.08, STONE);
+  k.block(0, 0.75, 2.2, 0.4, 0.08, 0.08, STONE);
+  k.block(0, -0.25, 2.4, 1.7, 0, 0.95, STONE, 0xcfc7b5);
+  colonnade(k, -0.95, 0.95, 0.65, 0.85, 8);
+  k.block(0, 0.65, 2.2, 0.22, 0.97, 0.1, STONE);
+  k.gable(0, 0.65, 2.2, 0.24, 1.07, 0.32, STONE, true);
+  return done(k);
+}
+
+/** 4×4 zoo: fenced paddocks with trees, a pond and a few animals. */
+export function zoo(): Variant {
+  const k = new Kit();
+  k.ground(-1.95, -1.95, 1.95, 1.95, 0x8fbf5f);
+  k.ground(-0.12, -1.95, 0.12, 1.95, PATH_STONE, 0.016);
+  k.ground(-1.95, -0.12, 1.95, 0.12, PATH_STONE, 0.016);
+  for (let s = -1.85; s <= 1.85; s += 0.37) {
+    for (const [x, z] of [[s, -0.25], [s, 0.25], [-0.25, s], [0.25, s]] as const) k.block(x, z, 0.03, 0.03, 0, 0.14, 0x7a5a3a);
+  }
+  k.cylinder(1.0, 1.0, 0.55, 0, 0.02, 0x3d8fd1, 14);
+  for (const [x, z] of [[-1.2, -1.3], [-0.6, -0.9], [1.3, -1.1], [-1.1, 1.2]] as const) k.tree(x, z, 0.6, 0x4f8a3a, false);
+  // An elephant (grey), a giraffe (yellow, tall) and a zebra (white).
+  k.block(-1.0, 0.9, 0.3, 0.18, 0.12, 0.2, 0x8d8f93);
+  k.block(-0.8, 0.9, 0.1, 0.1, 0.22, 0.12, 0x8d8f93);
+  k.block(1.1, -0.8, 0.2, 0.1, 0.18, 0.14, 0xe0b44a);
+  k.block(1.18, -0.8, 0.05, 0.05, 0.3, 0.35, 0xe0b44a);
+  k.block(0.9, 1.6, 0.22, 0.1, 0.1, 0.12, 0xf2f2f2);
+  return done(k);
+}
+
+/** Wheel of the amusement park's Ferris wheel, about its hub (see amusementPark). */
+export const FERRIS_HUB: [number, number, number] = [-0.8, 1.35, -0.6];
+
+/** 4×4 amusement park: a coaster loop, tents and the stand of a Ferris wheel (the wheel turns in its own layer). */
+export function amusementPark(): Variant {
+  const k = new Kit();
+  k.ground(-1.95, -1.95, 1.95, 1.95, 0x9bc46a);
+  k.ground(-1.95, 0.6, 1.95, 0.85, PATH_STONE, 0.016);
+  // The wheel's A-frame stand.
+  const [hx, hy, hz] = FERRIS_HUB;
+  for (const dx of [-0.45, 0.45]) {
+    k.cylinder(hx + dx, hz - 0.12, 0.04, 0, hy, 0xd0d4d8, 6, undefined, 0.03);
+    k.cylinder(hx + dx, hz + 0.12, 0.04, 0, hy, 0xd0d4d8, 6, undefined, 0.03);
+  }
+  // Coaster: posts and a loop of track.
+  for (let a = 0; a < 12; a++) {
+    const ang = (a / 12) * Math.PI * 2;
+    const x = 0.9 + Math.cos(ang) * 0.75;
+    const z = -0.7 + Math.sin(ang) * 0.55;
+    const h = 0.4 + 0.35 * (1 + Math.sin(ang * 2));
+    k.cylinder(x, z, 0.03, 0, h, 0x9aa3ad, 4);
+    k.block(x, z, 0.16, 0.16, h, 0.04, 0xd63031);
+  }
+  // Striped tents.
+  for (const [x, z, c] of [[-1.2, 1.4, 0xd63031], [0, 1.45, 0x2e86de], [1.2, 1.4, 0xf5c542]] as const) {
+    k.cylinder(x, z, 0.38, 0, 0.3, WHITE, 10);
+    k.cylinder(x, z, 0.42, 0.3, 0.35, c, 10, undefined, 0.02);
+  }
+  return done(k);
+}
+
+/** The Ferris wheel itself: two rims with spokes and cars, turning about the x axis. */
+export function ferrisWheel(): Kit {
+  const k = new Kit();
+  const r = 1.05;
+  const n = 16;
+  const at = (a: number, rr: number, x: number) => new Vector3(x, Math.cos(a) * rr, Math.sin(a) * rr);
+  for (let s = 0; s < n; s++) {
+    const a0 = (s / n) * Math.PI * 2;
+    const a1 = ((s + 1) / n) * Math.PI * 2;
+    for (const x of [-0.12, 0.12]) {
+      // A flat band for each rim segment, facing out from the hub.
+      const out = at((a0 + a1) / 2, 1, 0);
+      k.quad(at(a0, r, x - 0.03), at(a1, r, x - 0.03), at(a1, r, x + 0.03), at(a0, r, x + 0.03), out, 0xf4f1ea);
+      k.quad(at(a0, r, x + 0.03), at(a1, r, x + 0.03), at(a1, r, x - 0.03), at(a0, r, x - 0.03), out.clone().negate(), 0xf4f1ea);
+      // A spoke, as a thin strip from the hub to the rim, seen from both sides.
+      if (s % 2 === 0) {
+        const side = new Vector3(1, 0, 0);
+        k.quad(at(a0, 0.05, x - 0.015), at(a0, r, x - 0.015), at(a0, r, x + 0.015), at(a0, 0.05, x + 0.015), at(a0 + Math.PI / 2, 1, 0), 0xd0d4d8);
+        k.quad(at(a0, 0.05, x + 0.015), at(a0, r, x + 0.015), at(a0, r, x - 0.015), at(a0, 0.05, x - 0.015), side.clone().negate(), 0xd0d4d8);
+      }
+    }
+    if (s % 2 === 0) {
+      const c = at(a0, r, 0);
+      k.box(-0.1, c.y - 0.2, c.z - 0.07, 0.1, c.y - 0.05, c.z + 0.07, [0xd63031, 0x2e86de, 0xf5c542][(s / 2) % 3] ?? WHITE);
+    }
+  }
+  k.box(-0.16, -0.06, -0.06, 0.16, 0.06, 0.06, 0xd0d4d8);
+  return k;
+}
+
+/** 1×1 statue: a figure on a plinth. */
+export function statue(): Variant {
+  const k = new Kit();
+  k.ground(-0.48, -0.48, 0.48, 0.48, PATH_STONE);
+  k.block(0, 0, 0.42, 0.42, 0, 0.35, STONE);
+  k.block(0, 0, 0.16, 0.12, 0.35, 0.35, 0x6f8f7e);
+  k.cylinder(0, 0, 0.07, 0.7, 0.14, 0x6f8f7e, 8);
+  k.block(0.12, 0, 0.18, 0.05, 0.6, 0.05, 0x6f8f7e);
+  return done(k);
+}
+
+/** 2×2 clock tower: a tall square tower whose clock faces light up at night. */
+export function clockTower(): Variant {
+  const k = new Kit();
+  k.ground(-0.95, -0.95, 0.95, 0.95, PATH_STONE);
+  k.block(0, 0, 0.7, 0.7, 0, 2.4, BRICK);
+  k.block(0, 0, 0.8, 0.8, 2.4, 0.08, STONE);
+  // Four glowing faces (glow 1.99: lit almost every night).
+  for (const [nx, nz] of [[0, 1], [0, -1], [1, 0], [-1, 0]] as const) {
+    const cx = nx * 0.36;
+    const cz = nz * 0.36;
+    const ux = nz !== 0 ? 0.2 : 0;
+    const uz = nx !== 0 ? 0.2 : 0;
+    const v = (sx: number, y: number) => new Vector3(cx + ux * sx + nx * 0.01, y, cz + uz * sx + nz * 0.01);
+    k.quad(v(-1, 1.9), v(1, 1.9), v(1, 2.3), v(-1, 2.3), new Vector3(nx, 0, nz), 0xf5eccf, 1.99);
+  }
+  k.cylinder(0, 0, 0.5, 2.48, 0.6, ROOF_GREY, 4, undefined, 0.01);
+  return done(k);
+}
+
+/** 2×2 "TIM" sign: big letters on a scaffold, lit at night. */
+export function timSign(): Variant {
+  const k = new Kit();
+  k.ground(-0.95, -0.95, 0.95, 0.95, 0x7a8f5a);
+  for (const x of [-0.8, 0, 0.8]) k.cylinder(x, -0.2, 0.03, 0, 0.6, 0x7a7f86, 5);
+  k.block(0, -0.2, 1.8, 0.06, 0.55, 0.05, 0x7a7f86);
+  const LETTER = 0xfff6d8;
+  const glowBox = (x: number, y: number, w: number, h: number) => {
+    const z = -0.17;
+    const v = (px: number, py: number) => new Vector3(px, py, z);
+    k.box(x - w / 2, y, z - 0.05, x + w / 2, y + h, z, LETTER);
+    k.quad(v(x - w / 2, y), v(x + w / 2, y), v(x + w / 2, y + h), v(x - w / 2, y + h), new Vector3(0, 0, 1), LETTER, 1.99);
+  };
+  // T
+  glowBox(-0.6, 1.25, 0.5, 0.1);
+  glowBox(-0.6, 0.6, 0.1, 0.65);
+  // I
+  glowBox(0, 0.6, 0.1, 0.75);
+  // M
+  glowBox(0.4, 0.6, 0.1, 0.75);
+  glowBox(0.8, 0.6, 0.1, 0.75);
+  glowBox(0.5, 1.1, 0.1, 0.25);
+  glowBox(0.7, 1.1, 0.1, 0.25);
+  glowBox(0.6, 0.98, 0.1, 0.2);
   return done(k);
 }

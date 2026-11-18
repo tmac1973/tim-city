@@ -46,6 +46,7 @@ export function takeCensus(state: CityState): void {
     }
   }
   census.utilityRules = utilityRulesActive(state);
+  census.tourism = state.tourism;
   state.census = census;
 }
 

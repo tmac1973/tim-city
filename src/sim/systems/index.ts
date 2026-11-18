@@ -8,6 +8,7 @@ import { censusSystem } from './census';
 import { climateSystem } from './climate';
 import { coverageSystem } from './coverage';
 import { crimeSystem } from './crime';
+import { tourismSystem } from './landmarks';
 import { landValueSystem } from './landValue';
 import { pollutionSystem } from './pollution';
 import { growthSystem, popDensitySystem } from './popDensity';
@@ -30,6 +31,7 @@ export function registerSystems(scheduler: Scheduler, emit: (event: SimEvent) =>
   scheduler.register(landValueSystem);
   scheduler.register(crimeSystem);
   scheduler.register(coverageSystem);
+  scheduler.register(tourismSystem);
   scheduler.register(popDensitySystem);
   scheduler.register(growthSystem);
   scheduler.register(roadsSystem);

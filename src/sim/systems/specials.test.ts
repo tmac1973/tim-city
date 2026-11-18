@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { SimEvent, ToolCommand, ToolId } from '@/shared/protocol';
-import { TileKind } from '@/shared/tiles';
+import { TileFlag, TileKind, zoneKind, ZoneType } from '@/shared/tiles';
 import { CityState } from '../state';
+import { placeFootprint } from '../tools/footprint';
 import { runTool } from '../tools';
+import { computeLedger } from './budget';
 import { takeCensus } from './census';
+import { updateCoverage } from './coverage';
 import { demandSystem } from './demand';
+import { landmarkApproval, updateTourism } from './landmarks';
 import { updateLandValue } from './landValue';
+import { updatePollution } from './pollution';
 import { updatePower } from './power';
+import { zoneScore } from './zones';
 
 function flatCity(): CityState {
   const state = new CityState({ name: 'T', seed: 'specials', size: 128 });
@@ -83,5 +89,89 @@ describe('placing landmarks', () => {
     runTool(s, tool('airport', 30, 30));
     updateLandValue(s);
     expect(s.field('landValue')[s.blockIndex(30, 36)]).toBeLessThan(before);
+  });
+});
+
+describe('landmarks', () => {
+  /** A powered landmark beside a road: coal plant, line, road, then the building. */
+  function withLandmark(t: ToolId, x: number, y: number): CityState {
+    const s = flatCity();
+    s.classReached = 3;
+    expect(runTool(s, tool('coal', 11, 11)).ok).toBe(true);
+    expect(runTool(s, tool('power', 14, 12, x - 2, 12)).ok).toBe(true);
+    expect(runTool(s, tool('road', x - 2, y + 3, x + 4, y + 3)).ok).toBe(true);
+    expect(runTool(s, tool(t, x, y)).ok).toBe(true);
+    if (t !== 'statue') expect(runTool(s, tool('power', x - 2, 12, x - 2, y)).ok).toBe(true);
+    updatePower(s);
+    return s;
+  }
+
+  it('locks landmarks until their class and allows one City Hall', () => {
+    const s = flatCity();
+    expect(runTool(s, tool('cityHall', 40, 40))).toMatchObject({ ok: false, reason: 'Unlocks at Town (2,000 people)' });
+    expect(runTool(s, tool('university', 40, 40))).toMatchObject({ ok: false, reason: 'Unlocks at Capital (50,000 people)' });
+    s.classReached = 1;
+    expect(runTool(s, tool('cityHall', 40, 40)).ok).toBe(true);
+    expect(runTool(s, tool('cityHall', 60, 60))).toMatchObject({ ok: false, reason: 'Only one per city' });
+  });
+
+  it('adds approval for City Hall and monuments, half when not working, capped at 15', () => {
+    const s = withLandmark('cityHall', 40, 20);
+    expect(landmarkApproval(s)).toBe(5);
+    // A statue on its own has no power or road: half of 1.
+    expect(runTool(s, tool('statue', 90, 90)).ok).toBe(true);
+    expect(landmarkApproval(s)).toBe(5);
+    expect(runTool(s, tool('statue', 92, 90)).ok).toBe(true);
+    expect(landmarkApproval(s)).toBe(6);
+    for (let k = 0; k < 20; k++) runTool(s, tool('timSign', 20 + 3 * k, 100));
+    expect(landmarkApproval(s)).toBe(15);
+  });
+
+  it('spreads health care that helps homes grow', () => {
+    const s = withLandmark('hospital', 40, 20);
+    updateCoverage(s);
+    const near = s.field('healthCover')[s.blockIndex(41, 21)] ?? 0;
+    expect(near).toBeGreaterThan(200);
+    const before = zoneScore(s, 50, 30, ZoneType.R);
+    s.field('healthCover').fill(0);
+    expect(zoneScore(s, 50, 30, ZoneType.R)).toBeLessThan(before);
+  });
+
+  it('halves industrial pollution and raises industrial tax near a university', () => {
+    const s = flatCity();
+    placeFootprint(s, 60, 60, zoneKind(ZoneType.I, 6));
+    s.flags[s.index(61, 61)] = TileFlag.ZONE_CENTER;
+    s.field('landValue').fill(100);
+    updatePollution(s);
+    const dirty = s.field('pollution')[s.blockIndex(61, 61)] ?? 0;
+    const tax = computeLedger(s).industrialTax;
+    s.field('educationCover').fill(255);
+    updatePollution(s);
+    expect(s.field('pollution')[s.blockIndex(61, 61)]).toBeCloseTo(dirty / 2, -1);
+    expect(computeLedger(s).industrialTax).toBe(Math.round(tax * 1.25));
+  });
+
+  it('raises land value around a zoo', () => {
+    const s = flatCity();
+    updateLandValue(s);
+    const before = s.field('landValue')[s.blockIndex(70, 70)] ?? 0;
+    s.classReached = 2;
+    expect(runTool(s, tool('zoo', 72, 72)).ok).toBe(true);
+    updateLandValue(s);
+    expect(s.field('landValue')[s.blockIndex(70, 70)]).toBeGreaterThan(before + 20);
+  });
+
+  it('earns tourism only with a road from the map edge, less with crime and pollution', () => {
+    const s = withLandmark('zoo', 40, 20);
+    updateTourism(s);
+    expect(s.tourism).toBe(0);
+    // Run the road on to the map's east edge.
+    expect(runTool(s, tool('road', 44, 23, 127, 23)).ok).toBe(true);
+    updateTourism(s);
+    expect(s.tourism).toBe(150);
+    s.field('crime').fill(255);
+    updateTourism(s);
+    expect(s.tourism).toBe(75);
+    expect(computeLedger(s).tourism).toBe(75 * 12);
   });
 });

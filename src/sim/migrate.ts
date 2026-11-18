@@ -51,6 +51,8 @@ export const migrations: Record<number, (save: RawSave) => RawSave> = {
       },
     };
   },
+  // 4 → 5: landmarks. No tourists yet; the new coverage fields start empty.
+  4: (save) => ({ ...save, header: { ...save.header, tourism: 0 } }),
 };
 
 export function migrate(save: RawSave, target: number): RawSave {

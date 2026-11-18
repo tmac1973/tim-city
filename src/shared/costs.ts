@@ -32,11 +32,52 @@ export const COSTS = {
   airport: 10000,
   waterTower: 600,
   landfill: 1000,
+  cityHall: 3000,
+  hospital: 2500,
+  university: 6000,
+  museum: 3000,
+  zoo: 4000,
+  amusementPark: 8000,
+  statue: 500,
+  clockTower: 1500,
+  timSign: 2500,
 } as const;
 
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */
 /** Running costs a month, at full funding. */
-export const UPKEEP = { waterTower: 20, landfill: 30 } as const;
+export const UPKEEP = {
+  waterTower: 20,
+  landfill: 30,
+  cityHall: 50,
+  hospital: 80,
+  university: 120,
+  museum: 40,
+  zoo: 60,
+  amusementPark: 100,
+  statue: 0,
+  clockTower: 5,
+  timSign: 5,
+} as const;
+export type LandmarkName = 'cityHall' | 'hospital' | 'university' | 'museum' | 'zoo' | 'amusementPark' | 'statue' | 'clockTower' | 'timSign';
+/**
+ * What each landmark spreads around it: a coverage field (hospital, university)
+ * or a land-value boost, at `strength` in the centre fading to 0 at `radius` tiles.
+ */
+export const LANDMARK_REACH: Partial<Record<LandmarkName, { radius: number; strength: number }>> = {
+  hospital: { radius: 24, strength: 255 },
+  university: { radius: 32, strength: 255 },
+  museum: { radius: 24, strength: 60 },
+  zoo: { radius: 24, strength: 60 },
+  amusementPark: { radius: 24, strength: 60 },
+  statue: { radius: 8, strength: 30 },
+  clockTower: { radius: 8, strength: 30 },
+  timSign: { radius: 8, strength: 30 },
+};
+/** Monthly tourism from a working leisure landmark reached by road from the map edge, before crime and pollution. */
+export const TOURISM_BASE: Partial<Record<LandmarkName, number>> = { museum: 120, zoo: 150, amusementPark: 250 };
+/** Approval each landmark adds; the total is capped. */
+export const LANDMARK_APPROVAL: Partial<Record<LandmarkName, number>> = { cityHall: 5, statue: 1, clockTower: 2, timSign: 3 };
+export const MAX_LANDMARK_APPROVAL = 15;
 /** Reach (tiles) and capacity (zone levels served) of each utility building. */
 export const UTILITY = {
   waterTower: { radius: 16, capacity: 300 },

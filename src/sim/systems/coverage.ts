@@ -3,6 +3,7 @@ import { FOOTPRINTS, TileFlag, TileKind, zoneOf } from '@/shared/tiles';
 import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { blockGeometry, store } from './fields';
+import { updateLandmarkCover } from './landmarks';
 import { hasRoadAccess } from './zones';
 
 /** Tiles over which a station's coverage fades to nothing. */
@@ -54,6 +55,7 @@ export function updateCoverage(state: CityState): void {
   store(state.field('policeCover'), police);
   store(state.field('fireCover'), fire);
   updateUtilities(state);
+  updateLandmarkCover(state);
 }
 
 /**

@@ -10,7 +10,7 @@ import { PuffLayer } from './particles';
 import { Kit } from './kit';
 import { coalPlant, gasPlant, nuclearPlant, oilPlant, rotorGeometry, solarFarm, TURBINE_HUB, windTurbine } from './plants';
 import { fireStation, landfill, largePark, park, policeStation, waterTower } from './services';
-import { airport, seaport, stadium } from './specials';
+import { airport, amusementPark, cityHall, clockTower, FERRIS_HUB, ferrisWheel, hospital, museum, seaport, stadium, statue, timSign, university, zoo } from './specials';
 import { waterSide } from '@/sim/tools/place';
 import { buildVariants, type Variant, variantKey } from './variants';
 import { BoltLayer, LotLayer } from './zoneMarkers';
@@ -32,7 +32,20 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.OilPlant]: -17,
   [TileKind.WaterTower]: -18,
   [TileKind.Landfill]: -19,
+  [TileKind.CityHall]: -21,
+  [TileKind.Hospital]: -22,
+  [TileKind.University]: -23,
+  [TileKind.Museum]: -24,
+  [TileKind.Zoo]: -25,
+  [TileKind.AmusementPark]: -26,
+  [TileKind.Statue]: -27,
+  [TileKind.ClockTower]: -28,
+  [TileKind.TimSign]: -29,
 };
+const PARK_KEY = -26;
+/** The Ferris wheel turns slowly, in radians a second. */
+const WHEEL_SPEED = 0.25;
+const MAX_WHEELS = 64;
 const WIND_KEY = -15;
 /** Turbine blades turn this fast, in radians a second. */
 const ROTOR_SPEED = 0.6;
@@ -107,6 +120,9 @@ export class BuildingLayer {
   private readonly rotors: InstancedMesh;
   private readonly rotorMaterial = new MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.6 });
   private readonly turbines = new Map<number, { hub: Vector3; facing: Quaternion; angle: number; powered: boolean }>();
+  /** Ferris wheels in amusement parks, which turn like the turbines but slower and about x. */
+  private readonly wheels: InstancedMesh;
+  private readonly parks = new Map<number, { hub: Vector3; facing: Quaternion; angle: number; powered: boolean }>();
   /** Blades hold still while the game is paused. */
   paused = false;
 
@@ -131,6 +147,15 @@ export class BuildingLayer {
       [TileKind.OilPlant]: oilPlant(),
       [TileKind.WaterTower]: waterTower(),
       [TileKind.Landfill]: landfill(),
+      [TileKind.CityHall]: cityHall(),
+      [TileKind.Hospital]: hospital(),
+      [TileKind.University]: university(),
+      [TileKind.Museum]: museum(),
+      [TileKind.Zoo]: zoo(),
+      [TileKind.AmusementPark]: amusementPark(),
+      [TileKind.Statue]: statue(),
+      [TileKind.ClockTower]: clockTower(),
+      [TileKind.TimSign]: timSign(),
     };
     for (const [kind, model] of Object.entries(models)) {
       const key = BUILDING_KEYS[Number(kind)];
@@ -163,7 +188,11 @@ export class BuildingLayer {
     this.rotors.count = 0;
     this.rotors.castShadow = true;
     this.rotors.frustumCulled = false;
-    this.group.add(this.mesh, this.lots.group, this.puffs.points, this.bolts.points, this.rotors);
+    this.wheels = new InstancedMesh(ferrisWheel().build(), this.rotorMaterial, MAX_WHEELS);
+    this.wheels.count = 0;
+    this.wheels.castShadow = true;
+    this.wheels.frustumCulled = false;
+    this.group.add(this.mesh, this.lots.group, this.puffs.points, this.bolts.points, this.rotors, this.wheels);
   }
 
   /** Total vertices across all building models, for budget checks. */
@@ -263,7 +292,7 @@ export class BuildingLayer {
       this.mesh.setColorAt(placed.instanceId, this.tint.setRGB(shade, shade * (burning ? 0.92 : 1), shade * (burning ? 0.85 : 1)));
     }
     for (const origin of wanted.keys()) {
-      const turbine = this.turbines.get(origin);
+      const turbine = this.turbines.get(origin) ?? this.parks.get(origin);
       if (turbine) turbine.powered = (m.flags[origin] ?? 0) & TileFlag.POWERED ? true : false;
     }
     this.chunkBolts.set(id, bolts);
@@ -317,6 +346,7 @@ export class BuildingLayer {
 
   private readonly spin = new Quaternion();
   private readonly zAxis = new Vector3(0, 0, 1);
+  private readonly xAxis = new Vector3(1, 0, 0);
 
   private updateRotors(dt: number): void {
     let n = 0;
@@ -329,6 +359,15 @@ export class BuildingLayer {
     }
     this.rotors.count = n;
     this.rotors.instanceMatrix.needsUpdate = true;
+    let w = 0;
+    for (const park of this.parks.values()) {
+      if (w >= MAX_WHEELS) break;
+      if (park.powered && !this.paused) park.angle = (park.angle + WHEEL_SPEED * dt) % (Math.PI * 2);
+      this.spin.setFromAxisAngle(this.xAxis, park.angle).premultiply(park.facing);
+      this.wheels.setMatrixAt(w++, this.matrix.compose(park.hub, this.spin, this.scale));
+    }
+    this.wheels.count = w;
+    this.wheels.instanceMatrix.needsUpdate = true;
   }
 
   /** Lowest and highest ground under a lot; buildings stand at the top. */
@@ -379,6 +418,11 @@ export class BuildingLayer {
       const powered = ((this.mirror.flags[origin] ?? 0) & TileFlag.POWERED) !== 0;
       this.turbines.set(origin, { hub, facing: rotation.clone(), angle: hash3(tx, ty, 8) * Math.PI * 2, powered });
     }
+    if (key === PARK_KEY) {
+      const hub = new Vector3(...FERRIS_HUB).applyQuaternion(rotation).add(position);
+      const powered = ((this.mirror.flags[origin] ?? 0) & TileFlag.POWERED) !== 0;
+      this.parks.set(origin, { hub, facing: rotation.clone(), angle: 0, powered });
+    }
     if (animate) {
       this.anims.push({ instanceId, position, rotation, start: this.time, duration: RISE_SECONDS, rising: true });
       this.puffs.burst(position, 14, this.time);
@@ -391,6 +435,7 @@ export class BuildingLayer {
     if (!placed) return;
     this.placed.delete(origin);
     this.turbines.delete(origin);
+    this.parks.delete(origin);
     for (const e of placed.emitters) this.puffs.removeEmitter(e);
     if (placed.plinthId !== null) this.mesh.deleteInstance(placed.plinthId);
     // Drop any running rise animation for this instance.

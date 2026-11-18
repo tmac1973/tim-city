@@ -50,7 +50,16 @@ export type ToolId =
   | 'seaport'
   | 'airport'
   | 'waterTower'
-  | 'landfill';
+  | 'landfill'
+  | 'cityHall'
+  | 'hospital'
+  | 'university'
+  | 'museum'
+  | 'zoo'
+  | 'amusementPark'
+  | 'statue'
+  | 'clockTower'
+  | 'timSign';
 /** Anything that can be locked until a city class: a tool, or an option of one. */
 export type UnlockId = ToolId | 'zoneHigh';
 export type BrushSize = 1 | 3 | 5;
@@ -90,6 +99,8 @@ export type SimCommand =
   | { type: 'setFunds'; amount: number }
   | { type: 'setTaxRate'; rate: number }
   | { type: 'setFunding'; service: keyof Funding; percent: number }
+  /** Testing and tooling only (no UI): treat the city as having reached a class, unlocking its tools. */
+  | { type: 'setClassReached'; cityClass: number }
   | { type: 'issueBond' }
   | { type: 'repayBond'; index: number }
   | { type: 'setRandomDisasters'; enabled: boolean }
@@ -290,6 +301,8 @@ export interface Census {
   ungarbagedLots: number;
   /** Water and garbage rules are in force (after an old save's grace period). */
   utilityRules: boolean;
+  /** Tourism income this month. */
+  tourism: number;
 }
 
 /** R, C, I demand, each −2000 … +2000. */
@@ -313,7 +326,7 @@ export interface ChunkSlice {
 }
 
 /** Block fields an overlay can show (power comes from tile flags instead). */
-export const FIELD_OVERLAYS = ['traffic', 'pollution', 'crime', 'landValue', 'popDensity', 'policeCover', 'fireCover', 'growth', 'waterCover', 'garbageCover'] as const;
+export const FIELD_OVERLAYS = ['traffic', 'pollution', 'crime', 'landValue', 'popDensity', 'policeCover', 'fireCover', 'growth', 'waterCover', 'garbageCover', 'healthCover', 'educationCover'] as const;
 export type FieldName = (typeof FIELD_OVERLAYS)[number];
 
 export type MainToWorker =

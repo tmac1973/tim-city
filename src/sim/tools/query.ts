@@ -1,7 +1,8 @@
-import { POWER_SUPPLY, UTILITY } from '@/shared/costs';
+import { type LandmarkName, POWER_SUPPLY, UTILITY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
-import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, MAX_DENSITY, TIER_CAP, TIER_NAMES, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, isLandmark, isLeisure, MAX_DENSITY, TIER_CAP, TIER_NAMES, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
 import { COVERAGE_RADIUS } from '../systems/coverage';
+import { landmarks, tourismFrom } from '../systems/landmarks';
 import { hasGarbage, hasWater, utilityRulesActive } from '../systems/utilityRules';
 import { HIGH_GROUND_STEPS, plantName, plantSupply, windOnHighGround } from '../systems/power';
 import type { CityState } from '../state';
@@ -40,6 +41,15 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.Airport]: 'Airport',
   [TileKind.WaterTower]: 'Water tower',
   [TileKind.Landfill]: 'Landfill',
+  [TileKind.CityHall]: 'City Hall',
+  [TileKind.Hospital]: 'Hospital',
+  [TileKind.University]: 'University',
+  [TileKind.Museum]: 'Museum',
+  [TileKind.Zoo]: 'Zoo',
+  [TileKind.AmusementPark]: 'Amusement park',
+  [TileKind.Statue]: 'Statue',
+  [TileKind.ClockTower]: 'Clock tower',
+  [TileKind.TimSign]: '"TIM" sign',
 };
 
 const UNLOCKS: Partial<Record<number, string>> = {
@@ -75,6 +85,19 @@ const BLOCK_WORDS: Record<GrowthBlock, (tier: number) => string> = {
   landValue: () => "Can't grow: high density needs good land value past level 6",
   demand: () => 'Waiting for demand',
 };
+
+const LANDMARK_EFFECTS: Record<LandmarkName, string> = {
+  cityHall: 'Approval +5',
+  hospital: 'Homes within 24 tiles grow more readily',
+  university: 'Industry within 32 tiles: half the pollution, a quarter more tax',
+  museum: 'Land value up within 24 tiles',
+  zoo: 'Land value up within 24 tiles',
+  amusementPark: 'Land value up within 24 tiles',
+  statue: 'Approval +1, land value up nearby',
+  clockTower: 'Approval +2, land value up nearby',
+  timSign: 'Approval +3, land value up nearby',
+};
+const formatDollars = (n: number) => `$${n.toLocaleString('en-US')}`;
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 /** "Mar 2003": the month an old save's grace period ends. */
@@ -139,6 +162,16 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
   } else if (UNLOCKS[kind]) {
     details.push(['Unlocks', UNLOCKS[kind] ?? '']);
     details.push(['Power', powered ? 'On' : 'Off — has no effect until powered']);
+  } else if (isLandmark(kind) && lot) {
+    const l = landmarks(state).find((m) => m.x === lot.x && m.y === lot.y);
+    if (l) {
+      details.push(['Effect', LANDMARK_EFFECTS[l.name]]);
+      if (isLeisure(kind)) {
+        const income = tourismFrom(state, l);
+        details.push(['Tourism', income > 0 ? `${formatDollars(income)} a month` : l.working ? 'None: no road from the map edge' : 'None until it works']);
+      }
+      details.push(['Working', l.working ? 'Yes' : 'Half strength: needs power and a road']);
+    }
   } else if (kind === TileKind.WaterTower || kind === TileKind.Landfill) {
     const spec = kind === TileKind.WaterTower ? UTILITY.waterTower : UTILITY.landfill;
     details.push(['Covers', `${String(spec.radius)} tiles around`]);

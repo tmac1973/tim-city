@@ -30,7 +30,7 @@ export const FIELD_NAMES = [
   'fireCover',
 ] as const;
 /** Fields added after the first save format; saved at the end, so older array order holds. */
-export const EXTRA_FIELD_NAMES = ['waterCover', 'garbageCover'] as const;
+export const EXTRA_FIELD_NAMES = ['waterCover', 'garbageCover', 'healthCover', 'educationCover'] as const;
 
 export function emptyCensus(): Census {
   return {
@@ -48,6 +48,7 @@ export function emptyCensus(): Census {
     unwateredLots: 0,
     ungarbagedLots: 0,
     utilityRules: true,
+    tourism: 0,
   };
 }
 
@@ -129,6 +130,8 @@ export class CityState {
    * 0 for new cities; saves from before utilities existed get two years' grace.
    */
   utilityGraceUntil = 0;
+  /** Tourism income this month (tourism.ts); the ledger counts twelve of it a year. */
+  tourism = 0;
 
   get taxSensitivity(): number {
     return DIFFICULTY[this.difficulty].taxSensitivity;

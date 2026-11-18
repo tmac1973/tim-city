@@ -11,6 +11,8 @@ export const COAL_POLLUTION = 255;
 const AIRPORT_POLLUTION = 120;
 const SEAPORT_POLLUTION = 60;
 const INDUSTRY_PER_LEVEL = 20;
+/** Education cover at which industry turns cleaner and better paid. */
+export const EDUCATED = 64;
 const PARK_CLEANING = 30;
 const TREE_CLEANING = 5;
 
@@ -33,7 +35,9 @@ export function updatePollution(state: CityState): void {
     const b = state.blockIndex(x, y);
     if ((flags[i] ?? 0) & TileFlag.ZONE_CENTER) {
       const zone = zoneOf(kind);
-      if (zone?.type === ZoneType.I) acc[b] = (acc[b] ?? 0) + INDUSTRY_PER_LEVEL * zone.density;
+      // Industry near a university pollutes half as much.
+      const taught = (state.field('educationCover')[b] ?? 0) >= EDUCATED ? 0.5 : 1;
+      if (zone?.type === ZoneType.I) acc[b] = (acc[b] ?? 0) + INDUSTRY_PER_LEVEL * zone.density * taught;
     } else if (isPlant(kind) && parts[i] === 1) {
       const smoke = PLANT_POLLUTION[plantName(kind) ?? 'nuclear'];
       const c = state.blockIndex(x + 2, y + 2);

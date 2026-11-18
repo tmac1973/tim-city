@@ -1,7 +1,7 @@
-import { COSTS } from '@/shared/costs';
+import { COSTS, type LandmarkName } from '@/shared/costs';
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
 import { isUnlocked, lockedMessage } from '@/shared/unlocks';
-import { AIRPORT_SIZE, LANDFILL_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WATER_TOWER_SIZE, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
+import { AIRPORT_SIZE, LANDFILL_SIZE, LANDMARK_SIZES, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WATER_TOWER_SIZE, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { planBlock } from './block';
@@ -86,6 +86,17 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
     case 'landfill':
       plan = planBuilding(state, cmd, TileKind.Landfill, LANDFILL_SIZE, COSTS.landfill);
       break;
+    case 'cityHall':
+    case 'hospital':
+    case 'university':
+    case 'museum':
+    case 'zoo':
+    case 'amusementPark':
+    case 'statue':
+    case 'clockTower':
+    case 'timSign':
+      plan = planLandmark(state, cmd, cmd.tool);
+      break;
     case 'airport':
       // Runways need nearly flat ground.
       plan = planBuilding(state, cmd, TileKind.Airport, AIRPORT_SIZE, COSTS.airport, { maxSlope: 1 });
@@ -97,6 +108,27 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
     return fail('Radioactive', plan.tiles, plan.bad);
   }
   return plan;
+}
+
+/** Tile kind of each landmark tool. */
+export const LANDMARK_KINDS: Record<LandmarkName, number> = {
+  cityHall: TileKind.CityHall,
+  hospital: TileKind.Hospital,
+  university: TileKind.University,
+  museum: TileKind.Museum,
+  zoo: TileKind.Zoo,
+  amusementPark: TileKind.AmusementPark,
+  statue: TileKind.Statue,
+  clockTower: TileKind.ClockTower,
+  timSign: TileKind.TimSign,
+};
+/** Landmarks a city may only have one of. */
+const ONE_PER_CITY = new Set<LandmarkName>(['cityHall', 'university']);
+
+function planLandmark(state: CityState, cmd: ToolCommand, name: LandmarkName): ToolPlan {
+  const kind = LANDMARK_KINDS[name];
+  if (ONE_PER_CITY.has(name) && state.tiles.some((k, i) => k === kind && state.parts[i] === 1)) return fail('Only one per city');
+  return planBuilding(state, cmd, kind, LANDMARK_SIZES[kind] ?? 1, COSTS[name]);
 }
 
 export function toResult(cmd: ToolCommand, plan: ToolPlan): ToolResult {

@@ -6,6 +6,7 @@ import type { System } from '../scheduler';
 import type { CityState } from '../state';
 import { blockGeometry } from './fields';
 import { findHotspot } from './hotspots';
+import { landmarkApproval } from './landmarks';
 import { monthIndex } from './utilityRules';
 
 export { CLASS_THRESHOLDS };
@@ -101,7 +102,8 @@ export function evaluate(state: CityState): Evaluation {
       cause: spot.cause,
     };
   });
-  const approval = approvalFrom(ranked.map(([, s]) => s));
+  // City Hall and monuments lift the mood, up to a cap.
+  const approval = Math.min(100, approvalFrom(ranked.map(([, s]) => s)) + landmarkApproval(state));
 
   const density = state.field('popDensity');
   const police = state.field('policeCover');

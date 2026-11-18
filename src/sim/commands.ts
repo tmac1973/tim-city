@@ -49,6 +49,9 @@ export function registerCoreCommands(queue: CommandQueue): void {
   queue.on('setFunding', (state, { service, percent }) => {
     state.funding[service] = Math.min(100, Math.max(0, Math.round(percent)));
   });
+  queue.on('setClassReached', (state, { cityClass }) => {
+    state.classReached = Math.max(0, Math.min(5, Math.round(cityClass)));
+  });
   queue.on('issueBond', (state) => {
     issueBond(state);
   });

@@ -109,6 +109,22 @@ export const OVERLAYS: OverlayDef[] = [
     high: 'Collected',
   },
   {
+    id: 'healthCover',
+    label: 'Health',
+    columns: false,
+    ramp: stops([[0, [255, 200, 210]], [1, [215, 50, 80]]], (t) => Math.min(0.8, t * 1.6)),
+    low: 'None',
+    high: 'Full',
+  },
+  {
+    id: 'educationCover',
+    label: 'Education',
+    columns: false,
+    ramp: stops([[0, [230, 210, 255]], [1, [120, 70, 210]]], (t) => Math.min(0.8, t * 1.6)),
+    low: 'None',
+    high: 'Full',
+  },
+  {
     id: 'growth',
     label: 'Growth',
     columns: false,

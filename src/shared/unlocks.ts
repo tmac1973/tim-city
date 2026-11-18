@@ -14,7 +14,16 @@ interface Unlock {
  */
 let UNLOCKS: readonly Unlock[] = [
   { tool: 'zoneHigh', name: 'High-density zones', cityClass: 1 },
+  { tool: 'hospital', name: 'Hospital', cityClass: 1 },
+  { tool: 'cityHall', name: 'City Hall', cityClass: 1 },
+  { tool: 'statue', name: 'Statue', cityClass: 1 },
   { tool: 'oil', name: 'Oil plant', cityClass: 2 },
+  { tool: 'museum', name: 'Museum', cityClass: 2 },
+  { tool: 'zoo', name: 'Zoo', cityClass: 2 },
+  { tool: 'clockTower', name: 'Clock tower', cityClass: 2 },
+  { tool: 'university', name: 'University', cityClass: 3 },
+  { tool: 'amusementPark', name: 'Amusement park', cityClass: 3 },
+  { tool: 'timSign', name: '"TIM" sign', cityClass: 3 },
 ];
 
 /** Swap the table for a test; returns a function that restores it. */

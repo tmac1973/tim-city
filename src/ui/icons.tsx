@@ -110,6 +110,60 @@ const paths: Record<string, JSX.Element> = {
       <path d="M3 19h18M8 9l1-3M14 8l2-3" />
     </>
   ),
+  cityHall: (
+    <>
+      <path d="M4 10h16L12 4zM5 20h14M6 10v10M10 10v10M14 10v10M18 10v10" />
+    </>
+  ),
+  hospital: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M12 8v8M8 12h8" />
+    </>
+  ),
+  university: (
+    <>
+      <path d="M2 9l10-5 10 5-10 5z" />
+      <path d="M6 11v5c3 2.5 9 2.5 12 0v-5M21 9v6" />
+    </>
+  ),
+  museum: (
+    <>
+      <path d="M3 9h18L12 3zM4 20h16M7 9v8M12 9v8M17 9v8M5 17h14" />
+    </>
+  ),
+  zoo: (
+    <>
+      <circle cx="12" cy="14" r="5" />
+      <circle cx="7" cy="7" r="2" />
+      <circle cx="17" cy="7" r="2" />
+      <path d="M10 13h.01M14 13h.01M11 16h2" />
+    </>
+  ),
+  amusementPark: (
+    <>
+      <circle cx="12" cy="10" r="7" />
+      <path d="M12 3v14M5 10h14M7 5l10 10M17 5 7 15M8 21l4-4 4 4" />
+    </>
+  ),
+  statue: (
+    <>
+      <circle cx="12" cy="5" r="2" />
+      <path d="M12 7v7M9 10l3-2 3 2M10 21v-4h4v4M7 21h10" />
+    </>
+  ),
+  clockTower: (
+    <>
+      <path d="M8 21V8l4-5 4 5v13zM6 21h12" />
+      <circle cx="12" cy="11" r="2.5" />
+      <path d="M12 9.5V11l1 1" />
+    </>
+  ),
+  timSign: (
+    <>
+      <path d="M3 5h6M6 5v9M11 5v9M15 14V5l2.5 5L20 5v9M5 14v6M18 14v6" />
+    </>
+  ),
   police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
   fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
   park: (

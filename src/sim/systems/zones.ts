@@ -60,7 +60,9 @@ export function zoneScore(state: CityState, x: number, y: number, type: ZoneType
     (state.field('crime')[b] ?? 0) / 4 -
     (state.field('traffic')[b] ?? 0) / 8;
   const buffer = type === ZoneType.R && nearIndustry(state, x, y) ? NEAR_INDUSTRY_PENALTY : 0;
-  return valve + local - buffer;
+  // People like living near a hospital.
+  const health = type === ZoneType.R ? (state.field('healthCover')[b] ?? 0) / 8 : 0;
+  return valve + local + health - buffer;
 }
 
 /** Land-value class 0–3 at a zone, which picks nicer buildings in better areas. */

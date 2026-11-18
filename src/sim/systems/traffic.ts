@@ -90,12 +90,12 @@ class TripSearch {
   }
 
   /** Path (tile indices, start first) to the nearest tile serving `want`, or null. */
-  find(state: CityState, starts: readonly number[], want: number, service: Uint8Array): number[] | null {
+  find(state: CityState, starts: readonly number[], want: number, service: Uint8Array, maxCost = MAX_TRIP_COST, maxExpansions = MAX_EXPANSIONS): number[] | null {
     this.run++;
     this.heapSize = 0;
     for (const s of starts) this.visit(s, 0, -1);
     let expansions = 0;
-    while (this.heapSize > 0 && expansions < MAX_EXPANSIONS) {
+    while (this.heapSize > 0 && expansions < maxExpansions) {
       const [node, cost] = this.pop();
       if (cost > (this.dist[node] ?? Infinity)) continue;
       expansions++;
@@ -107,7 +107,7 @@ class TripSearch {
         const n = d === 0 ? (x > 0 ? node - 1 : -1) : d === 1 ? (x < this.size - 1 ? node + 1 : -1) : d === 2 ? node - this.size : node + this.size;
         if (n < 0 || n >= total || !isTransport(state, n)) continue;
         const next = cost + stepCost(state, node, n);
-        if (next <= MAX_TRIP_COST) this.visit(n, next, node);
+        if (next <= maxCost) this.visit(n, next, node);
       }
     }
     return null;
@@ -197,6 +197,30 @@ export function runTrip(state: CityState, i: number, loadScale = 1): boolean {
   // Each block the trip drives through takes its load once.
   if (load > 0) search.loadPath(state, path, load, traffic);
   return true;
+}
+
+/**
+ * Whether a road route from the roads around tile (cx, cy) reaches the map
+ * edge (tourists arrive that way). Tourists travel farther than commuters:
+ * any distance on the map, searching at most half its tiles.
+ */
+export function reachesEdge(state: CityState, cx: number, cy: number): boolean {
+  let search = searches.get(state);
+  if (!search) {
+    search = new TripSearch(state.size);
+    searches.set(state, search);
+  }
+  const starts: number[] = [];
+  reachBox(state, cx, cy, (t) => {
+    if (isRoad(state.tiles[t] ?? 0)) starts.push(t);
+  });
+  if (starts.length === 0) return false;
+  // The service map marks edge roads; build it if this month's hasn't been yet.
+  const edge = new Uint8Array(state.size * state.size);
+  for (let k = 0; k < state.size; k++) {
+    for (const i of [k, (state.size - 1) * state.size + k, k * state.size, k * state.size + state.size - 1]) edge[i] = SERVES_EDGE;
+  }
+  return search.find(state, starts, SERVES_EDGE, edge, Infinity, (state.size * state.size) >> 1) !== null;
 }
 
 /**

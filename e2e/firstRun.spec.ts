@@ -39,6 +39,8 @@ test('first run: title, new city with preview, tips, and a city that grows', asy
 });
 
 test('settings persist across a reload', async ({ page }) => {
+  // The title screen compiles its shaders first, which is slow when every browser runs at once.
+  test.setTimeout(90_000);
   await page.goto('./?quality=low');
   await page.getByRole('button', { name: 'Settings' }).click();
   const dialog = page.getByRole('dialog', { name: 'Settings' });

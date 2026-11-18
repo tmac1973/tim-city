@@ -51,6 +51,15 @@ export const TileKind = {
   Airport: 258,
   WaterTower: 259,
   Landfill: 260,
+  CityHall: 261,
+  Hospital: 262,
+  University: 263,
+  Museum: 264,
+  Zoo: 265,
+  AmusementPark: 266,
+  Statue: 267,
+  ClockTower: 268,
+  TimSign: 269,
 
   /** Ground poisoned by a meltdown; unbuildable until it decays. */
   Radiation: 320,
@@ -202,5 +211,22 @@ export const WATER_TOWER_SIZE = 2;
 export const LANDFILL_SIZE = 4;
 registerFootprint(TileKind.WaterTower, WATER_TOWER_SIZE);
 registerFootprint(TileKind.Landfill, LANDFILL_SIZE);
+
+/** Landmark kinds and their footprints. */
+export const LANDMARK_SIZES: Record<number, number> = {
+  [TileKind.CityHall]: 3,
+  [TileKind.Hospital]: 3,
+  [TileKind.University]: 4,
+  [TileKind.Museum]: 3,
+  [TileKind.Zoo]: 4,
+  [TileKind.AmusementPark]: 4,
+  [TileKind.Statue]: 1,
+  [TileKind.ClockTower]: 2,
+  [TileKind.TimSign]: 2,
+};
+for (const [kind, size] of Object.entries(LANDMARK_SIZES)) registerFootprint(Number(kind), size);
+export const isLandmark = (kind: number): boolean => kind >= TileKind.CityHall && kind <= TileKind.TimSign;
+/** Leisure landmarks draw tourists. */
+export const isLeisure = (kind: number): boolean => kind === TileKind.Museum || kind === TileKind.Zoo || kind === TileKind.AmusementPark;
 
 export const isPark = (kind: number): boolean => kind === TileKind.Park || kind === TileKind.LargePark;
