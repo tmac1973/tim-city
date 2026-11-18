@@ -43,7 +43,19 @@ export class Weather {
     this.timer = rng.range(120, 360);
   }
 
+  /** Weather held fixed (benchmarks), or null to change normally. */
+  private forced: WeatherKind | null = null;
+
+  forceWeather(kind: WeatherKind | null): void {
+    this.forced = kind;
+    if (kind) {
+      this.kind = kind;
+      Object.assign(this.mix, TARGETS[kind]);
+    }
+  }
+
   step(dt: number, month: number, paused: boolean): void {
+    if (this.forced) return;
     if (!paused) this.timer -= dt;
     // Snow stops the moment winter ends.
     if (this.timer <= 0 || (this.kind === 'snow' && !isWinter(month))) this.change(month);

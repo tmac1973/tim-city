@@ -13,8 +13,16 @@ export class VisualClock {
     this.timeOfDay = start;
   }
 
+  /** A fixed time of day (benchmarks), or null to run normally. */
+  private forced: number | null = null;
+
+  forceTimeOfDay(t: number | null): void {
+    this.forced = t;
+    if (t !== null) this.timeOfDay = t;
+  }
+
   advance(dt: number, paused: boolean): void {
-    if (paused) return;
+    if (paused || this.forced !== null) return;
     this.timeOfDay = (this.timeOfDay + dt / DAY_SECONDS) % 1;
   }
 

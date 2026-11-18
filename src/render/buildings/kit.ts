@@ -11,7 +11,8 @@ const DOOR = new Color(0x3b2f2a);
 type ColorLike = Color | number;
 const toColor = (c: ColorLike) => (c instanceof Color ? c : new Color(c));
 
-export type WindowStyle = 'punched' | 'band' | 'curtain' | 'shop' | 'high';
+/** `strip`: one band of home windows per floor and face (far-away models). */
+export type WindowStyle = 'punched' | 'band' | 'curtain' | 'shop' | 'high' | 'strip';
 
 /**
  * Builds one building's geometry from simple parts. Every triangle carries a
@@ -158,7 +159,7 @@ export class Kit {
    * `fromFloor` skips lower storeys (for shopfronts or a lobby).
    */
   windows(cx: number, cz: number, w: number, d: number, y0: number, floors: number, style: WindowStyle, fromFloor = 0): void {
-    const bay = style === 'curtain' || style === 'band' ? Math.max(w, d) : 0.34;
+    const bay = style === 'curtain' || style === 'band' || style === 'strip' ? Math.max(w, d) : 0.34;
     const faces: [Vector3, Vector3, number][] = [
       [new Vector3(cx - w / 2, 0, cz - d / 2), new Vector3(1, 0, 0), w],
       [new Vector3(cx + w / 2, 0, cz + d / 2), new Vector3(-1, 0, 0), w],
@@ -171,7 +172,7 @@ export class Kit {
       const bays = Math.max(1, Math.round(length / bay));
       const bw = length / bays;
       const [fw, fh, fy] =
-        style === 'punched' ? [0.5, 0.48, 0.3] : style === 'band' ? [0.94, 0.42, 0.32] : style === 'curtain' ? [0.97, 0.86, 0.08] : style === 'shop' ? [0.86, 0.62, 0.12] : [0.7, 0.22, 0.66];
+        style === 'punched' ? [0.5, 0.48, 0.3] : style === 'band' ? [0.94, 0.42, 0.32] : style === 'curtain' ? [0.97, 0.86, 0.08] : style === 'shop' ? [0.86, 0.62, 0.12] : style === 'strip' ? [0.9, 0.36, 0.34] : [0.7, 0.22, 0.66];
       for (let f = fromFloor; f < floors; f++) {
         const yb = y0 + f * FLOOR + fy * FLOOR;
         const yt = yb + fh * FLOOR;

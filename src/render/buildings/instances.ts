@@ -1,7 +1,8 @@
-import { BatchedMesh, Color, Group, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
+import { BatchedMesh, type BufferGeometry, Color, Group, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CHUNK_SIZE } from '@/shared/constants';
 import { AIRPORT_SIZE, FOOTPRINTS, PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
 import { patchMaterial } from '../atmosphere/uniforms';
+import { BUILDING_LOD_DISTANCE, lodModel } from '../lod';
 import { hash3 } from '../hash';
 import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT } from '../units';
@@ -27,6 +28,7 @@ const BUILDING_KEYS: Partial<Record<number, number>> = {
   [TileKind.Airport]: -12,
 };
 const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9, [AIRPORT_SIZE]: -13 };
+const PLINTH_VALUES = new Set(Object.values(PLINTH_KEYS));
 /** Seaport models face their quay to +z; turns that point it at each water side (N, E, S, W). */
 const QUAY_TURNS = [2, 1, 0, 3];
 const PLINTH_COLOR = 0x9c968a;
@@ -43,6 +45,8 @@ const SINK_SECONDS = 0.6;
 interface Placed {
   key: number;
   instanceId: number;
+  /** The geometry drawn now: full detail or the far-away model. */
+  geometryId: number;
   plinthId: number | null;
   position: Vector3;
   rotation: Quaternion;
@@ -73,6 +77,9 @@ export class BuildingLayer {
   private readonly lots: LotLayer;
   private readonly variants = new Map<number, Variant>();
   private readonly geometryIds = new Map<number, number>();
+  /** Simple far-away model per variant key (see lod.ts). */
+  private readonly lodIds = new Map<number, number>();
+  private lodClock = 0;
   private readonly placed = new Map<number, Placed>();
   private readonly chunkOrigins = new Map<number, Set<number>>();
   private readonly chunkBolts = new Map<number, Vector3[]>();
@@ -105,8 +112,11 @@ export class BuildingLayer {
     }
     for (const [size, key] of Object.entries(PLINTH_KEYS)) this.variants.set(key, plinth(Number(size)));
 
+    const lods = new Map<number, BufferGeometry>();
+    for (const [key, v] of this.variants) if (!PLINTH_VALUES.has(key)) lods.set(key, lodModel(v.geometry));
     let vertices = 0;
     for (const v of this.variants.values()) vertices += v.geometry.getAttribute('position').count;
+    for (const g of lods.values()) vertices += g.getAttribute('position').count;
     // A building and its plinth per lot.
     const maxInstances = 2 * Math.ceil((mirror.size * mirror.size) / (ZONE_SIZE * ZONE_SIZE)) + 64;
     this.mesh = new BatchedMesh(
@@ -116,6 +126,7 @@ export class BuildingLayer {
       this.material,
     );
     for (const [key, v] of this.variants) this.geometryIds.set(key, this.mesh.addGeometry(v.geometry));
+    for (const [key, g] of lods) this.lodIds.set(key, this.mesh.addGeometry(g));
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
     // Instances are culled one by one; the batch as a whole spans the map.
@@ -212,6 +223,25 @@ export class BuildingLayer {
     this.lots.rebuild(id);
   }
 
+  /**
+   * Far buildings swap to their simple model, near ones back to full detail.
+   * Checked a few times a second; the swap is invisible at that range.
+   */
+  updateLod(dt: number, camera: Vector3): void {
+    this.lodClock -= dt;
+    if (this.lodClock > 0) return;
+    this.lodClock = 0.25;
+    const far2 = BUILDING_LOD_DISTANCE * BUILDING_LOD_DISTANCE;
+    for (const p of this.placed.values()) {
+      const near = p.position.distanceToSquared(camera) < far2;
+      const want = near ? this.geometryIds.get(p.key) : (this.lodIds.get(p.key) ?? this.geometryIds.get(p.key));
+      if (want !== undefined && want !== p.geometryId) {
+        this.mesh.setGeometryIdAt(p.instanceId, want);
+        p.geometryId = want;
+      }
+    }
+  }
+
   update(dt: number): void {
     this.time += dt;
     const t = this.time;
@@ -278,7 +308,7 @@ export class BuildingLayer {
       this.scale.set(1, top - bottom + 0.02, 1);
       this.mesh.setMatrixAt(plinthId, this.matrix.compose(new Vector3(position.x, bottom - 0.02, position.z), new Quaternion(), this.scale));
     }
-    this.placed.set(origin, { key, instanceId, plinthId, position, rotation, emitters });
+    this.placed.set(origin, { key, instanceId, geometryId, plinthId, position, rotation, emitters });
     if (animate) {
       this.anims.push({ instanceId, position, rotation, start: this.time, duration: RISE_SECONDS, rising: true });
       this.puffs.burst(position, 14, this.time);

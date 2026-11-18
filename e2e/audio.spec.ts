@@ -11,6 +11,8 @@ test('sound starts on the first click, plays, and M mutes it', async ({ page, br
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
 
   type Audio = { engine: { ctx: { state: string } | null } };
+  // Audio loads after the first frame, and makes no context until a gesture.
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tim: { audio?: Audio } }).__tim.audio !== undefined)).toBe(true);
   expect(await page.evaluate(() => (window as unknown as { __tim: { audio: Audio } }).__tim.audio.engine.ctx)).toBeNull();
 
   // A click on the map is the gesture that lets audio start.

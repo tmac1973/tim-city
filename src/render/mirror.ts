@@ -1,8 +1,26 @@
 import { CHUNK_SHIFT, CHUNK_SIZE, type MapSize } from '@/shared/constants';
 import type { ChunkSlice } from '@/shared/protocol';
+import { TileFlag, TileKind } from '@/shared/tiles';
 import { HEIGHT_UNIT, tileHeight } from './units';
 
-type ChunkListener = (id: number) => void;
+/** What changed in a chunk, as bits, so each layer rebuilds only when it must. */
+export const Changed = {
+  TILES: 1,
+  FLAGS: 2,
+  HEIGHTS: 4,
+  PARTS: 8,
+  /** The POTHOLED bit of any tile (roads draw worn asphalt). */
+  POTHOLES: 16,
+  /** A road, rail or power tile appeared, went or changed kind. */
+  NETWORK: 32,
+  /** A tree or water tile appeared or went (terrain, water and tree layers). */
+  NATURE: 64,
+} as const;
+
+const isNetworkKind = (k: number) => k >= 16 && k <= 63;
+const isNatureKind = (k: number) => k === TileKind.Tree || k === TileKind.Water;
+
+type ChunkListener = (id: number, changed: number) => void;
 
 /** Main-thread copy of the sim's tile arrays, patched chunk by chunk. */
 export class CityMirror {
@@ -27,24 +45,63 @@ export class CityMirror {
   }
 
   apply(chunks: readonly ChunkSlice[]): void {
+    const changes: number[] = [];
     for (const chunk of chunks) {
       const x0 = (chunk.id % this.chunksPerSide) * CHUNK_SIZE;
       const y0 = Math.floor(chunk.id / this.chunksPerSide) * CHUNK_SIZE;
+      let changed = 0;
       for (let row = 0; row < CHUNK_SIZE; row++) {
         const to = (y0 + row) * this.size + x0;
         const from = row * CHUNK_SIZE;
-        this.tiles.set(chunk.tiles.subarray(from, from + CHUNK_SIZE), to);
-        this.flags.set(chunk.flags.subarray(from, from + CHUNK_SIZE), to);
-        this.parts.set(chunk.parts.subarray(from, from + CHUNK_SIZE), to);
+        for (let k = 0; k < CHUNK_SIZE; k++) {
+          const i = to + k;
+          const j = from + k;
+          const tile = chunk.tiles[j] ?? 0;
+          const flag = chunk.flags[j] ?? 0;
+          const part = chunk.parts[j] ?? 0;
+          const oldFlag = this.flags[i] ?? 0;
+          const old = this.tiles[i] ?? 0;
+          if (old !== tile) {
+            changed |= Changed.TILES;
+            if (isNetworkKind(old) || isNetworkKind(tile)) changed |= Changed.NETWORK;
+            if (isNatureKind(old) || isNatureKind(tile)) changed |= Changed.NATURE;
+          }
+          if (oldFlag !== flag) {
+            changed |= Changed.FLAGS;
+            if ((oldFlag ^ flag) & TileFlag.POTHOLED) changed |= Changed.POTHOLES;
+          }
+          if (this.parts[i] !== part) changed |= Changed.PARTS;
+          this.tiles[i] = tile;
+          this.flags[i] = flag;
+          this.parts[i] = part;
+        }
       }
       const side = CHUNK_SIZE + 1;
       for (let row = 0; row < side; row++) {
         const to = (y0 + row) * (this.size + 1) + x0;
-        this.heights.set(chunk.heights.subarray(row * side, (row + 1) * side), to);
+        for (let k = 0; k < side; k++) {
+          const h = chunk.heights[row * side + k] ?? 0;
+          if (this.heights[to + k] !== h) {
+            changed |= Changed.HEIGHTS;
+            this.heights[to + k] = h;
+          }
+        }
       }
+      // The first slice of a chunk always counts as a full change.
+      if (!this.seen.has(chunk.id)) {
+        this.seen.add(chunk.id);
+        changed = 0xff;
+      }
+      changes.push(changed);
     }
-    for (const chunk of chunks) for (const listener of this.listeners) listener(chunk.id);
+    chunks.forEach((chunk, k) => {
+      const changed = changes[k] ?? 0;
+      if (changed === 0) return;
+      for (const listener of this.listeners) listener(chunk.id, changed);
+    });
   }
+
+  private readonly seen = new Set<number>();
 
   tile(x: number, y: number): number {
     return this.tiles[y * this.size + x] ?? 0;

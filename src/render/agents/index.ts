@@ -1,7 +1,7 @@
 import { Group, MeshStandardMaterial, type Ray, type Vector3 } from 'three';
-import type { CityMirror } from '../mirror';
+import { Changed, type CityMirror } from '../mirror';
 import { CarLayer } from './cars';
-import type { Agent } from './core';
+import { type Agent, InstancePool } from './core';
 import { EmergencyLayer } from './emergency';
 import { PedestrianLayer } from './pedestrians';
 import { PlaneLayer } from './planes';
@@ -46,7 +46,9 @@ export class AgentLayer {
       ...this.pedestrians.meshes,
       ...this.emergency.meshes,
     );
-    mirror.onChunkChanged(() => {
+    mirror.onChunkChanged((_id, changed) => {
+      // Agents follow roads, rail, water and buildings: only tile changes matter.
+      if (!(changed & (Changed.TILES | Changed.PARTS))) return;
       this.cars.markDirty();
       this.trains.markDirty();
       this.planes.markDirty();
@@ -60,8 +62,9 @@ export class AgentLayer {
     this.cars.setTraffic(data);
   }
 
-  update(dt: number, target: Vector3, cameraDistance: number, night = 0): void {
+  update(dt: number, target: Vector3, cameraDistance: number, night = 0, camera?: Vector3): void {
     const step = this.paused ? 0 : dt;
+    if (camera) InstancePool.viewer.copy(camera);
     this.cars.setNight(night);
     this.cars.update(step);
     this.trains.update(step);

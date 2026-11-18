@@ -121,7 +121,6 @@ export class StreetLights {
       for (const mesh of [this.poles, this.heads, this.glows]) mesh?.dispose();
       const capacity = Math.ceil(count * 1.5) + 64;
       this.poles = new InstancedMesh(this.poleGeometry, this.poleMaterial, capacity);
-      this.poles.castShadow = true;
       this.heads = new InstancedMesh(this.headGeometry, this.headMaterial, capacity);
       this.glows = new InstancedMesh(this.glowGeometry, this.glowMaterial, capacity);
       for (const mesh of [this.poles, this.heads, this.glows]) mesh.frustumCulled = false;

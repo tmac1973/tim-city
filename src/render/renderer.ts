@@ -12,7 +12,7 @@ import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
 import { NetworkLayer } from './networks';
 import { OverlayLayer, type OverlayName } from './overlays';
-import type { CityMirror } from './mirror';
+import { Changed, type CityMirror } from './mirror';
 import { PALETTE } from './palette';
 import { pickTile, type PickResult } from './picking';
 import { PostFx } from './post';
@@ -20,6 +20,9 @@ import { TerrainLayer } from './terrain';
 import { ToolPreview } from './toolPreview';
 import { TreeLayer } from './trees';
 import { WaterLayer } from './water';
+
+/** Chunks rebuilt per frame after the first load (see `frame`). */
+const REBUILDS_PER_FRAME = 4;
 
 /** Owns the WebGL context, the scene and the frame loop. */
 export class Renderer {
@@ -44,14 +47,18 @@ export class Renderer {
   private recentlyFollowed: Agent[] = [];
   private readonly hoverListeners: ((tile: PickResult | null) => void)[] = [];
   private readonly cursor: TileCursor;
-  private readonly dirty = new Set<number>();
+  /** Chunk id → what changed there (Changed bits), waiting to be rebuilt. */
+  private readonly dirty = new Map<number, number>();
   private readonly raycaster = new Raycaster();
   private readonly pointer = new Vector2();
   private pointerInside = false;
   private elapsed = 0;
+  private frameCount = 0;
+  private shadowEvery = 1;
   private lastTime = 0;
   private terrainShown = false;
   private readonly terrainListeners: (() => void)[] = [];
+  private readonly frameListeners: ((dt: number) => void)[] = [];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -115,7 +122,7 @@ export class Renderer {
     this.applyScales(preset);
     if (preset.shadowMap > 0) this.lighting.sun.shadow.mapSize.set(preset.shadowMap, preset.shadowMap);
 
-    mirror.onChunkChanged((id) => this.dirty.add(id));
+    mirror.onChunkChanged((id, changed) => this.dirty.set(id, (this.dirty.get(id) ?? 0) | changed));
     this.listenPointer();
     this.resize();
     window.addEventListener('resize', () => {
@@ -185,6 +192,8 @@ export class Renderer {
   }
 
   private applyScales(preset: QualityPreset): void {
+    this.shadowEvery = preset.shadowEvery;
+    this.webgl.shadowMap.autoUpdate = preset.shadowEvery <= 1;
     AGENT_SCALE.value = preset.agents;
     FX_SCALE.value = preset.particles;
   }
@@ -207,6 +216,11 @@ export class Renderer {
     this.hoverListeners.push(listener);
   }
 
+  /** Called after every frame with its duration in seconds. */
+  onFrame(listener: (dt: number) => void): void {
+    this.frameListeners.push(listener);
+  }
+
   /** Called once, after the first frame that shows terrain. */
   onTerrainShown(listener: () => void): void {
     this.terrainListeners.push(listener);
@@ -224,26 +238,36 @@ export class Renderer {
   private frame(dt: number): void {
     this.elapsed += dt;
     const hadDirty = this.dirty.size > 0;
-    for (const id of this.dirty) {
-      this.terrain.rebuild(id);
-      this.water.rebuild(id);
-      this.trees.rebuild(id);
-      this.networks.rebuild(id);
+    // Rebuild at most a few chunks a frame so a busy month never stalls one;
+    // the first load builds everything at once.
+    let budget = this.terrainShown ? REBUILDS_PER_FRAME : Infinity;
+    let flagsChanged = false;
+    for (const [id, changed] of this.dirty) {
+      if (budget-- <= 0) break;
+      this.dirty.delete(id);
+      // Each layer rebuilds only for the changes it draws.
+      if (changed & (Changed.NATURE | Changed.HEIGHTS)) {
+        this.terrain.rebuild(id);
+        this.water.rebuild(id);
+        this.trees.rebuild(id);
+      }
+      if (changed & (Changed.NETWORK | Changed.HEIGHTS)) this.atmosphere.lamps.rebuild(id);
+      if (changed & (Changed.NETWORK | Changed.HEIGHTS | Changed.POTHOLES)) this.networks.rebuild(id);
       this.buildings.rebuild(id);
-      this.fx.rebuild(id);
-      this.atmosphere.lamps.rebuild(id);
+      if (changed & (Changed.TILES | Changed.FLAGS | Changed.HEIGHTS)) this.fx.rebuild(id);
+      if (changed & Changed.FLAGS) flagsChanged = true;
     }
-    if (hadDirty) this.overlay.refreshPower();
-    this.dirty.clear();
+    if (flagsChanged) this.overlay.refreshPower();
     this.trees.flush();
 
     const cam = this.cityCamera;
     // Agents move first so a chase camera sees this frame's position.
-    this.agents.update(dt, cam.target, cam.following ? 0 : cam.distance, this.atmosphere.night);
+    this.agents.update(dt, cam.target, cam.following ? 0 : cam.distance, this.atmosphere.night, cam.camera.position);
     cam.update(dt);
     this.atmosphere.update(dt, cam.camera.position, cam.target, cam.distance);
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
     this.water.update(this.elapsed, this.lighting.sunDir, this.lighting.sun.color.clone().multiplyScalar(this.lighting.sun.intensity / 2.6));
+    this.buildings.updateLod(dt, cam.camera.position);
     this.buildings.update(dt);
     this.fx.update(dt, cam.target);
     // Earthquake shake: nudge the finished camera; next frame starts clean.
@@ -255,7 +279,11 @@ export class Renderer {
     if (cam.following) this.post.setView(0, 1);
     else this.post.setView(cam.zoom, cam.topDown);
     this.updateHover();
+    // Medium quality and below redraw shadows every other frame.
+    this.frameCount++;
+    if (this.shadowEvery > 1 && this.frameCount % this.shadowEvery === 0) this.webgl.shadowMap.needsUpdate = true;
     this.post.render(dt);
+    for (const listener of this.frameListeners) listener(dt);
 
     if (hadDirty && !this.terrainShown) {
       this.terrainShown = true;

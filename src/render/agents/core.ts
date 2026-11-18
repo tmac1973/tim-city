@@ -1,5 +1,6 @@
 import { type BufferGeometry, Color, InstancedMesh, type Material, Vector3 } from 'three';
 import type { Network } from '@/shared/tiles';
+import { AGENT_CULL_DISTANCE } from '../lod';
 import { DX, DY, type Dir, type Grid, links, type Pose2, Segment } from './roadGraph';
 
 /** Anything the camera can follow. Layers update these fields every frame. */
@@ -20,6 +21,16 @@ export interface Agent {
  * agent, end(). Matrices are written straight into the instance buffer.
  */
 export class InstancePool {
+  /** The camera position; pools that cull skip instances farther than AGENT_CULL_DISTANCE. */
+  static readonly viewer = new Vector3(Infinity, 0, 0);
+
+  /** Whether a model is big enough for its shadow to be worth drawing. */
+  static bigShadows(geometry: BufferGeometry): boolean {
+    geometry.computeBoundingSphere();
+    return (geometry.boundingSphere?.radius ?? 0) > 0.35;
+  }
+  /** Skip far instances (cars and trains: tiny at that range; planes and ships stay). */
+  cull = false;
   readonly mesh: InstancedMesh;
   private n = 0;
   private readonly color = new Color();
@@ -34,7 +45,8 @@ export class InstancePool {
   ) {
     this.mesh = new InstancedMesh(geometry, material, capacity);
     this.mesh.count = 0;
-    this.mesh.castShadow = shadows;
+    // Vehicle shadows are a few pixels; only big agents (planes, ships) cast them.
+    this.mesh.castShadow = shadows && InstancePool.bigShadows(geometry);
     this.mesh.receiveShadow = false;
     // Agents roam the whole map; skip per-mesh culling against a stale bound.
     this.mesh.frustumCulled = false;
@@ -48,6 +60,13 @@ export class InstancePool {
   /** Place one instance at p facing f (need not be unit), scaled by s, and stretched by sx along f. */
   push(px: number, py: number, pz: number, fx: number, fy: number, fz: number, scale: number, rgb: Color | number, sx = 1): void {
     if (this.n >= this.capacity) return;
+    if (this.cull) {
+      const v = InstancePool.viewer;
+      const dx = px - v.x;
+      const dy = py - v.y;
+      const dz = pz - v.z;
+      if (dx * dx + dy * dy + dz * dz > AGENT_CULL_DISTANCE * AGENT_CULL_DISTANCE) return;
+    }
     const s = scale * this.baseScale;
     const fl = Math.hypot(fx, fy, fz) || 1;
     const ax = fx / fl;

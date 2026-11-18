@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ToolCommand } from '@/shared/protocol';
 import { TileKind } from '@/shared/tiles';
+import { FIXTURE_CITY } from './fixtureCity';
 import { runScript, type ScriptAction } from './replay';
 import type { Simulation } from './sim';
 
@@ -79,6 +80,40 @@ describe('determinism', () => {
     expect(state.census.resPop).toBeGreaterThan(0);
     expect(state.census.indJobs).toBeGreaterThan(0);
   });
+
+  it('replays 50 game years identically, with every tool and two disasters', () => {
+    const info = { name: 'Fifty', seed: 'fifty-years', size: 128 } as const;
+    const tool = (t: ToolCommand['tool'], x0: number, y0: number, x1 = x0, y1 = y0, atTick = 0): ScriptAction => ({ atTick, command: { ...build(t, x0, y0, x1, y1), brush: 1 } });
+    const water: ScriptAction[] = [];
+    for (let y = 0; y < 128; y++) for (let x = 122; x < 128; x++) water.push({ atTick: 0, command: { type: 'setTile', x, y, kind: TileKind.Water } });
+    const script: ScriptAction[] = [
+      // The fixture town grows homes, shops and industry; the rest uses every other tool.
+      ...FIXTURE_CITY,
+      { atTick: 1, command: { type: 'setFunds', amount: 500_000 } },
+      ...water,
+      tool('nuclear', 20, 60),
+      tool('power', 23, 60, 26, 60),
+      tool('rail', 10, 90, 110, 90),
+      tool('fire', 70, 26),
+      tool('largePark', 64, 30),
+      tool('stadium', 80, 60),
+      tool('seaport', 119, 40),
+      tool('airport', 40, 100),
+      tool('raise', 100, 110, 100, 110, 50),
+      tool('lower', 104, 110, 104, 110, 51),
+      tool('level', 100, 114, 104, 114, 52),
+      tool('bulldoze', 64, 30, 66, 32, 3000),
+      { atTick: 16 * 12 * 10, command: { type: 'triggerDisaster', disaster: 'tornado' } },
+      { atTick: 16 * 12 * 20, command: { type: 'triggerDisaster', disaster: 'fire' } },
+    ];
+    const run = () => {
+      const { sim } = runScript(info, script, 50 * 12);
+      return { ...snapshot(sim), history: sim.state.history, evaluation: sim.state.evaluation };
+    };
+    const a = run();
+    expect(a.census.resPop).toBeGreaterThan(0);
+    expect(run()).toEqual(a);
+  }, 300_000);
 
   it('gives different random streams for different seeds', () => {
     const a = runScript({ name: 'A', seed: 'one', size: 128 }, [], 1).sim.state.random('x').next();

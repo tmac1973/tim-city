@@ -7,6 +7,8 @@ const runWebkit = !!process.env.CI || process.env.PW_WEBKIT === '1';
 
 export default defineConfig({
   testDir: 'e2e',
+  // The benchmark runs by hand on the reference laptop (`pnpm bench`).
+  testIgnore: 'bench.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

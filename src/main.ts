@@ -2,11 +2,12 @@ import { h, render } from 'preact';
 import { type MapSize, type Speed, START_YEAR, TICKS_PER_MONTH } from './shared/constants';
 import type { DifficultyName } from './shared/difficulty';
 import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/protocol';
-import { CityAudio } from './audio';
+import type { CityAudio } from './audio';
 import { gunzip } from './save/compress';
 import { QUALITY, type QualityName } from './shared/settings';
 import { isPower, isRoad, TileKind, zoneOf } from './shared/tiles';
 import { CityMirror } from './render/mirror';
+import { AutoQuality, lowerQuality } from './render/quality';
 import { MinimapPainter } from './render/minimap';
 import { Renderer } from './render/renderer';
 import { autosave, deleteSave, exportFile, importFile, loadSave, saveSlot, type SaveDetails } from './save/saveManager';
@@ -81,12 +82,12 @@ function reloadInto(slot: string, auto: boolean): void {
  * on the title screen. Seeds and saves in the address start a city straight
  * away: shared seed links and the end-to-end tests rely on it.
  */
-const titleMode = !['load', 'seed', 'size', 'new'].some((key) => params.has(key));
+const titleMode = !['load', 'seed', 'size', 'new', 'bench'].some((key) => params.has(key));
 
-/** The bundled sample city the title screen shows, or null if it cannot be fetched. */
-async function sampleCity(): Promise<Uint8Array | null> {
+/** A bundled city (the title's sample, or a benchmark), or null if it cannot be fetched. */
+async function bundledCity(path: string): Promise<Uint8Array | null> {
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}sample-city.timcity`);
+    const response = await fetch(`${import.meta.env.BASE_URL}${path}`);
     if (!response.ok) return null;
     return await gunzip(new Uint8Array(await response.arrayBuffer()));
   } catch {
@@ -102,7 +103,10 @@ async function start(): Promise<void> {
   const loadAuto = params.get('auto') === '1';
   let saveBytes: Uint8Array | null = null;
   screen.value = titleMode ? 'title' : 'game';
-  if (titleMode) saveBytes = await sampleCity();
+  if (titleMode) saveBytes = await bundledCity('sample-city.timcity');
+  // ?bench=bench-128 loads a benchmark city (see `pnpm bench`).
+  const benchName = params.get('bench');
+  if (benchName && /^[\w-]+$/.test(benchName)) saveBytes = await bundledCity(`bench/${benchName}.timcity`);
   if (loadName) {
     try {
       saveBytes = await loadSave(loadName, loadAuto);
@@ -216,21 +220,39 @@ async function start(): Promise<void> {
     });
     new ToolController(canvas, r, sim);
     r.start();
-    // Sound: synthesized live, started by the first click or key press.
-    const a = new CityAudio(r, mirror);
-    audio = a;
-    a.listenForGesture();
-    a.approval = () => evaluation.value?.approval ?? 50;
-    volumes.subscribe((v) => {
-      a.setVolumes(v);
-    });
-    setInterval(() => {
-      a.update(0.05);
-    }, 50);
+    // Too slow for the chosen quality: drop one tier, once, and say so.
+    if (!forcedQuality && !titleMode) {
+      const auto = new AutoQuality();
+      r.onFrame((dt) => {
+        if (document.hidden || !auto.sample(dt * 1000)) return;
+        const lower = lowerQuality(settings.value.quality);
+        if (!lower) return;
+        settings.value = { ...settings.value, quality: lower };
+        toast(`Graphics lowered to ${lower[0]?.toUpperCase() ?? ''}${lower.slice(1)} to keep things smooth (Settings to change)`, 'info', 6000);
+      });
+    }
+    const debug: Record<string, unknown> = { sim, mirror, renderer: r };
     if (import.meta.env.DEV || params.has('debug')) {
       // Debug handle for scripted checks: the dev server, or any build with ?debug.
-      (window as unknown as { __tim: unknown }).__tim = { sim, mirror, renderer: r, audio: a };
+      (window as unknown as { __tim: unknown }).__tim = debug;
     }
+    // Sound: synthesized live, loaded after the first frame and started by
+    // the first click or key press.
+    r.onTerrainShown(() => {
+      void import('./audio').then(({ CityAudio }) => {
+        const a = new CityAudio(r, mirror);
+        audio = a;
+        debug.audio = a;
+        a.listenForGesture();
+        a.approval = () => evaluation.value?.approval ?? 50;
+        volumes.subscribe((v) => {
+          a.setVolumes(v);
+        });
+        setInterval(() => {
+          a.update(0.05);
+        }, 50);
+      });
+    });
   } catch (err) {
     webglError = err instanceof Error ? err.message : String(err);
     console.error('WebGL renderer failed to start:', webglError);
@@ -439,6 +461,12 @@ async function start(): Promise<void> {
   document.documentElement.dataset.sim = 'ready';
   if (titleMode) {
     // The sample city stays paused behind the menu; no autosaves, no pop-ups.
+  } else if (benchName) {
+    // Benchmarks render the heaviest scene: night, rain, every agent moving,
+    // and the sim at fast speed sending changes every tick.
+    renderer?.atmosphere.clock.forceTimeOfDay(0.9);
+    renderer?.atmosphere.weather.forceWeather('rain');
+    sim.setSpeed('fast');
   } else if (saveBytes) {
     // A loaded city waits, paused, until the player is ready.
     currentSlot.value = loadName;

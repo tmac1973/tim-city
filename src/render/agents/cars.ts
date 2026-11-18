@@ -92,6 +92,7 @@ export class CarLayer {
     this.pools = { sedan: pool('sedan'), hatchback: pool('hatchback'), van: pool('van'), truck: pool('truck'), bus: pool('bus'), taxi: pool('taxi') };
     this.head = new Int32Array(mirror.size * mirror.size);
     this.lights = new InstancePool(MODELS.carLights(), this.lightMaterial, poolSize('cars'), false, VEHICLE_SCALE);
+    for (const p of [...Object.values(this.pools), this.lights]) p.cull = true;
   }
 
   get meshes() {

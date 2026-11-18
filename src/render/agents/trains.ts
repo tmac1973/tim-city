@@ -112,6 +112,7 @@ export class TrainLayer {
       coach: new InstancePool(MODELS.coach(), material, cap),
       freight: new InstancePool(MODELS.freight(), material, cap),
     };
+    for (const p of Object.values(this.pools)) p.cull = true;
   }
 
   get meshes() {

@@ -79,12 +79,31 @@ function budgetInfo(current: Simulation): BudgetInfo {
   };
 }
 
+/**
+ * Dev builds log each system's average time per tick once a game year.
+ * Timing only: it never changes what the sim does.
+ */
+function profileTick(current: Simulation): void {
+  const scheduler = current.scheduler;
+  scheduler.timings ??= new Map();
+  const { month, tick } = current.state.date;
+  if (month !== 0 || tick !== 0) return;
+  const ticks = 12 * TICKS_PER_MONTH;
+  const report = [...scheduler.timings]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, ms]) => `${name} ${(ms / ticks).toFixed(2)}`)
+    .join(', ');
+  if (report) console.log(`[sim] ms per tick over the year: ${report}`);
+  scheduler.timings.clear();
+}
+
 function schedule(): void {
   clearTimeout(timer);
   const msPerMonth = SPEED_MS_PER_MONTH[speed];
   if (!sim || msPerMonth === 0) return;
   timer = setTimeout(() => {
     if (!sim) return;
+    if (import.meta.env.DEV) profileTick(sim);
     sim.step();
     publish(sim);
     schedule();

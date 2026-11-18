@@ -177,7 +177,7 @@ const searches = new WeakMap<CityState, TripSearch>();
  * destination was reached; on success the road blocks along the way gain
  * traffic in proportion to the zone's density.
  */
-export function runTrip(state: CityState, i: number): boolean {
+export function runTrip(state: CityState, i: number, loadScale = 1): boolean {
   const zone = zoneOf(state.tiles[i] ?? 0);
   if (!zone) return false;
   const service = state.serviceMap;
@@ -193,16 +193,23 @@ export function runTrip(state: CityState, i: number): boolean {
   const path = starts.length > 0 ? search.find(state, starts, WANTS[zone.type], service) : null;
   if (!path) return false;
   const traffic = state.field('traffic');
-  const load = zone.density * TRAFFIC_PER_LEVEL;
+  const load = zone.density * TRAFFIC_PER_LEVEL * loadScale;
   // Each block the trip drives through takes its load once.
   if (load > 0) search.loadPath(state, path, load, traffic);
   return true;
 }
 
 /**
- * Each zone sends one trip a month, on the tick given by its centre index.
- * At the start of the month old traffic fades and the service map is
- * rebuilt for the month's trips.
+ * Months a zone waits between trips: 1 on 128 maps; 2 on larger maps,
+ * where each trip carries double load so traffic levels match. It depends
+ * only on the map size, so a city replays identically.
+ */
+export const tripPeriod = (size: number): number => (size > 128 ? 2 : 1);
+
+/**
+ * Each zone sends one trip a month (every other month on big maps), on the
+ * tick given by its centre index. At the start of the month old traffic
+ * fades and the service map is rebuilt for the month's trips.
  */
 export const trafficSystem: System = {
   name: 'traffic',
@@ -214,10 +221,13 @@ export const trafficSystem: System = {
       buildServiceMap(state);
     }
     const { size, flags } = state;
-    for (let i = tick; i < size * size; i += TICKS_PER_MONTH) {
+    const period = tripPeriod(size);
+    const month = state.date.year * 12 + state.date.month;
+    const slot = tick + TICKS_PER_MONTH * (month % period);
+    for (let i = slot; i < size * size; i += TICKS_PER_MONTH * period) {
       const f = flags[i] ?? 0;
       if (!(f & TileFlag.ZONE_CENTER)) continue;
-      flags[i] = runTrip(state, i) ? f & ~TileFlag.TRIP_FAILED : f | TileFlag.TRIP_FAILED;
+      flags[i] = runTrip(state, i, period) ? f & ~TileFlag.TRIP_FAILED : f | TileFlag.TRIP_FAILED;
     }
   },
 };

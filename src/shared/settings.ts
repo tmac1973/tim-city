@@ -3,6 +3,8 @@ export type QualityName = 'low' | 'medium' | 'high' | 'ultra';
 export interface QualityPreset {
   /** Shadow map size; 0 turns shadows off. */
   shadowMap: number;
+  /** Redraw shadows every Nth frame (1: every frame). */
+  shadowEvery: number;
   bloom: boolean;
   tiltShift: boolean;
   smaa: boolean;
@@ -14,10 +16,10 @@ export interface QualityPreset {
 }
 
 export const QUALITY: Record<QualityName, QualityPreset> = {
-  low: { shadowMap: 0, bloom: false, tiltShift: false, smaa: false, pixelRatio: 1, agents: 0.25, particles: 0.25 },
-  medium: { shadowMap: 1024, bloom: true, tiltShift: true, smaa: false, pixelRatio: 1, agents: 0.5, particles: 0.5 },
-  high: { shadowMap: 2048, bloom: true, tiltShift: true, smaa: true, pixelRatio: 2, agents: 1, particles: 1 },
-  ultra: { shadowMap: 4096, bloom: true, tiltShift: true, smaa: true, pixelRatio: 2, agents: 1.5, particles: 1.5 },
+  low: { shadowMap: 0, shadowEvery: 1, bloom: false, tiltShift: false, smaa: false, pixelRatio: 1, agents: 0.25, particles: 0.25 },
+  medium: { shadowMap: 1024, shadowEvery: 2, bloom: true, tiltShift: true, smaa: false, pixelRatio: 1, agents: 0.5, particles: 0.5 },
+  high: { shadowMap: 2048, shadowEvery: 1, bloom: true, tiltShift: true, smaa: true, pixelRatio: 2, agents: 1, particles: 1 },
+  ultra: { shadowMap: 4096, shadowEvery: 1, bloom: true, tiltShift: true, smaa: true, pixelRatio: 2, agents: 1.5, particles: 1.5 },
 };
 
 export interface Settings {

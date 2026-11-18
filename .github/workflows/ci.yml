@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    # Release tags run the full checks. The tagged commit is the one main
+    # already deployed: the Pages environment only accepts deploys from main.
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -17,6 +20,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A hung download should fail fast, not hold the queue for hours.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -30,6 +35,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps
+        timeout-minutes: 15
       - run: xvfb-run -a pnpm e2e
       - if: failure()
         uses: actions/upload-artifact@v4

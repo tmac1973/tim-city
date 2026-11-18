@@ -94,3 +94,7 @@ The player is a desktop browser user who enjoys city builders. They open a publi
 - **Originality** → Original name, art, sound, UI and creature. Classic genre mechanics only, no copied content.
 - **Buildings on slopes** (decided in phase 07, following the roads decision) → Lots are not levelled; buildings stand on stone plinths on lots sloping up to 2 steps.
 - **Roads on slopes** (decided in phase 05) → Auto-grade: road and rail tools level each tile across the line and charge the terraform price, instead of refusing sloped tiles.
+- **Start parameters in production** (decided in phase 20) → The game opens on the title screen unless the address names a city (`?seed=`, `?load=`, `?new=`, `?bench=`), so shared seed links and the end-to-end tests start a city directly.
+- **First winter** (decided in phase 20) → Snow needs a December to build up, so a city founded in January starts green.
+- **Benchmark cities** (decided in phase 21) → A balanced 100,000-person city does not fit on a 128 map under the sim's rules, so the benchmark cities are packed with more homes than their jobs support and shrink at fast speed; the benchmark records the population at both ends.
+- **Release deploys** (decided in phase 21) → Pages deploys from `main` only (the environment's rule). Release tags run the full checks; the tagged commit is the one `main` deployed.

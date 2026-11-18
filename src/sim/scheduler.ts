@@ -25,7 +25,19 @@ export class Scheduler {
     }
   }
 
+  /** When set, total milliseconds per system name (dev profiling; never affects results). */
+  timings: Map<string, number> | null = null;
+
   runTick(state: CityState, tick: number): void {
-    for (const system of this.byTick[tick] ?? []) system.run(state, tick);
+    const timings = this.timings;
+    for (const system of this.byTick[tick] ?? []) {
+      if (!timings) {
+        system.run(state, tick);
+        continue;
+      }
+      const t0 = performance.now();
+      system.run(state, tick);
+      timings.set(system.name, (timings.get(system.name) ?? 0) + performance.now() - t0);
+    }
   }
 }

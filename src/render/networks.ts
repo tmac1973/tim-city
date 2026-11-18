@@ -139,7 +139,9 @@ export class NetworkLayer {
       const built = tris.build();
       geometries.push(built);
       const mesh = new Mesh(built, this.material);
-      mesh.castShadow = true;
+      // Roads and rails lie flat: drawing them into the shadow map costs a
+      // lot and shows nothing (pylon shadows are too thin to see).
+      mesh.castShadow = false;
       mesh.receiveShadow = true;
       chunk.add(mesh);
     }
