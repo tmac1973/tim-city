@@ -25,6 +25,10 @@ test('every overlay toggles on and off without errors', async ({ page, browserNa
     if (msg.type() === 'error') errors.push(msg.text());
   });
   page.on('pageerror', (err) => errors.push(err.message));
+  // On a slow runner a game year can pass; keep the budget window from covering the buttons.
+  await page.addInitScript(() => {
+    localStorage.setItem('timcity.autoBudget', 'off');
+  });
 
   await page.goto('./?seed=e2e');
   await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });

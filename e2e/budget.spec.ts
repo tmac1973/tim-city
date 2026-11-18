@@ -19,7 +19,8 @@ test('the budget window opens at year end and tax changes update the estimate', 
   await expect.poll(async () => money(await estimate.textContent())).toBeGreaterThan(0);
   const before = money(await estimate.textContent());
   await dialog.getByLabel('Tax rate').fill('14');
-  await expect.poll(async () => money(await estimate.textContent())).toBe(before * 2);
+  // The estimate rounds the total, so it can differ from an exact double by $1.
+  await expect.poll(async () => Math.abs(money(await estimate.textContent()) - before * 2)).toBeLessThanOrEqual(1);
 
   await dialog.getByRole('button', { name: 'Done' }).click();
   await expect(dialog).toBeHidden();
