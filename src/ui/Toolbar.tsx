@@ -2,10 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { COSTS, POWER_SUPPLY, zoneCost } from '@/shared/costs';
 import type { BrushSize, ToolId } from '@/shared/protocol';
 import { isUnlocked, lockedMessage, unlockLabel } from '@/shared/unlocks';
-import { TIER_CAP, TIER_NAMES, ZoneTier } from '@/shared/tiles';
+import { TIER_CAP, TIER_NAMES, ZoneTier, ZoneType } from '@/shared/tiles';
 import { Icon } from './icons';
 import {
   activeTool,
+  blockFill,
   brush,
   budgetOpen,
   classReached,
@@ -53,6 +54,7 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
     label: 'Transport',
     tools: [
       { id: 'road', name: 'Road', key: 'R', code: 'KeyR', cost: price(COSTS.road, '/tile'), hint: 'Drag to build. Slopes are graded for you. Hold Shift to tunnel through a hill.' },
+      { id: 'block', name: 'Block', key: 'H', code: 'KeyH', cost: price(COSTS.road, '/tile of road'), hint: 'Drag a rectangle: a ring of road sized to whole lots, filled with zones if you pick a type above.' },
       { id: 'rail', name: 'Rail', key: 'T', code: 'KeyT', cost: price(COSTS.rail, '/tile'), hint: 'Drag to build. Slopes are graded for you. Hold Shift to tunnel through a hill.' },
     ],
   },
@@ -194,6 +196,36 @@ function TierPicker() {
   );
 }
 
+const FILLS: [number | null, string][] = [
+  [null, 'Road only'],
+  [ZoneType.R, 'Res'],
+  [ZoneType.C, 'Com'],
+  [ZoneType.I, 'Ind'],
+];
+
+/** What the Block tool fills its ring with, at the top of the Transport flyout. */
+function BlockFillPicker() {
+  return (
+    <div class="tier-picker fill-picker" role="group" aria-label="Block fill">
+      {FILLS.map(([fill, label]) => (
+        <button
+          key={label}
+          type="button"
+          class={`tier-chip${blockFill.value === fill ? ' active' : ''}`}
+          aria-pressed={blockFill.value === fill}
+          title={fill === null ? 'The Block tool lays road only' : `The Block tool also zones the inside (${TIER_NAMES[zoneTier.value] ?? ''} density)`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+          }}
+          onClick={() => (blockFill.value = fill)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /** One to three bars showing a density tier. */
 function TierBars({ tier }: { tier: number }) {
   return (
@@ -298,6 +330,7 @@ export function Toolbar() {
               <div class="flyout panel" role="menu" aria-label={group.label}>
                 <span class="group-label">{group.label}</span>
                 {group.label === 'Zones' && <TierPicker />}
+                {group.label === 'Transport' && <BlockFillPicker />}
                 {group.label === 'Zones' && <span class="flyout-note">Paint over a zone of the same type to change its density. Its buildings stay.</span>}
                 {group.tools.map((t) => {
                   const locked = !isUnlocked(t.id as ToolId, classReached.value);

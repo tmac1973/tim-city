@@ -1,13 +1,22 @@
 import type { ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
+import { guideLots, LOT_GAPS, snapParallel } from '@/render/lotGuide';
+import { isRoad } from '@/shared/tiles';
 import type { PickResult } from '@/render/picking';
 import type { Renderer } from '@/render/renderer';
 import type { SimBridge } from '@/sim/bridge';
 import { TIER_NAMES } from '@/shared/tiles';
-import { activeTool, brush, costTag, formatMoney, queryResult, toast, type UiTool, zoneTier } from './store';
+import { activeTool, blockFill, brush, costTag, formatMoney, queryResult, toast, type UiTool, zoneTier } from './store';
 
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const ZONES = new Set<UiTool>(['residential', 'commercial', 'industrial']);
 const REPEAT_MS = 250;
+
+/** The gap beside a parallel road, in words for the cost tag. */
+function gapWords(gap: number): string {
+  if (gap === LOT_GAPS[0]) return 'gap 3: one row of lots';
+  if (gap === LOT_GAPS[1]) return 'gap 6: two rows of lots';
+  return `gap ${String(gap)}`;
+}
 
 /**
  * Turns mouse input on the map into tool commands. While the mouse moves it
@@ -19,6 +28,10 @@ export class ToolController {
   private requestId = 0;
   private latestDryRun = 0;
   private shift = false;
+  /** Alt held: road drags don't snap to lot-fitting gaps. */
+  private alt = false;
+  /** Gap to the parallel road beside the current road drag, for the cost tag. */
+  private gap: number | null = null;
   private mouse = { x: 0, y: 0 };
   private repeat: ReturnType<typeof setInterval> | undefined;
 
@@ -43,6 +56,7 @@ export class ToolController {
     activeTool.subscribe(reset);
     brush.subscribe(reset);
     zoneTier.subscribe(reset);
+    blockFill.subscribe(reset);
     this.listen();
   }
 
@@ -56,16 +70,29 @@ export class ToolController {
     const start = this.dragStart ?? end;
     this.requestId++;
     if (dryRun) this.latestDryRun = this.requestId;
+    let [x0, y0, x1, y1] = [start.x, start.y, end.x, end.y];
+    this.gap = null;
+    if (tool === 'road' && this.dragStart && !this.shift) {
+      // Nudge a straight road one tile so the land beside a parallel road fits whole lots.
+      const snap = snapParallel(this.renderer.mirror, x0, y0, x1, y1, isRoad);
+      if (snap) {
+        this.gap = snap.gap;
+        if (!this.alt && y0 === y1) [y0, y1] = [y0 + snap.shift, y1 + snap.shift];
+        else if (!this.alt) [x0, x1] = [x0 + snap.shift, x1 + snap.shift];
+        if (this.alt) this.gap = null;
+      }
+    }
     return {
       type: 'tool',
       tool,
-      x0: start.x,
-      y0: start.y,
-      x1: end.x,
-      y1: end.y,
+      x0,
+      y0,
+      x1,
+      y1,
       brush: brush.value,
       tunnel: this.shift,
-      ...(ZONES.has(tool) ? { tier: zoneTier.value } : {}),
+      ...(ZONES.has(tool) || tool === 'block' ? { tier: zoneTier.value } : {}),
+      ...(tool === 'block' && blockFill.value !== null ? { fill: blockFill.value } : {}),
       dryRun,
       requestId: this.requestId,
     };
@@ -77,6 +104,7 @@ export class ToolController {
     if (!cmd) {
       this.latestDryRun = -1;
       this.renderer.preview.clear();
+      this.renderer.lotGuide.clear();
       costTag.value = null;
       return;
     }
@@ -98,12 +126,15 @@ export class ToolController {
     }
     if (result.requestId !== this.latestDryRun || !activeTool.value) return;
     this.renderer.preview.show(result.tiles, result.bad, result.ok);
+    // Show the zone lots that would fit beside a road as it is drawn.
+    if (result.ok && (activeTool.value === 'road' || (activeTool.value === 'block' && blockFill.value === null))) this.renderer.lotGuide.show(guideLots(this.renderer.mirror, result.tiles));
+    else this.renderer.lotGuide.clear();
     const label = result.label ?? (activeTool.value === 'bulldoze' ? 'Clear' : this.shift && result.ok ? 'Tunnel' : '');
     costTag.value = {
       x: this.mouse.x,
       y: this.mouse.y,
       text: result.ok
-        ? `${label ? `${label} ` : ''}${formatMoney(result.cost)}${ZONES.has(activeTool.value) && !result.label ? ` · ${TIER_NAMES[zoneTier.value] ?? ''}` : ''}`
+        ? `${label ? `${label} ` : ''}${formatMoney(result.cost)}${ZONES.has(activeTool.value) && !result.label ? ` · ${TIER_NAMES[zoneTier.value] ?? ''}` : ''}${this.gap !== null ? ` · ${gapWords(this.gap)}` : ''}`
         : (result.reason ?? "Can't build"),
       ok: result.ok,
     };
@@ -155,6 +186,10 @@ export class ToolController {
       costTag.value = null;
     });
     const onShift = (e: KeyboardEvent) => {
+      if (e.key === 'Alt' && e.altKey !== this.alt) {
+        this.alt = e.altKey;
+        this.refreshPreview();
+      }
       if (e.key !== 'Shift' || e.shiftKey === this.shift) return;
       this.shift = e.shiftKey;
       this.refreshPreview();

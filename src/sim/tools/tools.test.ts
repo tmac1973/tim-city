@@ -5,6 +5,7 @@ import { setUnlockTableForTest } from '@/shared/unlocks';
 import { CityState } from '../state';
 import { placeFootprint } from './footprint';
 import { runTool } from './index';
+import { blockRect } from './block';
 import { connectionAxis, linePath } from './network';
 import { queryTile } from './query';
 
@@ -387,5 +388,24 @@ describe('wind turbines', () => {
     const q = queryTile(s, 30, 30, 1);
     expect(q.title).toBe('Wind turbine');
     expect(q.details).toContainEqual(['Output', '40 units']);
+  });
+});
+
+describe('block tool', () => {
+  it('sizes the ring so whole lots fit inside', () => {
+    expect(blockRect(10, 10, 17, 16)).toEqual({ x0: 10, y0: 10, x1: 17, y1: 17 });
+    expect(blockRect(10, 10, 11, 11)).toEqual({ x0: 10, y0: 10, x1: 14, y1: 14 });
+    expect(blockRect(20, 20, 12, 20)).toEqual({ x0: 20, y0: 20, x1: 13, y1: 24 });
+  });
+
+  it('lays a ring of road and fills it with zones of the chosen type', () => {
+    const s = flatCity();
+    expect(runTool(s, tool('block', 10, 10, 17, 16))).toMatchObject({ ok: true, cost: 28 * 10 });
+    for (const [x, y] of [[10, 10], [17, 10], [17, 17], [10, 17], [13, 10], [10, 13]] as const) expect(kindAt(s, x, y)).toBe(TileKind.Road);
+    expect(kindAt(s, 13, 13)).toBe(TileKind.Empty);
+
+    const z = flatCity();
+    expect(runTool(z, { ...tool('block', 10, 10, 17, 16), fill: 0, tier: ZoneTier.Low })).toMatchObject({ ok: true, cost: 28 * 10 + 4 * 100 });
+    for (const [x, y] of [[12, 12], [15, 12], [12, 15], [15, 15]] as const) expect((z.flags[z.index(x, y)] ?? 0) & TileFlag.ZONE_CENTER).toBeTruthy();
   });
 });

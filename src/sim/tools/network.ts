@@ -118,8 +118,12 @@ export function placeOnLand(state: CityState, tile: PathTile, network: Network, 
 }
 
 /** Plan a road, rail or power line drag. */
-export function planNetwork(state: CityState, cmd: ToolCommand, network: Network): ToolPlan {
-  const path = linePath(cmd.x0, cmd.y0, cmd.x1, cmd.y1);
+export function planNetwork(
+  state: CityState,
+  cmd: ToolCommand,
+  network: Network,
+  path: PathTile[] = linePath(cmd.x0, cmd.y0, cmd.x1, cmd.y1),
+): ToolPlan {
   const tiles = path.map((t) => state.index(t.x, t.y));
   if (path.some((t) => !state.inBounds(t.x, t.y))) return fail('Off the map', tiles);
 

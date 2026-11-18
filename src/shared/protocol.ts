@@ -26,6 +26,7 @@ export interface GameDate {
 
 export type ToolId =
   | 'road'
+  | 'block'
   | 'rail'
   | 'power'
   | 'bulldoze'
@@ -68,6 +69,8 @@ export interface ToolCommand {
   tunnel: boolean;
   /** Zone tools: the density tier to paint (ZoneTier; medium when absent). */
   tier?: number;
+  /** Block tool: the zone type to paint inside the ring (ZoneType), or absent for road only. */
+  fill?: number;
   /** Plan and report cost only; never queued, never changes state. */
   dryRun: boolean;
   /** Echoed in the result so the UI can match answers to requests. */

@@ -17,6 +17,7 @@ import { PALETTE } from './palette';
 import { pickTile, type PickResult } from './picking';
 import { PostFx } from './post';
 import { TerrainLayer } from './terrain';
+import { LotGuide } from './lotGuide';
 import { ToolPreview } from './toolPreview';
 import { TreeLayer } from './trees';
 import { WaterLayer } from './water';
@@ -31,6 +32,8 @@ export class Renderer {
   /** Tile under the mouse, or null. */
   hovered: PickResult | null = null;
   readonly preview: ToolPreview;
+  /** Zone lots that would fit beside the road being drawn. */
+  readonly lotGuide: LotGuide;
 
   private readonly webgl: WebGLRenderer;
   private readonly post: PostFx;
@@ -62,7 +65,7 @@ export class Renderer {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly mirror: CityMirror,
+    readonly mirror: CityMirror,
     quality: QualityName = 'high',
   ) {
     // postprocessing renders into its own buffers, so the default ones are off.
@@ -104,6 +107,7 @@ export class Renderer {
     };
     this.cursor = new TileCursor(mirror);
     this.preview = new ToolPreview(mirror);
+    this.lotGuide = new LotGuide(mirror);
     this.scene.add(
       this.terrain.group,
       this.water.group,
@@ -117,6 +121,7 @@ export class Renderer {
       this.terrain.drapes,
       this.cursor.line,
       this.preview.mesh,
+      this.lotGuide.lines,
     );
     this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera, preset);
     this.applyScales(preset);

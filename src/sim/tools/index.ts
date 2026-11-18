@@ -4,6 +4,7 @@ import { isUnlocked, lockedMessage } from '@/shared/unlocks';
 import { AIRPORT_SIZE, PLANT_SIZE, SEAPORT_SIZE, STADIUM_SIZE, TileKind, WIND_SIZE, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
+import { planBlock } from './block';
 import { planBulldoze } from './bulldoze';
 import { planNetwork } from './network';
 import { planBuilding, planParks, planZones } from './place';
@@ -17,6 +18,9 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
   if (!isUnlocked(cmd.tool, state.classReached)) return fail(lockedMessage(cmd.tool));
   let plan: ToolPlan;
   switch (cmd.tool) {
+    case 'block':
+      plan = planBlock(state, cmd);
+      break;
     case 'road':
     case 'rail':
     case 'power':

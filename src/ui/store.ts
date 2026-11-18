@@ -148,6 +148,8 @@ export const activeTool = signal<UiTool | null>(null);
 export const brush = signal<BrushSize>(3);
 /** Density tier the zone tools paint (ZoneTier). */
 export const zoneTier = signal(1);
+/** Zone type the Block tool paints inside its ring (ZoneType), or null for road only. */
+export const blockFill = signal<number | null>(null);
 /** The toolbar category whose flyout is open. */
 export const openCategory = signal<string | null>(null);
 /** The tool last picked in each toolbar category, shown on its button. */

@@ -296,6 +296,10 @@ button {
   background: rgb(255 255 255 / 6%);
 }
 
+.fill-picker {
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+}
+
 .tier-chip.active {
   background: var(--accent);
   color: var(--accent-ink);

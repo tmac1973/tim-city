@@ -91,6 +91,13 @@ const paths: Record<string, JSX.Element> = {
       <path d="M16 6c0-2 1.5-2.5 1-4" />
     </>
   ),
+  block: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="1" />
+      <rect x="7" y="7" width="10" height="10" />
+      <path d="M12 7v10M7 12h10" />
+    </>
+  ),
   police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
   fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
   park: (
