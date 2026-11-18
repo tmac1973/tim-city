@@ -3,10 +3,10 @@ import { AgentLayer } from './agents';
 import { Atmosphere } from './atmosphere';
 import type { Agent } from './agents/core';
 import { BuildingLayer } from './buildings/instances';
+import { FxLayer } from './fx';
 import { CityCamera } from './camera';
 import { TileCursor } from './cursor';
 import { Lighting } from './lighting';
-import { DisasterLayer } from './disasterBasic';
 import { NetworkLayer } from './networks';
 import { OverlayLayer, type OverlayName } from './overlays';
 import type { CityMirror } from './mirror';
@@ -35,7 +35,7 @@ export class Renderer {
   private readonly networks: NetworkLayer;
   private readonly buildings: BuildingLayer;
   readonly overlay: OverlayLayer;
-  readonly disasters: DisasterLayer;
+  readonly fx: FxLayer;
   readonly agents: AgentLayer;
   readonly atmosphere: Atmosphere;
   private recentlyFollowed: Agent[] = [];
@@ -79,7 +79,7 @@ export class Renderer {
     this.trees = new TreeLayer(mirror);
     this.networks = new NetworkLayer(mirror);
     this.buildings = new BuildingLayer(mirror);
-    this.disasters = new DisasterLayer(mirror);
+    this.fx = new FxLayer(mirror);
     const networks = this.networks;
     this.agents = new AgentLayer(
       mirror,
@@ -100,7 +100,7 @@ export class Renderer {
       this.trees.group,
       this.networks.group,
       this.buildings.group,
-      this.disasters.group,
+      this.fx.group,
       this.agents.group,
       this.atmosphere.group,
       this.overlay.group,
@@ -198,7 +198,7 @@ export class Renderer {
       this.trees.rebuild(id);
       this.networks.rebuild(id);
       this.buildings.rebuild(id);
-      this.disasters.rebuild(id);
+      this.fx.rebuild(id);
       this.atmosphere.lamps.rebuild(id);
     }
     if (hadDirty) this.overlay.refreshPower();
@@ -213,7 +213,12 @@ export class Renderer {
     this.lighting.fit(cam.target, Math.min(this.mirror.size * 0.75, Math.max(20, cam.distance * 0.9)));
     this.water.update(this.elapsed, this.lighting.sunDir, this.lighting.sun.color.clone().multiplyScalar(this.lighting.sun.intensity / 2.6));
     this.buildings.update(dt);
-    this.disasters.update(dt);
+    this.fx.update(dt, cam.target);
+    // Earthquake shake: nudge the finished camera; next frame starts clean.
+    const [sx, sy, sz] = this.fx.shake.offset(0.45);
+    cam.camera.position.x += sx;
+    cam.camera.position.y += sy;
+    cam.camera.position.z += sz;
     // Street level has no miniature look: the sharp band covers the screen.
     if (cam.following) this.post.setView(0, 1);
     else this.post.setView(cam.zoom, cam.topDown);

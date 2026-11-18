@@ -32,7 +32,9 @@ import {
   speed,
   toast,
   valves,
+  watchNext,
 } from './ui/store';
+import { onDisasterStarted } from './ui/cameraEvents';
 import { ToolController } from './ui/toolController';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -131,7 +133,7 @@ async function start(): Promise<void> {
       skyState.value = { time: a.clock.hhmm, night: a.night > 0.5, weather: a.weather.kind };
     }, 1000);
     activeDisasters.subscribe((list) => {
-      r.disasters.setActive(list);
+      r.fx.setActive(list);
     });
     overlay.subscribe((name) => {
       r.setOverlay(name);
@@ -251,8 +253,15 @@ async function start(): Promise<void> {
       else toast(`${String(event.year)} closed: ${event.net >= 0 ? 'surplus' : 'deficit'} of ${formatMoney(Math.abs(event.net))}`, 'info', 5000);
     }
     if (event.type === 'bankrupt') gameOver.value = true;
-    if (event.type === 'disaster') renderer?.cityCamera.flyTo(event.x, event.y);
-    if (event.type === 'disasterRefused') toast(event.reason);
+    if (event.type === 'disaster') {
+      onDisasterStarted(event.disaster, () => {
+        renderer?.cityCamera.flyTo(event.x, event.y);
+      });
+    }
+    if (event.type === 'disasterRefused') {
+      watchNext.value = false;
+      toast(event.reason);
+    }
     if (event.type === 'demandCap') {
       const what = { r: 'Homes', c: 'Commerce', i: 'Industry' }[event.zone];
       toast(`${what} have stopped growing. The city needs a powered ${event.needs}.`, 'error', 7000);

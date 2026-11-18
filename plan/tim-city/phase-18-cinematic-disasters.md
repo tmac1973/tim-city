@@ -26,6 +26,17 @@ Replace the functional disaster visuals from phase 15 with cinematic ones. Fire 
 5. Add `cameraEvents.ts`.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- **Particles:** two instanced systems (additive, alpha) plus a third additive one drawn without a depth test for big flashes, which otherwise clipped into the ground. Particles are animated entirely in the vertex shader from per-particle start values; the ring buffer only uploads the slots written that frame. Each system draws only the slots in use and none at all once every particle is dead: drawing all 30,000 idle slots cost about 230 ms per frame under software GL (CI).
+- **No point lights for fire.** Each burning tile gets an additive, flickering glow pool on the ground instead; real point lights would add per-fragment cost to every lit material all the time. Flame emission is budgeted (2,400 per second across all fires) so a huge fire thins out rather than slowing down.
+- Burning buildings are scorched dark through their batch colour until they fall. A dust burst marks every tile that turns to rubble (any cause), which also gives nearby collapses a small camera jolt.
+- Flood water: one sheet per flooded tile, with per-vertex flood and drain times so it rises and sinks smoothly in the shader; drained tiles leave the mesh once their water has sunk.
+- The modules are `fx/tiles.ts` (rubble, fire, flood, radiation glow and motes), `tornado.ts`, `mirebeast.ts`, `impacts.ts` (plane crash, shipwreck with oil slick, meltdown flash and mushroom, quake cracks), `quake.ts` (trauma shake) and `fx/index.ts`, rather than one file per disaster.
+- The Mirebeast is a `SkinnedMesh` with 15 bones and rigid skinning (each box follows one bone): four-legged walk, tail sway, a roar every 6–11 s, drips while it rises or sinks, dust at each footfall.
+- **`cameraEvents.ts` lives in `src/ui/`**, since it uses the toast store. A disaster the player triggers from the menu still flies the camera there; a random one shows a "Fire!"-style toast with a Watch button. Toasts gained an optional action button.
+- `e2e/disasters.spec.ts` places a nuclear plant, airport and seaport through the debug handle (all dry runs sent at once — one per frame takes minutes under software GL), then triggers every enabled disaster from the menu.
+- Measured: 21 tiles burning at night on the starter city, 60 fps; tornado, crash, meltdown and Mirebeast all hold 60 fps on this machine.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

@@ -1,5 +1,5 @@
 import type { DisasterType, SimCommand } from '@/shared/protocol';
-import { budget, census, disastersOpen } from './store';
+import { budget, census, disastersOpen, watchNext } from './store';
 
 const ENTRIES: { type: DisasterType; name: string; blurb: string }[] = [
   { type: 'fire', name: 'Fire', blurb: 'Spreads between buildings; fire stations slow it and put it out.' },
@@ -71,6 +71,7 @@ export function DisasterMenu({ send }: { send: (command: SimCommand) => void }) 
                   class="danger"
                   disabled={reason !== null}
                   onClick={() => {
+                    watchNext.value = true;
                     send({ type: 'triggerDisaster', disaster: d.type });
                     close();
                   }}

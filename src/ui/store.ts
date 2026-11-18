@@ -52,6 +52,8 @@ export const budgetOpen = signal(false);
 export const gameOver = signal(false);
 /** Time of day and weather for the top bar badge (null until the renderer runs). */
 export const skyState = signal<{ time: string; night: boolean; weather: 'clear' | 'overcast' | 'rain' | 'storm' | 'snow' | 'fog' } | null>(null);
+/** Set when the player triggers a disaster from the menu: the camera flies to it. */
+export const watchNext = signal(false);
 /** The kind of vehicle the camera is riding with, or null. */
 export const following = signal<string | null>(null);
 
@@ -87,15 +89,16 @@ export interface Toast {
   id: number;
   text: string;
   tone: 'info' | 'error';
+  action?: { label: string; run: () => void };
 }
 export const toasts = signal<Toast[]>([]);
 
 let nextToast = 1;
-export function toast(text: string, tone: Toast['tone'] = 'error', ms = 2600): void {
+export function toast(text: string, tone: Toast['tone'] = 'error', ms = 2600, action?: Toast['action']): void {
   const id = nextToast++;
   // Repeating the newest message refreshes it instead of stacking copies.
   const others = toasts.value.filter((t) => t.text !== text);
-  toasts.value = [...others.slice(-3), { id, text, tone }];
+  toasts.value = [...others.slice(-3), { id, text, tone, ...(action ? { action } : {}) }];
   setTimeout(() => {
     toasts.value = toasts.value.filter((t) => t.id !== id);
   }, ms);

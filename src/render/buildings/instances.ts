@@ -182,6 +182,24 @@ export class BuildingLayer {
       if (!this.placed.has(origin)) this.add(origin, want.key, want.size, animate);
     }
     this.chunkOrigins.set(id, new Set(wanted.keys()));
+    // A building with fire on its lot is scorched dark until it falls.
+    for (const [origin, want] of wanted) {
+      const placed = this.placed.get(origin);
+      if (!placed) continue;
+      const tx = origin % m.size;
+      const ty = (origin - tx) / m.size;
+      let burning = false;
+      for (let dy = 0; dy < want.size && !burning; dy++) {
+        for (let dx = 0; dx < want.size; dx++) {
+          if (m.flag(tx + dx, ty + dy) & TileFlag.BURNING) {
+            burning = true;
+            break;
+          }
+        }
+      }
+      const shade = (0.9 + 0.2 * hash3(tx, ty, 7)) * (burning ? 0.3 : 1);
+      this.mesh.setColorAt(placed.instanceId, this.tint.setRGB(shade, shade * (burning ? 0.92 : 1), shade * (burning ? 0.85 : 1)));
+    }
     this.chunkBolts.set(id, bolts);
     this.boltsDirty = true;
     this.lots.rebuild(id);

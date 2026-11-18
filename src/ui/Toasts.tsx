@@ -6,6 +6,18 @@ export function Toasts() {
       {toasts.value.map((t) => (
         <div key={t.id} class={`toast ${t.tone}`}>
           {t.text}
+          {t.action && (
+            <button
+              type="button"
+              class="toast-action"
+              onClick={() => {
+                t.action?.run();
+                toasts.value = toasts.value.filter((other) => other.id !== t.id);
+              }}
+            >
+              {t.action.label}
+            </button>
+          )}
         </div>
       ))}
     </div>
