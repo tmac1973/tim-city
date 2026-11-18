@@ -3,6 +3,7 @@ import { SPEED_MS_PER_MONTH, type Speed, TICKS_PER_MONTH } from '@/shared/consta
 import type { MainToWorker, WorkerToMain } from '@/shared/protocol';
 import { takeDirtyChunks } from './chunks';
 import { Simulation } from './sim';
+import { generateTerrain } from './terrain/generate';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -40,9 +41,9 @@ function schedule(): void {
 function handle(message: MainToWorker): void {
   switch (message.type) {
     case 'init': {
-      const { name, seed, size } = message;
+      const { name, seed, size, terrain } = message;
       sim = new Simulation({ name, seed, size });
-      sim.state.markAllDirty();
+      generateTerrain(sim.state, terrain);
       post({ type: 'ready', name, seed, size });
       publish(sim);
       schedule();

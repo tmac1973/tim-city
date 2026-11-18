@@ -10,6 +10,8 @@ export const MONTHS_PER_YEAR = 12;
 export const START_YEAR = 2000;
 
 export const MAX_HEIGHT = 15;
+/** A tile whose four corners are all at or below this height is water. */
+export const SEA_LEVEL = 2;
 
 /** Starting funds until phase 11 adds difficulty levels. */
 export const DEFAULT_FUNDS = 10_000;

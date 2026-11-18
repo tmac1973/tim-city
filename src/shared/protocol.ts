@@ -6,6 +6,15 @@ export interface CityInfo {
   size: MapSize;
 }
 
+/** New-map sliders, each 0–100. */
+export interface TerrainOptions {
+  water: number;
+  forest: number;
+  hills: number;
+}
+
+export const DEFAULT_TERRAIN: TerrainOptions = { water: 50, forest: 40, hills: 40 };
+
 export interface GameDate {
   year: number;
   /** 0–11 */
@@ -37,7 +46,7 @@ export interface ChunkSlice {
 }
 
 export type MainToWorker =
-  | ({ type: 'init' } & CityInfo)
+  | ({ type: 'init'; terrain: TerrainOptions } & CityInfo)
   | { type: 'setSpeed'; speed: Speed }
   | { type: 'command'; command: SimCommand };
 

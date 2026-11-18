@@ -1,5 +1,6 @@
 import { h, render } from 'preact';
 import type { MapSize } from './shared/constants';
+import { DEFAULT_TERRAIN, type TerrainOptions } from './shared/protocol';
 import { Renderer } from './render/renderer';
 import { SimBridge } from './sim/bridge';
 import { App } from './ui/App';
@@ -23,6 +24,12 @@ render(h(App, { webglError }), appRoot);
 const params = new URLSearchParams(location.search);
 const seed = params.get('seed') ?? 'tim';
 const size: MapSize = params.get('size') === '256' ? 256 : 128;
+/** Read a 0–100 slider from the query string, falling back to the default. */
+const slider = (key: keyof TerrainOptions): number => {
+  const value = Number(params.get(key));
+  return params.has(key) && Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : DEFAULT_TERRAIN[key];
+};
+const terrain: TerrainOptions = { water: slider('water'), forest: slider('forest'), hills: slider('hills') };
 
 const sim = new SimBridge();
 if (import.meta.env.DEV) {
@@ -36,7 +43,7 @@ if (import.meta.env.DEV) {
   });
 }
 
-void sim.init({ name: 'New City', seed, size }).then(() => {
+void sim.init({ name: 'New City', seed, size }, terrain).then(() => {
   // Tests and tooling wait for this marker before driving the sim.
   document.documentElement.dataset.sim = 'ready';
   sim.setSpeed('normal');

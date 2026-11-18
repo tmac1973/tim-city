@@ -1,5 +1,13 @@
 import type { Speed } from '@/shared/constants';
-import type { CityInfo, MainToWorker, SimCommand, SimEvent, TickMessage, WorkerToMain } from '@/shared/protocol';
+import type {
+  CityInfo,
+  MainToWorker,
+  SimCommand,
+  SimEvent,
+  TerrainOptions,
+  TickMessage,
+  WorkerToMain,
+} from '@/shared/protocol';
 
 type Listener<T> = (value: T) => void;
 
@@ -20,10 +28,10 @@ export class SimBridge {
     };
   }
 
-  init(info: CityInfo): Promise<CityInfo> {
+  init(info: CityInfo, terrain: TerrainOptions): Promise<CityInfo> {
     return new Promise((resolve, reject) => {
       this.pendingInit = { resolve, reject };
-      this.send({ type: 'init', ...info });
+      this.send({ type: 'init', ...info, terrain });
     });
   }
 
