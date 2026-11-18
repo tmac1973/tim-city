@@ -154,7 +154,7 @@ button {
 
 .tool-group {
   display: grid;
-  grid-template-columns: repeat(2, 44px);
+  grid-template-columns: repeat(3, 44px);
   gap: 4px;
 }
 
@@ -216,8 +216,12 @@ button {
   opacity: 1;
 }
 
-/* Left-column tooltips clear the right column instead of covering it. */
-.tool:nth-of-type(odd) .tooltip {
+/* Tooltips clear the columns to the right instead of covering them. */
+.tool:nth-of-type(3n + 1) .tooltip {
+  left: calc(300% + 20px);
+}
+
+.tool:nth-of-type(3n + 2) .tooltip {
   left: calc(200% + 16px);
 }
 
@@ -362,7 +366,7 @@ button {
 /* RCI demand meter */
 .rci {
   position: absolute;
-  left: 12px;
+  right: 196px;
   bottom: 12px;
   display: flex;
   gap: 8px;

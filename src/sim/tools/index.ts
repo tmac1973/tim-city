@@ -1,10 +1,11 @@
+import { COSTS } from '@/shared/costs';
 import type { SimEvent, ToolCommand, ToolResult } from '@/shared/protocol';
-import { TileKind, ZoneType } from '@/shared/tiles';
+import { PLANT_SIZE, TileKind, ZONE_SIZE, ZoneType } from '@/shared/tiles';
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { planBulldoze } from './bulldoze';
 import { planNetwork } from './network';
-import { planPlant, planZones } from './place';
+import { planBuilding, planParks, planZones } from './place';
 import { fail, type ToolPlan } from './plan';
 import { planTerraform } from './terraform';
 
@@ -36,10 +37,22 @@ export function planTool(state: CityState, cmd: ToolCommand): ToolPlan {
       plan = planZones(state, cmd, ZoneType.I);
       break;
     case 'coal':
-      plan = planPlant(state, cmd, TileKind.CoalPlant);
+      plan = planBuilding(state, cmd, TileKind.CoalPlant, PLANT_SIZE, COSTS.coalPlant);
       break;
     case 'nuclear':
-      plan = planPlant(state, cmd, TileKind.NuclearPlant);
+      plan = planBuilding(state, cmd, TileKind.NuclearPlant, PLANT_SIZE, COSTS.nuclearPlant);
+      break;
+    case 'police':
+      plan = planBuilding(state, cmd, TileKind.PoliceStation, ZONE_SIZE, COSTS.policeStation);
+      break;
+    case 'fire':
+      plan = planBuilding(state, cmd, TileKind.FireStation, ZONE_SIZE, COSTS.fireStation);
+      break;
+    case 'largePark':
+      plan = planBuilding(state, cmd, TileKind.LargePark, ZONE_SIZE, COSTS.largePark);
+      break;
+    case 'park':
+      plan = planParks(state, cmd);
       break;
   }
   if (plan.ok && plan.cost > state.funds) return fail('Not enough funds', plan.tiles);

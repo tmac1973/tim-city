@@ -187,6 +187,13 @@ export class Kit {
     this.quad(v(cx - width / 2, y0), v(cx + width / 2, y0), v(cx + width / 2, y0 + 0.2), v(cx - width / 2, y0 + 0.2), new Vector3(0, 0, 1), DOOR);
   }
 
+  /** A small tree: trunk and a cone or a rounded crown. */
+  tree(cx: number, cz: number, h: number, crown: ColorLike, pointed: boolean): void {
+    this.cylinder(cx, cz, 0.035, 0, h * 0.35, 0x7a5233, 5);
+    if (pointed) this.cylinder(cx, cz, h * 0.28, h * 0.3, h * 0.7, crown, 6, undefined, 0.01);
+    else this.cylinder(cx, cz, h * 0.26, h * 0.3, h * 0.55, crown, 7, undefined, h * 0.12);
+  }
+
   /** Flat slab lying on the ground (paving, parking, yard). */
   ground(x0: number, z0: number, x1: number, z1: number, color: ColorLike, y = 0.012): void {
     const v = (x: number, z: number) => new Vector3(x, y, z);

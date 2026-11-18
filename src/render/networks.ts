@@ -13,7 +13,7 @@ import {
   Vector3,
 } from 'three';
 import { CHUNK_SIZE } from '@/shared/constants';
-import { carries, isBridge, isPower, isRail, isRoad, isTunnel, type Network, TileKind } from '@/shared/tiles';
+import { carries, isBridge, isPower, isRail, isRoad, isTunnel, type Network, TileFlag, TileKind } from '@/shared/tiles';
 import { TriangleBuilder } from './geometry';
 import type { CityMirror } from './mirror';
 import { PALETTE } from './palette';
@@ -138,14 +138,22 @@ export class NetworkLayer {
     // corners; markings and sidewalks sit on those same planes.
     const corner = (cx: number, cz: number) => new Vector3(cx, ground(cx, cz) + 0.03, cz);
     const nw = corner(x, y), ne = corner(x + 1, y), se = corner(x + 1, y + 1), sw = corner(x, y + 1);
+    const worn = (this.mirror.flag(x, y) & TileFlag.POTHOLED) !== 0;
+    const surface = worn ? C.asphaltWorn : C.asphalt;
     if (splitsNwSe(nw.y, ne.y, se.y, sw.y)) {
-      out.tri(nw, sw, se, C.asphalt);
-      out.tri(nw, se, ne, C.asphalt);
+      out.tri(nw, sw, se, surface);
+      out.tri(nw, se, ne, surface);
     } else {
-      out.tri(nw, sw, ne, C.asphalt);
-      out.tri(ne, sw, se, C.asphalt);
+      out.tri(nw, sw, ne, surface);
+      out.tri(ne, sw, se, surface);
     }
     const height = (px: number, pz: number) => tileHeight(nw.y, ne.y, se.y, sw.y, px - x, pz - y) - 0.03;
+    if (worn) {
+      // A few dark cracks and patches across the worn surface.
+      strip(out, height, x + 0.2, y + 0.3, x + 0.55, y + 0.45, 0.04, 0.04, C.asphalt, 1);
+      strip(out, height, x + 0.6, y + 0.7, x + 0.82, y + 0.5, 0.04, 0.04, C.asphalt, 1);
+      strip(out, height, x + 0.3, y + 0.72, x + 0.42, y + 0.84, 0.12, 0.04, C.asphalt, 1);
+    }
 
     const cx = x + 0.5;
     const cz = y + 0.5;

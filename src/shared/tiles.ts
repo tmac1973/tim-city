@@ -36,6 +36,11 @@ export const TileKind = {
 
   CoalPlant: 64,
   NuclearPlant: 65,
+
+  PoliceStation: 230,
+  FireStation: 231,
+  Park: 232,
+  LargePark: 233,
 } as const;
 export type TileKind = (typeof TileKind)[keyof typeof TileKind];
 
@@ -46,6 +51,8 @@ export const TileFlag = {
   BURNING: 1 << 2,
   ZONE_CENTER: 1 << 3,
   BULLDOZABLE: 1 << 4,
+  /** On a road tile: worn by low road funding; slows traffic. */
+  POTHOLED: 1 << 5,
   /** On a zone centre: last month's trip found no destination. */
   TRIP_FAILED: 1 << 6,
 } as const;
@@ -120,3 +127,9 @@ for (const type of [ZoneType.R, ZoneType.C, ZoneType.I]) {
 }
 registerFootprint(TileKind.CoalPlant, PLANT_SIZE);
 registerFootprint(TileKind.NuclearPlant, PLANT_SIZE);
+registerFootprint(TileKind.PoliceStation, ZONE_SIZE);
+registerFootprint(TileKind.FireStation, ZONE_SIZE);
+registerFootprint(TileKind.Park, 1);
+registerFootprint(TileKind.LargePark, ZONE_SIZE);
+
+export const isPark = (kind: number): boolean => kind === TileKind.Park || kind === TileKind.LargePark;

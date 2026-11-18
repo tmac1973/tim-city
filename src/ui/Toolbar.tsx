@@ -9,6 +9,8 @@ interface ToolDef {
   name: string;
   key: string;
   code: string;
+  /** Shortcut needs Shift held. */
+  shift?: boolean;
   cost: string;
   hint: string;
 }
@@ -37,6 +39,15 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
       { id: 'power', name: 'Power line', key: 'P', code: 'KeyP', cost: price(COSTS.power, '/tile'), hint: 'Drag to carry power. Zones that touch each other share it.' },
       { id: 'coal', name: 'Coal plant', key: 'G', code: 'KeyG', cost: price(COSTS.coalPlant), hint: `${String(POWER_SUPPLY.coal)} units of power. Cheap but dirty.` },
       { id: 'nuclear', name: 'Nuclear plant', key: 'N', code: 'KeyN', cost: price(COSTS.nuclearPlant), hint: `${String(POWER_SUPPLY.nuclear)} units of power. Clean, with a small risk.` },
+    ],
+  },
+  {
+    label: 'Services',
+    tools: [
+      { id: 'police', name: 'Police station', key: 'O', code: 'KeyO', cost: price(COSTS.policeStation), hint: 'Cuts crime within 20 tiles. Needs power and a road for full strength.' },
+      { id: 'fire', name: 'Fire station', key: 'F', code: 'KeyF', cost: price(COSTS.fireStation), hint: 'Protects buildings within 20 tiles from fire.' },
+      { id: 'park', name: 'Park', key: 'K', code: 'KeyK', cost: price(COSTS.park, '/tile'), hint: 'Drag a box of small parks. Raises land value and cleans the air.' },
+      { id: 'largePark', name: 'Large park', key: '⇧K', code: 'KeyK', shift: true, cost: price(COSTS.largePark), hint: 'A 3×3 park with a pond. A bigger boost to land value.' },
     ],
   },
   {
@@ -72,7 +83,7 @@ export function Toolbar() {
         return;
       }
       for (const group of GROUPS) {
-        const def = group.tools.find((t) => t.code === e.code);
+        const def = group.tools.find((t) => t.code === e.code && (t.shift ?? false) === e.shiftKey);
         if (def) activeTool.value = activeTool.value === def.id ? null : def.id;
       }
     };

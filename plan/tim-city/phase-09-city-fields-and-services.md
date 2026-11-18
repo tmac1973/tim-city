@@ -32,6 +32,13 @@ Add the spatial fields that make the classic city react to the player: land valu
 5. Extend `query.ts`.
 6. Write tests.
 
+## Implementation notes (changed during build)
+- **No crime where nobody lives**: blocks with zero population density get crime 0, so the crime field reflects neighbourhoods rather than empty fields.
+- **Land value drives building style**: when a zone changes density it takes the land-value class (land value ÷ 64, 0–3) of its block, so better areas get the nicer phase 07 variants.
+- **The road tool repairs potholes** at the normal road price; re-laying any network tile clears the flag.
+- Small parks are painted by dragging a box (each open tile gets one); stations and large parks place like plants.
+- The toolbar became three columns and the RCI meter moved beside the speed controls so the HUD fits a 720 px window with room for phase 10's tools.
+
 ## Build gate
 ```
 pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm e2e

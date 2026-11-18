@@ -35,7 +35,11 @@ export type ToolId =
   | 'commercial'
   | 'industrial'
   | 'coal'
-  | 'nuclear';
+  | 'nuclear'
+  | 'police'
+  | 'fire'
+  | 'park'
+  | 'largePark';
 export type BrushSize = 1 | 3 | 5;
 
 /**

@@ -65,6 +65,19 @@ const paths: Record<string, JSX.Element> = {
       <path d="M17 20V13h3v7M8 4c1-1 3-1 4 0" />
     </>
   ),
+  police: <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6zM9.5 12l2 2 3.5-4" />,
+  fire: <path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.5 1 2.5 2 3 .5-2.5.5-5.5.5-8z" />,
+  park: (
+    <>
+      <path d="M12 21v-6M12 3 6.5 11h3L7 15h10l-2.5-4h3z" />
+    </>
+  ),
+  largePark: (
+    <>
+      <path d="M8 21v-4M8 5 4 11h2l-2 4h8l-2-4h2zM17 21v-3" />
+      <ellipse cx="17" cy="14" rx="4" ry="2.5" />
+    </>
+  ),
   query: (
     <>
       <circle cx="10.5" cy="10.5" r="6" />

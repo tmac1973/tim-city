@@ -1,18 +1,26 @@
 import { BatchedMesh, Color, Group, Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { CHUNK_SIZE } from '@/shared/constants';
-import { PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
+import { FOOTPRINTS, PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneOf } from '@/shared/tiles';
 import { hash3 } from '../hash';
 import type { CityMirror } from '../mirror';
 import { HEIGHT_UNIT } from '../units';
 import { PuffLayer } from './particles';
 import { Kit } from './kit';
 import { coalPlant, nuclearPlant } from './plants';
+import { fireStation, largePark, park, policeStation } from './services';
 import { buildVariants, type Variant, variantKey } from './variants';
 import { BoltLayer, LotLayer } from './zoneMarkers';
 
-const COAL_KEY = -1;
-const NUCLEAR_KEY = -2;
-const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4 };
+/** Model keys for single buildings, by tile kind (zone models use variantKey). */
+const BUILDING_KEYS: Partial<Record<number, number>> = {
+  [TileKind.CoalPlant]: -1,
+  [TileKind.NuclearPlant]: -2,
+  [TileKind.PoliceStation]: -5,
+  [TileKind.FireStation]: -6,
+  [TileKind.Park]: -7,
+  [TileKind.LargePark]: -8,
+};
+const PLINTH_KEYS: Record<number, number> = { [ZONE_SIZE]: -3, [PLANT_SIZE]: -4, 1: -9 };
 const PLINTH_COLOR = 0x9c968a;
 
 /** Unit-tall stone base for a size × size lot, scaled to the slope it fills. */
@@ -70,8 +78,18 @@ export class BuildingLayer {
   constructor(private readonly mirror: CityMirror) {
     this.group.name = 'buildings';
     for (const [key, variant] of buildVariants()) this.variants.set(key, variant);
-    this.variants.set(COAL_KEY, coalPlant());
-    this.variants.set(NUCLEAR_KEY, nuclearPlant());
+    const models = {
+      [TileKind.CoalPlant]: coalPlant(),
+      [TileKind.NuclearPlant]: nuclearPlant(),
+      [TileKind.PoliceStation]: policeStation(),
+      [TileKind.FireStation]: fireStation(),
+      [TileKind.Park]: park(),
+      [TileKind.LargePark]: largePark(),
+    };
+    for (const [kind, model] of Object.entries(models)) {
+      const key = BUILDING_KEYS[Number(kind)];
+      if (key !== undefined) this.variants.set(key, model);
+    }
     for (const [size, key] of Object.entries(PLINTH_KEYS)) this.variants.set(key, plinth(Number(size)));
 
     let vertices = 0;
@@ -124,8 +142,10 @@ export class BuildingLayer {
             const height = key !== null ? (this.variants.get(key)?.height ?? 0.5) : 0.2;
             bolts.push(new Vector3(tx + 1.5, this.lotHeights(tx, ty, ZONE_SIZE).top + height + 0.5, ty + 1.5));
           }
-        } else if (kind === TileKind.CoalPlant || kind === TileKind.NuclearPlant) {
-          wanted.set(origin, { key: kind === TileKind.CoalPlant ? COAL_KEY : NUCLEAR_KEY, size: PLANT_SIZE });
+        } else {
+          const key = BUILDING_KEYS[kind];
+          const size = FOOTPRINTS.get(kind);
+          if (key !== undefined && size !== undefined) wanted.set(origin, { key, size });
         }
       }
     }

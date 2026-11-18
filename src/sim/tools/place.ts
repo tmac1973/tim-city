@@ -1,6 +1,6 @@
 import { COSTS } from '@/shared/costs';
 import type { ToolCommand } from '@/shared/protocol';
-import { PLANT_SIZE, TileFlag, TileKind, ZONE_SIZE, zoneKind, type ZoneType } from '@/shared/tiles';
+import { TileFlag, TileKind, ZONE_SIZE, zoneKind, type ZoneType } from '@/shared/tiles';
 import type { CityState } from '../state';
 import { placeFootprint } from './footprint';
 import { fail, type ToolPlan } from './plan';
@@ -113,14 +113,15 @@ function markBuilt(state: CityState, lot: Lot): void {
   for (const i of lot.tiles) state.flags[i] = TileFlag.CONDUCTIVE;
 }
 
-/** A 4×4 power plant whose top-left is one tile up and left of the click. */
-export function planPlant(state: CityState, cmd: ToolCommand, kind: number): ToolPlan {
-  const lot = lotAt(state, cmd.x1 - 1, cmd.y1 - 1, PLANT_SIZE);
+/**
+ * A single building (plant, station, large park) of `size` × `size` tiles
+ * whose top-left is one tile up and left of the click.
+ */
+export function planBuilding(state: CityState, cmd: ToolCommand, kind: number, size: number, price: number): ToolPlan {
+  const lot = lotAt(state, cmd.x1 - 1, cmd.y1 - 1, size);
   if (!lot) return fail('Too close to the edge');
   const checked = checkLot(state, lot, new Set());
   if ('reason' in checked) return fail(checked.reason, lot.tiles, lot.tiles);
-  const price = kind === TileKind.CoalPlant ? COSTS.coalPlant : COSTS.nuclearPlant;
-
   return {
     ok: true,
     cost: price + checked.clearing,
@@ -129,6 +130,42 @@ export function planPlant(state: CityState, cmd: ToolCommand, kind: number): Too
     apply: () => {
       placeFootprint(state, lot.x, lot.y, kind);
       markBuilt(state, lot);
+    },
+  };
+}
+
+/** Small parks: drag a box; every open tile in it gets one. */
+export function planParks(state: CityState, cmd: ToolCommand): ToolPlan {
+  const x0 = Math.max(0, Math.min(cmd.x0, cmd.x1));
+  const x1 = Math.min(state.size - 1, Math.max(cmd.x0, cmd.x1));
+  const y0 = Math.max(0, Math.min(cmd.y0, cmd.y1));
+  const y1 = Math.min(state.size - 1, Math.max(cmd.y0, cmd.y1));
+  const tiles: number[] = [];
+  const bad: number[] = [];
+  const lots: Lot[] = [];
+  let cost = 0;
+  const taken = new Set<number>();
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const lot = lotAt(state, x, y, 1);
+      if (!lot) continue;
+      tiles.push(...lot.tiles);
+      const checked = checkLot(state, lot, taken);
+      if ('reason' in checked) bad.push(...lot.tiles);
+      else {
+        lots.push(lot);
+        cost += COSTS.park + checked.clearing;
+      }
+    }
+  }
+  if (lots.length === 0) return fail('No open land here', tiles, bad);
+  return {
+    ok: true,
+    cost,
+    tiles,
+    bad,
+    apply: () => {
+      for (const lot of lots) placeFootprint(state, lot.x, lot.y, TileKind.Park);
     },
   };
 }

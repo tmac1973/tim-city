@@ -30,15 +30,41 @@ export function hasRoadAccess(state: CityState, cx: number, cy: number): boolean
   return false;
 }
 
+/** Homes this close (in tiles, from the lot edge) to industry are penalised. */
+export const INDUSTRY_BUFFER = 4;
+const NEAR_INDUSTRY_PENALTY = 100;
+
+/** Whether an industrial zone lies within INDUSTRY_BUFFER tiles of the lot centred on (cx, cy). */
+export function nearIndustry(state: CityState, cx: number, cy: number): boolean {
+  const r = 1 + INDUSTRY_BUFFER;
+  for (let y = Math.max(0, cy - r); y <= Math.min(state.size - 1, cy + r); y++) {
+    for (let x = Math.max(0, cx - r); x <= Math.min(state.size - 1, cx + r); x++) {
+      if (zoneOf(state.tiles[state.index(x, y)] ?? 0)?.type === ZoneType.I) return true;
+    }
+  }
+  return false;
+}
+
 /**
- * Score that drives a zone's growth: its sector's demand, plus local
- * factors. Congestion at the zone holds it back; later phases add land
- * value, pollution and crime.
+ * Score that drives a zone's growth: its sector's demand plus local
+ * factors — land value helps; pollution, crime and congestion hurt; homes
+ * next to industry are held back hard.
  */
 export function zoneScore(state: CityState, x: number, y: number, type: ZoneType): number {
   const valve = type === ZoneType.R ? state.valves.r : type === ZoneType.C ? state.valves.c : state.valves.i;
-  const traffic = state.field('traffic')[state.blockIndex(x, y)] ?? 0;
-  return valve - traffic / 8;
+  const b = state.blockIndex(x, y);
+  const local =
+    (state.field('landValue')[b] ?? 0) / 4 -
+    (state.field('pollution')[b] ?? 0) / 4 -
+    (state.field('crime')[b] ?? 0) / 4 -
+    (state.field('traffic')[b] ?? 0) / 8;
+  const buffer = type === ZoneType.R && nearIndustry(state, x, y) ? NEAR_INDUSTRY_PENALTY : 0;
+  return valve + local - buffer;
+}
+
+/** Land-value class 0–3 at a zone, which picks nicer buildings in better areas. */
+export function landValueClass(state: CityState, x: number, y: number): number {
+  return Math.min(3, (state.field('landValue')[state.blockIndex(x, y)] ?? 0) >> 6);
 }
 
 function setDensity(state: CityState, cx: number, cy: number, type: ZoneType, density: number, lvClass: number): void {
@@ -62,11 +88,13 @@ export const zoneSystem: System = {
       if (!zone) continue;
       const x = i % size;
       const y = (i - x) / size;
-      const { type, density, landValueClass } = zone;
+      const { type, density } = zone;
+      // Whatever the change, the new buildings reflect today's land value.
+      const lvClass = landValueClass(state, x, y);
 
       if (!(f & TileFlag.POWERED)) {
         if (density > 0 && rng.nextFloat() < DARK_DECAY_CHANCE) {
-          setDensity(state, x, y, type, density - 1, landValueClass);
+          setDensity(state, x, y, type, density - 1, lvClass);
         }
         continue;
       }
@@ -76,9 +104,9 @@ export const zoneSystem: System = {
       const score = zoneScore(state, x, y, type);
       const roll = rng.nextFloat();
       if (density < MAX_DENSITY && score > growThreshold(density) && roll < CHANGE_CHANCE) {
-        setDensity(state, x, y, type, density + 1, landValueClass);
+        setDensity(state, x, y, type, density + 1, lvClass);
       } else if (density > 0 && score < -shrinkThreshold(density) && roll < CHANGE_CHANCE) {
-        setDensity(state, x, y, type, density - 1, landValueClass);
+        setDensity(state, x, y, type, density - 1, lvClass);
       }
     }
   },

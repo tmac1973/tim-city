@@ -1,6 +1,7 @@
 import { POWER_SUPPLY } from '@/shared/costs';
 import type { QueryResult } from '@/shared/protocol';
-import { isBridge, isPower, isRoad, isTunnel, MAX_DENSITY, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { isBridge, isOpenLand, isPark, isPower, isRoad, isTunnel, MAX_DENSITY, TileFlag, TileKind, zoneOf, ZoneType } from '@/shared/tiles';
+import { COVERAGE_RADIUS } from '../systems/coverage';
 import type { CityState } from '../state';
 import { hasRoadAccess, JOBS_PER_LEVEL, RESIDENTS_PER_LEVEL } from '../systems/zones';
 import { footprintAt } from './footprint';
@@ -24,7 +25,29 @@ const NAMES: Partial<Record<number, string>> = {
   [TileKind.RailTunnel]: 'Rail tunnel',
   [TileKind.CoalPlant]: 'Coal power plant',
   [TileKind.NuclearPlant]: 'Nuclear power plant',
+  [TileKind.PoliceStation]: 'Police station',
+  [TileKind.FireStation]: 'Fire station',
+  [TileKind.Park]: 'Park',
+  [TileKind.LargePark]: 'Large park',
 };
+
+/** A 0–255 field value as a word and a number. */
+function level(value: number, words: readonly [string, string, string, string]): string {
+  return `${words[Math.min(3, value >> 6)] ?? ''} (${String(value)})`;
+}
+
+/** Field readings shared by zones and open ground. */
+function fieldDetails(state: CityState, x: number, y: number): [string, string][] {
+  const b = state.blockIndex(x, y);
+  const f = (name: string) => state.field(name)[b] ?? 0;
+  return [
+    ['Land value', level(f('landValue'), ['Low', 'Fair', 'Good', 'Prime'])],
+    ['Pollution', level(f('pollution'), ['Clean', 'Some', 'Dirty', 'Toxic'])],
+    ['Crime', level(f('crime'), ['Safe', 'Some', 'High', 'Dangerous'])],
+    ['Police', level(f('policeCover'), ['None', 'Weak', 'Good', 'Strong'])],
+    ['Fire cover', level(f('fireCover'), ['None', 'Weak', 'Good', 'Strong'])],
+  ];
+}
 
 const ZONE_NAMES = ['Residential zone', 'Commercial zone', 'Industrial zone'] as const;
 
@@ -56,6 +79,7 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
     const goal = zone.type === ZoneType.R ? 'jobs or shops' : zone.type === ZoneType.C ? 'customers' : 'workers or the map edge';
     details.push(['Commute', failed ? `No route to ${goal}` : 'OK']);
     details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
+    details.push(...fieldDetails(state, x, y));
     return result;
   }
 
@@ -66,8 +90,17 @@ export function queryTile(state: CityState, x: number, y: number, requestId: num
     details.push(['City load', `${String(state.census.powerDemand)} of ${String(state.census.powerSupply)} units`]);
   } else if (isPower(kind)) {
     details.push(['Power', powered ? 'Live' : 'Not connected to a plant']);
+  } else if (kind === TileKind.PoliceStation || kind === TileKind.FireStation) {
+    const funding = kind === TileKind.PoliceStation ? state.funding.police : state.funding.fire;
+    details.push(['Covers', `${String(COVERAGE_RADIUS)} tiles around`]);
+    details.push(['Funding', `${String(funding)}%`]);
+    details.push(['Power', powered ? 'On' : 'Off — half strength']);
   }
-  if (isRoad(kind)) details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
+  if (isRoad(kind)) {
+    details.push(['Traffic', trafficLabel(state.field('traffic')[state.blockIndex(x, y)] ?? 0)]);
+    if ((state.flags[i] ?? 0) & TileFlag.POTHOLED) details.push(['Condition', 'Potholed — rebuild to repair']);
+  }
+  if (isOpenLand(kind) || isPark(kind)) details.push(...fieldDetails(state, x, y));
   if (!isBridge(kind) && !isTunnel(kind) && kind !== TileKind.Water) {
     details.push(['Height', String(Math.min(...corners(state, x, y)))]);
   }

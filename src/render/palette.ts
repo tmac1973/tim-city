@@ -28,6 +28,7 @@ export const PALETTE = {
   leafLight: 0x77a843,
 
   asphalt: 0x4a4e55,
+  asphaltWorn: 0x6d6a64,
   sidewalk: 0xb8b3a6,
   marking: 0xe9d57e,
   ballast: 0x8b8379,

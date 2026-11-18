@@ -2,6 +2,22 @@ import { CHUNK_SHIFT, DEFAULT_FUNDS, type MapSize, START_YEAR } from '@/shared/c
 import type { Census, CityInfo, GameDate, Valves } from '@/shared/protocol';
 import { Rng } from './rng';
 
+/**
+ * Every 2×2-block field the sim keeps. `popPrev` is last month's density,
+ * kept so `growth` can report the change.
+ */
+export const FIELD_NAMES = [
+  'traffic',
+  'pollution',
+  'landValue',
+  'crime',
+  'popDensity',
+  'popPrev',
+  'growth',
+  'policeCover',
+  'fireCover',
+] as const;
+
 export function emptyCensus(): Census {
   return {
     resPop: 0,
@@ -47,6 +63,8 @@ export class CityState {
   readonly valves: Valves = { r: 0, c: 0, i: 0 };
   /** True while some zones are unpowered because plants are at capacity. */
   brownout = false;
+  /** Service funding, percent of full. Phase 11's budget window edits it. */
+  readonly funding = { road: 100, police: 100, fire: 100 };
 
   /** Chunk ids changed since the last time the worker shipped them. */
   readonly dirtyChunks = new Set<number>();
@@ -64,7 +82,7 @@ export class CityState {
     this.heights = new Uint8Array((size + 1) * (size + 1));
     this.parts = new Uint8Array(size * size);
     const blocks = (size / 2) * (size / 2);
-    this.blockFields.traffic = new Uint8Array(blocks);
+    for (const name of FIELD_NAMES) this.blockFields[name] = new Uint8Array(blocks);
     this.rootRng = new Rng(seed);
   }
 

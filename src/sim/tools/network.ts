@@ -78,8 +78,13 @@ type Placement = { kind: number; cost: number; grade?: Set<Axis> } | { reason: s
 /** What a land tile becomes when `network` is laid through it. */
 export function placeOnLand(state: CityState, tile: PathTile, network: Network, single: boolean): Placement {
   const { x, y, axes } = tile;
-  const kind = state.tiles[state.index(x, y)] ?? 0;
-  if (carries(kind, network)) return { kind, cost: 0 };
+  const index = state.index(x, y);
+  const kind = state.tiles[index] ?? 0;
+  if (carries(kind, network)) {
+    // Laying road over a potholed road repairs it at the normal price.
+    const worn = network === 'road' && ((state.flags[index] ?? 0) & TileFlag.POTHOLED) !== 0;
+    return { kind, cost: worn ? networkCost(network) : 0 };
+  }
 
   if (isOpenLand(kind)) {
     const clearing = kind === TileKind.Empty ? 0 : COSTS.bulldoze;
@@ -162,7 +167,7 @@ export function planNetwork(state: CityState, cmd: ToolCommand, network: Network
 
 export function setNetworkTile(state: CityState, index: number, x: number, y: number, kind: number): void {
   state.tiles[index] = kind;
-  const flags = state.flags[index] ?? 0;
+  const flags = (state.flags[index] ?? 0) & ~TileFlag.POTHOLED;
   state.flags[index] = isPower(kind) ? flags | TileFlag.CONDUCTIVE : flags & ~TileFlag.CONDUCTIVE;
   state.markDirtyAround(x, y);
 }
