@@ -3,6 +3,8 @@ import {
   activeDisasters,
   budgetOpen,
   cityFacts,
+  classReached,
+  openCategory,
   disastersOpen,
   evaluation,
   graphsOpen,
@@ -41,6 +43,8 @@ export function TipBubble() {
     budgetOpen: budgetOpen.value,
     problems: evaluation.value?.problems.filter((p) => p.percent > 0).length ?? 0,
     disasters: activeDisasters.value.length,
+    zonesOpen: openCategory.value === 'Zones',
+    cityClass: classReached.value,
   };
   const tip = s.tips ? currentTip(facts, s.seenTips) : null;
   const [, setTick] = useState(0);

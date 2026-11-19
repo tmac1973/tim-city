@@ -6,6 +6,7 @@ import type { RngState } from './rng';
 import { FORMAT_VERSION, savedArrays, savedHeader } from './serializeRegistry';
 import { CityState, emptyCensus } from './state';
 import { buildBusLanes } from './systems/transit';
+import { utilityRulesActive } from './systems/utilityRules';
 
 const MAGIC = 'TIMC';
 
@@ -117,6 +118,9 @@ export function deserialize(bytes: Uint8Array): CityState {
   } else buildBusLanes(state);
   state.busRiders = (h.busRiders as number | undefined) ?? 0;
   state.subwayRiders = (h.subwayRiders as number | undefined) ?? 0;
+  state.newsFlags = (h.newsFlags as string[] | undefined) ?? [];
+  // Until the next count, the census says whether water and garbage matter yet.
+  state.census.utilityRules = utilityRulesActive(state);
   state.markAllDirty();
   return state;
 }

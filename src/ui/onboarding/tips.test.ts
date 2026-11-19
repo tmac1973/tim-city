@@ -21,6 +21,17 @@ describe('onboarding tips', () => {
     expect(next({ ...empty, plants: 1, roads: 10, zones: 4, pop: 20 })).toBeUndefined();
   });
 
+  it('teach the newer tools when they become useful', () => {
+    const grown = { ...empty, plants: 1, roads: 10, zones: 4, pop: 20 };
+    const seen = ['camera', 'power', 'road', 'zones', 'lines', 'speed', 'growth'];
+    expect(currentTip({ ...grown, zonesOpen: true }, seen)?.id).toBe('density');
+    expect(currentTip({ ...grown, dry: 3 }, seen)?.id).toBe('water');
+    expect(currentTip({ ...grown, jam: 220 }, seen)?.id).toBe('buses');
+    expect(currentTip({ ...grown, jam: 120 }, seen)).toBeNull();
+    expect(currentTip({ ...grown, cityClass: 2 }, seen)?.id).toBe('subway');
+    expect(currentTip({ ...grown, leisure: 1 }, seen)?.id).toBe('tourism');
+  });
+
   it('skips tips the player has already seen', () => {
     expect(currentTip({ ...empty, disasters: 1 }, ['camera', 'power'])?.id).toBe('disaster');
   });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { HistorySample, SimEvent, ToolCommand, ToolId } from '@/shared/protocol';
 import { setUnlockTableForTest } from '@/shared/unlocks';
+import { deserialize, serialize } from '../serialize';
 import { CityState } from '../state';
 import { runTool } from '../tools';
 import { takeCensus } from './census';
@@ -104,6 +105,21 @@ describe('city class', () => {
     } finally {
       restore();
     }
+  });
+});
+
+describe('first-time news', () => {
+  it('runs each headline once, and remembers it through a save', () => {
+    const s = flatCity();
+    const events: SimEvent[] = [];
+    const system = evaluationSystem((e) => events.push(e));
+    s.census = { ...s.census, busRiders: 3 };
+    system.run(s, 13);
+    system.run(s, 13);
+    const headlines = events.flatMap((e) => (e.type === 'news' ? [e.headline] : []));
+    expect(headlines.filter((h) => h.includes('bus riders'))).toHaveLength(1);
+    expect(s.newsFlags).toEqual(['bus']);
+    expect(deserialize(serialize(s)).newsFlags).toEqual(['bus']);
   });
 });
 

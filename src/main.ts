@@ -5,7 +5,7 @@ import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/p
 import type { CityAudio } from './audio';
 import { gunzip } from './save/compress';
 import { QUALITY, type QualityName } from './shared/settings';
-import { isPlant, isPower, isRoad, zoneOf } from './shared/tiles';
+import { isLeisure, isPlant, isPower, isRoad, zoneOf } from './shared/tiles';
 import { CityMirror } from './render/mirror';
 import { isTileOverlay } from './render/overlays';
 import { AutoQuality, lowerQuality } from './render/quality';
@@ -128,6 +128,8 @@ async function start(): Promise<void> {
 
   const mirror = new CityMirror(size);
   const sim = new SimBridge();
+  /** The busiest road block, for the bus tip. */
+  let maxTraffic = 0;
   let fieldListener: ((name: FieldName, data: Uint8Array) => void) | null = null;
   sim.onTick((tick) => {
     mirror.apply(tick.chunks);
@@ -144,7 +146,10 @@ async function start(): Promise<void> {
     if (renderer) renderer.atmosphere.weather.overcast = tick.overcast;
     activeDisasters.value = tick.disasters;
     if (tick.field) fieldListener?.(tick.field.name, tick.field.data);
-    if (tick.traffic) renderer?.agents.setTraffic(tick.traffic);
+    if (tick.traffic) {
+      renderer?.agents.setTraffic(tick.traffic);
+      maxTraffic = tick.traffic.reduce((a, b) => Math.max(a, b), 0);
+    }
   });
 
   // Mount the UI even if WebGL fails, so the failure can be reported on screen.
@@ -292,6 +297,7 @@ async function start(): Promise<void> {
     let lines = 0;
     let zones = 0;
     let plants = 0;
+    let leisure = 0;
     for (let i = 0; i < mirror.tiles.length; i++) {
       const k = mirror.tiles[i] ?? 0;
       if (isRoad(k)) roads++;
@@ -299,10 +305,12 @@ async function start(): Promise<void> {
       if (mirror.parts[i] === 1) {
         if (zoneOf(k)) zones++;
         else if (isPlant(k)) plants++;
+        else if (isLeisure(k)) leisure++;
       }
     }
     const c = census.value;
-    cityFacts.value = { roads, lines, zones, plants, unpowered: c?.unpoweredZones ?? 0, pop: c?.resPop ?? 0 };
+    const dry = c?.utilityRules ? c.unwateredLots : 0;
+    cityFacts.value = { roads, lines, zones, plants, unpowered: c?.unpoweredZones ?? 0, pop: c?.resPop ?? 0, dry, jam: maxTraffic, leisure };
   }, 2000);
 
   // The budget window pauses the game while it is open and restores the speed after.

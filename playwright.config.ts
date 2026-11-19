@@ -14,6 +14,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   // CI renders WebGL in software; parallel browsers starve each other of CPU.
   workers: process.env.CI ? 1 : undefined,
+  // Shader compiles on the title screen are slow when several browsers run at once.
+  timeout: 60_000,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: `http://localhost:${PORT}/tim-city/`,

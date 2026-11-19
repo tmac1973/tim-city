@@ -52,13 +52,13 @@ describe('taxes and running costs', () => {
     expect(computeLedger(s).police).toBe(100);
   });
 
-  it('charges water towers and landfills a year of upkeep, scaled by utilities funding', () => {
+  it('charges water towers and landfills their yearly upkeep, scaled by utilities funding', () => {
     const s = flatCity();
     runTool(s, tool('waterTower', 20, 20));
     runTool(s, tool('landfill', 40, 40));
-    expect(computeLedger(s).utilities).toBe((20 + 30) * 12);
+    expect(computeLedger(s).utilities).toBe(60 + 90);
     s.funding.utilities = 50;
-    expect(computeLedger(s).utilities).toBe(300);
+    expect(computeLedger(s).utilities).toBe(75);
   });
 
   it('charges $1 per road tile and $2 per rail tile at full funding', () => {

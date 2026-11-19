@@ -34,3 +34,37 @@ export const FIXTURE_CITY: ScriptAction[] = [
   { atTick: 40, command: build('police', 58, 21) },
   { atTick: 40, command: build('park', 42, 26, 46, 28) },
 ];
+
+/**
+ * The fixture town with everything version 6 added: density tiers, a wind
+ * turbine, a water tower and landfill, landmarks, bus stops along the main
+ * road, and a subway out to a district no road reaches.
+ */
+export const FIXTURE_CITY_V6: ScriptAction[] = [
+  // Landmarks and the subway unlock at City; the script grants it.
+  { atTick: 0, command: { type: 'setClassReached', cityClass: 2 } },
+  ...FIXTURE_CITY,
+  // The southern homes become low density.
+  { atTick: 50, command: { ...build('residential', 27, 27, 39, 27), tier: 0 } },
+  // Water towers by the homes and by the shops and industry, each with a turbine to run it,
+  // a landfill central to everything, and a fire station.
+  { atTick: 50, command: build('waterTower', 31, 31) },
+  { atTick: 50, command: build('wind', 32, 30) },
+  { atTick: 50, command: build('waterTower', 50, 31) },
+  { atTick: 50, command: build('wind', 51, 30) },
+  { atTick: 50, command: build('road', 28, 33, 52, 33) },
+  { atTick: 50, command: build('landfill', 41, 36) },
+  { atTick: 50, command: build('wind', 44, 36) },
+  { atTick: 50, command: build('fire', 37, 37) },
+  { atTick: 50, command: build('wind', 63, 30) },
+  { atTick: 50, command: build('museum', 70, 30) },
+  { atTick: 50, command: build('statue', 64, 26) },
+  ...[28, 38, 48, 58].map((x): ScriptAction => ({ atTick: 50, command: build('busStop', x, 25) })),
+  // The far district: homes powered by their own turbine, a road and a station.
+  { atTick: 50, command: build('road', 90, 62, 100, 62) },
+  { atTick: 50, command: build('residential', 93, 60) },
+  { atTick: 50, command: build('wind', 91, 60) },
+  { atTick: 50, command: build('subwayStation', 96, 63) },
+  { atTick: 50, command: build('subwayStation', 60, 25) },
+  { atTick: 50, command: build('subway', 60, 25, 96, 63) },
+];

@@ -48,23 +48,23 @@ export const COSTS = {
 } as const;
 
 /** Power each plant supplies; each zone draws 1 unit per density level (at least 1). */
-/** Running costs a month, at full funding. */
+/** Running costs a year, at full funding (a road tile costs $1, a police station $100). */
 export const UPKEEP = {
-  busStop: 5,
+  busStop: 10,
   /** Per tile of track. */
-  subway: 1,
-  subwayStation: 20,
-  waterTower: 20,
-  landfill: 30,
-  cityHall: 50,
-  hospital: 80,
-  university: 120,
-  museum: 40,
-  zoo: 60,
-  amusementPark: 100,
+  subway: 2,
+  subwayStation: 60,
+  waterTower: 60,
+  landfill: 90,
+  cityHall: 150,
+  hospital: 250,
+  university: 400,
+  museum: 120,
+  zoo: 180,
+  amusementPark: 300,
   statue: 0,
-  clockTower: 5,
-  timSign: 5,
+  clockTower: 15,
+  timSign: 15,
 } as const;
 export type LandmarkName = 'cityHall' | 'hospital' | 'university' | 'museum' | 'zoo' | 'amusementPark' | 'statue' | 'clockTower' | 'timSign';
 /**
@@ -82,14 +82,14 @@ export const LANDMARK_REACH: Partial<Record<LandmarkName, { radius: number; stre
   timSign: { radius: 8, strength: 30 },
 };
 /** Monthly tourism from a working leisure landmark reached by road from the map edge, before crime and pollution. */
-export const TOURISM_BASE: Partial<Record<LandmarkName, number>> = { museum: 120, zoo: 150, amusementPark: 250 };
+export const TOURISM_BASE: Partial<Record<LandmarkName, number>> = { museum: 30, zoo: 40, amusementPark: 60 };
 /** Approval each landmark adds; the total is capped. */
 export const LANDMARK_APPROVAL: Partial<Record<LandmarkName, number>> = { cityHall: 5, statue: 1, clockTower: 2, timSign: 3 };
 export const MAX_LANDMARK_APPROVAL = 15;
 /** Reach (tiles) and capacity (zone levels served) of each utility building. */
 export const UTILITY = {
-  waterTower: { radius: 16, capacity: 300 },
-  landfill: { radius: 24, capacity: 500 },
+  waterTower: { radius: 18, capacity: 300 },
+  landfill: { radius: 28, capacity: 500 },
 } as const;
 
 /** Zoning one lot at low, medium and high density. */

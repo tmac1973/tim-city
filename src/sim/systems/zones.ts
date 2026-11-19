@@ -17,6 +17,9 @@ export const growThreshold = (density: number): number => 50 + 60 * density;
 /** Negative demand beyond which a zone at `density` shrinks. */
 export const shrinkThreshold = (density: number): number => 150 + 60 * density;
 
+/** Highest land-value class (0–3). */
+const MAX_LV_CLASS = 3;
+
 export const RESIDENTS_PER_LEVEL = 20;
 export const JOBS_PER_LEVEL = 15;
 
@@ -101,9 +104,10 @@ export const zoneSystem: System = {
         }
         continue;
       }
-      // Above its tier's cap (after a downzone, or when land value falls), a lot steps down.
+      // Above its cap (after a downzone, or without water), a lot steps down. Land value
+      // only stops high density growing past 6; it never pulls a lot down.
       const cap = lotCap(state, i, lvClass);
-      if (density > cap) {
+      if (density > lotCap(state, i, MAX_LV_CLASS)) {
         if (rng.nextFloat() < CHANGE_CHANCE) setDensity(state, x, y, type, density - 1, lvClass);
         continue;
       }

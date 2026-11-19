@@ -9,6 +9,16 @@ export interface TipFacts {
   budgetOpen: boolean;
   problems: number;
   disasters: number;
+  /** The Zones flyout is open. */
+  zonesOpen?: boolean;
+  /** Zone lots held back for want of water (once the rules apply). */
+  dry?: number;
+  /** Highest traffic on any road block. */
+  jam?: number;
+  /** Highest city class reached (2 = City). */
+  cityClass?: number;
+  /** Museums, zoos and amusement parks built. */
+  leisure?: number;
 }
 
 export interface Tip {
@@ -77,6 +87,36 @@ export const TIPS: Tip[] = [
     text: 'Residents have a complaint. City shows what they care about; the overlays here show where it is worst.',
     anchor: '.overlays',
     when: (f) => f.problems > 0 && f.pop > 500,
+  },
+  {
+    id: 'density',
+    text: 'Pick low, medium or high density here. Press the zone key again to cycle. Paint over a zone to change its density in place.',
+    anchor: '.tier-picker',
+    when: (f) => f.zonesOpen === true,
+  },
+  {
+    id: 'water',
+    text: 'Some lots need water to grow past level 4. Build a water tower nearby (Utilities).',
+    anchor: '[data-category="Utilities"]',
+    when: (f) => (f.dry ?? 0) > 0 && f.pop > 0,
+  },
+  {
+    id: 'buses',
+    text: 'Traffic is building up. Bus stops along busy roads take cars off them (Transit).',
+    anchor: '[data-category="Transit"]',
+    when: (f) => (f.jam ?? 0) >= 200,
+  },
+  {
+    id: 'subway',
+    text: 'Subways unlocked! Press V to see underground, then drag track between two stations.',
+    anchor: '[data-category="Transit"]',
+    when: (f) => (f.cityClass ?? 0) >= 2,
+  },
+  {
+    id: 'tourism',
+    text: 'Landmarks earn tourism when a road reaches them from the edge of the map.',
+    anchor: '[data-category="Landmarks"]',
+    when: (f) => (f.leisure ?? 0) > 0,
   },
   {
     id: 'disaster',

@@ -115,7 +115,7 @@ effectiveUiScale.subscribe((k) => {
 export const uiScale = (): number => effectiveUiScale.value;
 
 /** Counts the onboarding tips watch, refreshed every couple of seconds. */
-export const cityFacts = signal({ roads: 0, lines: 0, zones: 0, plants: 0, unpowered: 0, pop: 0 });
+export const cityFacts = signal({ roads: 0, lines: 0, zones: 0, plants: 0, unpowered: 0, pop: 0, dry: 0, jam: 0, leisure: 0 });
 
 /** Set when the player triggers a disaster from the menu: the camera flies to it. */
 export const watchNext = signal(false);

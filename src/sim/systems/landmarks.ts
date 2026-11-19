@@ -91,7 +91,7 @@ export function landmarkApproval(state: CityState): number {
   return Math.min(MAX_LANDMARK_APPROVAL, Math.floor(bonus));
 }
 
-/** Monthly upkeep of the city's landmarks. */
+/** Yearly upkeep of the city's landmarks. */
 export function landmarkUpkeep(state: CityState, upkeep: Record<LandmarkName, number>): number {
   return landmarks(state).reduce((sum, l) => sum + upkeep[l.name], 0);
 }

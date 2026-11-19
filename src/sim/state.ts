@@ -144,6 +144,8 @@ export class CityState {
   utilityGraceUntil = 0;
   /** Tourism income this month (tourism.ts); the ledger counts twelve of it a year. */
   tourism = 0;
+  /** One-off headlines already run (first bus riders and so on). */
+  newsFlags: string[] = [];
 
   get taxSensitivity(): number {
     return DIFFICULTY[this.difficulty].taxSensitivity;

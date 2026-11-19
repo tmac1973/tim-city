@@ -128,6 +128,19 @@ export function evaluate(state: CityState): Evaluation {
   };
 }
 
+/** Headlines for a city's first bus riders, first subway trip and first tourists, once each. */
+function announceFirsts(state: CityState, emit: (event: SimEvent) => void): void {
+  const once = (flag: string, happened: boolean, headline: string) => {
+    if (!happened || state.newsFlags.includes(flag)) return;
+    state.newsFlags.push(flag);
+    emit({ type: 'news', headline, x: null, y: null });
+  };
+  const c = state.census;
+  once('bus', c.busRiders > 0, 'The first bus riders are on their way');
+  once('subway', c.subwayRiders > 0, 'The subway opens! Trains are carrying their first passengers');
+  once('tourism', state.tourism > 0, `Tourists arrive: $${state.tourism.toLocaleString('en-US')} this month`);
+}
+
 /** For a city saved before utilities: warn as the grace period runs out, then say the rules apply. */
 function announceUtilityRules(state: CityState, emit: (event: SimEvent) => void): void {
   if (state.utilityGraceUntil === 0) return;
@@ -160,6 +173,7 @@ export function evaluationSystem(emit: (event: SimEvent) => void): System {
         emit({ type: 'milestone', cityClass: evaluation.cityClass, population: evaluation.population, unlocked });
       }
       announceUtilityRules(state, emit);
+      announceFirsts(state, emit);
       if (state.date.month !== MONTHS_PER_YEAR - 1) return;
       emit({
         type: 'evaluation',

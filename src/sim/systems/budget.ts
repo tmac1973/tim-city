@@ -84,11 +84,10 @@ export function computeLedger(state: CityState): Ledger {
   ledger.roads = Math.round(((roadTiles * ROAD_UPKEEP + railTiles * RAIL_UPKEEP) * state.funding.road) / 100);
   ledger.police = Math.round((police * STATION_UPKEEP * state.funding.police) / 100);
   ledger.fire = Math.round((fire * STATION_UPKEEP * state.funding.fire) / 100);
-  // Utility upkeep is monthly; the ledger is yearly.
-  ledger.utilities = Math.round((utilities * MONTHS_PER_YEAR * state.funding.utilities) / 100);
+  ledger.utilities = Math.round((utilities * state.funding.utilities) / 100);
   const transit = stops * UPKEEP.busStop + track * UPKEEP.subway + stations * UPKEEP.subwayStation;
-  ledger.transit = Math.round((transit * MONTHS_PER_YEAR * state.funding.transit) / 100);
-  ledger.landmarks = landmarkUpkeep(state, UPKEEP) * MONTHS_PER_YEAR;
+  ledger.transit = Math.round((transit * state.funding.transit) / 100);
+  ledger.landmarks = landmarkUpkeep(state, UPKEEP);
   ledger.tourism = state.tourism * MONTHS_PER_YEAR;
   ledger.bonds = state.bonds.reduce((sum, b) => sum + bondPayment(b), 0);
   return ledger;

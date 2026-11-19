@@ -168,10 +168,10 @@ describe('landmarks', () => {
     // Run the road on to the map's east edge.
     expect(runTool(s, tool('road', 44, 23, 127, 23)).ok).toBe(true);
     updateTourism(s);
-    expect(s.tourism).toBe(150);
+    expect(s.tourism).toBe(40);
     s.field('crime').fill(255);
     updateTourism(s);
-    expect(s.tourism).toBe(75);
-    expect(computeLedger(s).tourism).toBe(75 * 12);
+    expect(s.tourism).toBe(20);
+    expect(computeLedger(s).tourism).toBe(20 * 12);
   });
 });

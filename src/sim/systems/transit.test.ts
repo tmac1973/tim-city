@@ -47,13 +47,13 @@ describe('bus routes', () => {
     expect(runTool(s, tool('busStop', 50, 50))).toMatchObject({ ok: false, reason: 'Must be beside a road' });
   });
 
-  it('charges $5 a month a stop on the transit line', () => {
+  it('charges $10 a year a stop on the transit line', () => {
     const s = flatCity();
     runTool(s, tool('road', 10, 20, 40, 20));
     for (let x = 12; x < 32; x += 2) runTool(s, tool('busStop', x, 21));
-    expect(computeLedger(s).transit).toBe(10 * 5 * 12);
+    expect(computeLedger(s).transit).toBe(10 * 10);
     s.funding.transit = 50;
-    expect(computeLedger(s).transit).toBe(300);
+    expect(computeLedger(s).transit).toBe(50);
   });
 });
 

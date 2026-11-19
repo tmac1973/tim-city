@@ -90,7 +90,7 @@ describe('subway trips', () => {
   it('charges track and stations on the transit line', () => {
     const s = districts();
     runTool(s, tool('subway', 17, 15, 105, 15));
-    // 89 tiles of track and two stations.
-    expect(computeLedger(s).transit).toBe((89 * 1 + 2 * 20) * 12);
+    // 89 tiles of track and two stations, a year.
+    expect(computeLedger(s).transit).toBe(89 * 2 + 2 * 60);
   });
 });

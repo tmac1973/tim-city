@@ -6,6 +6,18 @@ Tim City is an original 3D city builder that runs in your browser. You zone land
 
 There is nothing to install and no account to make. Cities save in your browser, and you can export them as `.timcity` files to keep or share.
 
+## What's new in 2.0
+
+- **Density you choose.** Paint zones as low, medium or high density, and each tier caps how tall the lots can grow. High density costs more, unlocks once you're a Town, and needs good land value to reach its tallest towers. To change a neighbourhood's density, paint over it and the buildings stay put.
+- **Cleaner power, and dirtier.** Wind turbines (stronger on hills), solar farms (weaker in cloudy months), gas plants and oil plants join coal and nuclear.
+- **Water and garbage.** Water towers and landfills cover the lots around them. Without water a lot stops at level 4, and uncollected garbage drags land value down. Old cities get two in-game years to catch up.
+- **Buses and subways.** Put bus stops beside busy roads and the stops link into routes that take cars off the street; the buses drive them and you can ride along. Once you're a City, dig subway track under anything and connect districts no road reaches. Press V to see it all underground.
+- **Landmarks.** City Hall, a hospital, a university, a museum, a zoo, an amusement park with a Ferris wheel that turns, and three monuments, each with its own effect. The leisure ones bring in tourists if a road reaches them from the edge of the map.
+- **Tools that unlock as you grow.** The toolbar is now a set of category flyouts, and new tools arrive at Town, City and Capital, announced when they do.
+- **Better road building.** Roads now grade around buildings instead of refusing to. Faint outlines show which 3×3 lots will fit beside the road you're drawing, parallel roads snap to lot-sized gaps (hold Alt to stop them), and the Block tool lays a whole ring of road sized to fit lots, zoned inside if you like.
+
+See [CHANGELOG.md](CHANGELOG.md) for the details.
+
 ## What's in it
 
 - **A living simulation.** Residential, commercial and industrial demand; power grids; traffic that follows real trips between homes, shops and factories; pollution, crime, land value and population density; police, fire and park coverage; a yearly budget with taxes, service funding and bonds; city evaluation, opinion polls and a city class that climbs from Village to Megalopolis.
@@ -26,6 +38,12 @@ There is nothing to install and no account to make. Cities save in your browser,
 | Middle-drag | Tilt |
 | Mouse wheel | Zoom |
 | Space, 1, 2, 3 | Pause, slow, normal, fast |
+| Z, X, C | Residential, commercial, industrial zones (press again to cycle the density) |
+| R, H, T | Road, Block, rail |
+| P, G, N, E | Power line, coal plant, nuclear plant, wind turbine |
+| Y | Bus stop |
+| V | Underground view |
+| Alt while dragging a road | Don't snap to a lot-sized gap |
 | Esc | Drop the tool, close a window, or open the pause menu |
 | `[` and `]` | Terraform brush size |
 | Shift while dragging a road or rail | Tunnel through a hill |
@@ -33,7 +51,7 @@ There is nothing to install and no account to make. Cities save in your browser,
 | M | Mute |
 | Ctrl+S | Quick save |
 
-Every tool's button shows its cost, shortcut and purpose when you hover it.
+Each toolbar button opens a flyout listing its tools with their costs, shortcuts and what they do. Tools you haven't unlocked yet show the population they need.
 
 ## Running it yourself
 
@@ -67,13 +85,13 @@ A few addresses are handy for testing: `?seed=anything` starts a new city on tha
 BENCH_HEADLESS=1 BENCH_CHROME_ARGS="--enable-gpu --use-angle=vulkan --enable-features=Vulkan" pnpm bench
 ```
 
-`pnpm sample` rebuilds the city the title screen shows, and `pnpm fixture` rebuilds the save fixture the tests use.
+`pnpm sample` rebuilds the city the title screen shows, and `pnpm fixture` writes a save fixture in the current format (the tests use `city-v1` for migrations and `city-v6` for the 2.0 features).
 
 ## How it's built
 
 TypeScript throughout. The simulation runs in a Web Worker on typed arrays, ticks deterministically from a seed, and sends the main thread only the 32×32 chunks that changed. The main thread renders with [Three.js](https://threejs.org/) and [postprocessing](https://github.com/pmndrs/postprocessing), and the interface is [Preact](https://preactjs.com/) with [Signals](https://github.com/preactjs/signals). Saves use [idb](https://github.com/jakearchibald/idb) over IndexedDB and the browser's own gzip streams. Tests use [Vitest](https://vitest.dev/) and [Playwright](https://playwright.dev/), and the build is [Vite](https://vite.dev/).
 
-The full design and the phase-by-phase plan it was built from live in [`plan/tim-city/`](plan/tim-city/overview.md); each phase file ends with notes on what changed during the build.
+The full design and the phase-by-phase plan it was built from live in [`plan/tim-city/`](plan/tim-city/overview.md); each phase file ends with notes on what changed during the build. The 2.0 expansion has its own plan in [`plan/city-expansion/`](plan/city-expansion/overview.md).
 
 ## Credits
 
