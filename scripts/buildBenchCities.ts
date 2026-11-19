@@ -2,18 +2,23 @@
  * Writes public/bench/bench-128.timcity (100,000+ people) and
  * bench-256.timcity (250,000+): dense, fully powered grids built straight
  * into the city state, for `pnpm bench`. No player could grow these in the
- * time a benchmark allows, so the script places top-density lots directly,
- * then runs the sim two months so traffic, power and the census settle.
+ * time a benchmark allows, so the script places top-density, high-tier lots
+ * directly. Every ninth cell is a utility cell with a water tower, landfill,
+ * wind turbines, bus stops and a subway station, and subway lines join the
+ * stations in turn. The sim then runs two months so traffic, power and the
+ * census settle.
  * Run with `pnpm bench:cities`.
  */
 import { writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import type { MapSize } from '../src/shared/constants';
-import { TileFlag, TileKind, ZoneType, zoneKind } from '../src/shared/tiles';
+import type { ToolCommand } from '../src/shared/protocol';
+import { TileFlag, TileKind, ZoneTier, ZoneType, zoneKind } from '../src/shared/tiles';
 import { serialize } from '../src/sim/serialize';
 import { Simulation } from '../src/sim/sim';
 import { generateTerrain } from '../src/sim/terrain/generate';
 import { placeFootprint } from '../src/sim/tools/footprint';
+import { runTool } from '../src/sim/tools';
 
 const CELL = 7;
 
@@ -60,6 +65,7 @@ function build(size: MapSize, plantsEvery: number): Simulation {
   // Four 3×3 lots per cell: industry on the west edge, downtown commerce in
   // the middle, homes elsewhere; a nuclear plant every few cells, a park now and then.
   let n = 0;
+  const utilityCells: [number, number][] = [];
   for (let cy = 0; cy < cells; cy++) {
     for (let cx = 0; cx < cells; cx++) {
       if (!cellOk[cy * cells + cx]) continue;
@@ -72,6 +78,7 @@ function build(size: MapSize, plantsEvery: number): Simulation {
         for (let dy = 0; dy < fp; dy++) for (let dx = 0; dx < fp; dx++) s.flags[s.index(x + dx, y + dy)] = TileFlag.CONDUCTIVE;
         // The sim finds a zone lot by the flag on its centre tile.
         if (fp === 3 && kind !== TileKind.Park) {
+          for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) s.zoneTier[s.index(x + dx, y + dy)] = ZoneTier.High;
           const centre = s.index(x + 1, y + 1);
           s.flags[centre] = (s.flags[centre] ?? 0) | TileFlag.ZONE_CENTER;
         }
@@ -79,6 +86,10 @@ function build(size: MapSize, plantsEvery: number): Simulation {
       if (n % plantsEvery === 0) {
         // Against the west road, which carries power to the rest of the grid.
         put(ox, oy + 1, TileKind.NuclearPlant);
+        continue;
+      }
+      if (n % 9 === 4) {
+        utilityCells.push([ox, oy]);
         continue;
       }
       if (n % 23 === 0) {
@@ -91,6 +102,34 @@ function build(size: MapSize, plantsEvery: number): Simulation {
       for (const [dx, dy] of [[0, 0], [3, 0], [0, 3], [3, 3]] as const) put(ox + dx, oy + dy, zoneKind(type, 8, lv));
     }
   }
+  // Utility cells, built through the tools as a player would.
+  s.classReached = 3;
+  const tool = (name: ToolCommand['tool'], x0: number, y0: number, x1 = x0, y1 = y0): boolean =>
+    runTool(s, { type: 'tool', tool: name, x0, y0, x1, y1, brush: 1, tunnel: false, dryRun: false, requestId: 0 }).ok;
+  let built = 0;
+  let tries = 0;
+  let previous: [number, number] | null = null;
+  for (const [ox, oy] of utilityCells) {
+    // The 6×6 inside of the cell: a water tower in the north-west corner,
+    // turbines along the north road, a landfill in the south-east, and bus
+    // stops and a station along the west road. 2×2 and 4×4 tools anchor one
+    // tile in from the pointer.
+    const station: [number, number] = [ox, oy + 4];
+    for (const ok of [
+      tool('waterTower', ox + 1, oy + 1),
+      tool('landfill', ox + 3, oy + 3),
+      ...[2, 3, 4, 5].map((dx) => tool('wind', ox + dx, oy)),
+      tool('busStop', ox, oy + 2),
+      tool('busStop', ox, oy + 5),
+      tool('subwayStation', station[0], station[1]),
+      previous ? tool('subway', previous[0], previous[1], station[0], station[1]) : true,
+    ]) {
+      tries++;
+      if (ok) built++;
+    }
+    previous = station;
+  }
+  console.log(`  utility cells ${String(utilityCells.length)}: ${String(built)}/${String(tries)} tool commands built`);
   for (let month = 0; month < 2; month++) {
     for (let tick = 0; tick < 16; tick++) sim.step();
     sim.drainEvents();

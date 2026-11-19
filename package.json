@@ -15,6 +15,7 @@
     "fixture": "tsx scripts/makeFixtureSave.ts",
     "sample": "tsx scripts/buildSampleCity.ts",
     "bench:cities": "tsx scripts/buildBenchCities.ts",
+    "profile:sim": "tsx scripts/profileSim.ts",
     "bench": "pnpm build && playwright test -c playwright.bench.config.ts"
   },
   "dependencies": {
