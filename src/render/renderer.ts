@@ -18,6 +18,7 @@ import { pickTile, type PickResult } from './picking';
 import { PostFx } from './post';
 import { TerrainLayer } from './terrain';
 import { LotGuide } from './lotGuide';
+import { RadiusGuide } from './radiusGuide';
 import { UndergroundLayer } from './underground';
 import { ToolPreview } from './toolPreview';
 import { TreeLayer } from './trees';
@@ -35,6 +36,8 @@ export class Renderer {
   readonly preview: ToolPreview;
   /** Zone lots that would fit beside the road being drawn. */
   readonly lotGuide: LotGuide;
+  /** The reach of a building being placed. */
+  readonly radiusGuide: RadiusGuide;
   /** Subway track, stations and trains, shown in the underground view. */
   readonly underground: UndergroundLayer;
 
@@ -111,6 +114,7 @@ export class Renderer {
     this.cursor = new TileCursor(mirror);
     this.preview = new ToolPreview(mirror);
     this.lotGuide = new LotGuide(mirror);
+    this.radiusGuide = new RadiusGuide(mirror);
     this.underground = new UndergroundLayer(mirror);
     this.scene.add(
       this.terrain.group,
@@ -126,6 +130,7 @@ export class Renderer {
       this.cursor.line,
       this.preview.mesh,
       this.lotGuide.lines,
+      this.radiusGuide.group,
       this.underground.group,
     );
     this.post = new PostFx(this.webgl, this.scene, this.cityCamera.camera, preset);

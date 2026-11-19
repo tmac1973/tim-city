@@ -1,5 +1,8 @@
 import type { ToolCommand, ToolId, ToolResult } from '@/shared/protocol';
 import { guideLots, LOT_GAPS, snapParallel } from '@/render/lotGuide';
+import { LANDMARK_REACH, UTILITY } from '@/shared/costs';
+import { COVERAGE_RADIUS } from '@/sim/systems/coverage';
+import { SERVED } from '@/sim/systems/utilityRules';
 import { isRoad } from '@/shared/tiles';
 import type { PickResult } from '@/render/picking';
 import type { Renderer } from '@/render/renderer';
@@ -10,6 +13,23 @@ import { activeTool, blockFill, brush, undergroundView, costTag, formatMoney, qu
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const ZONES = new Set<UiTool>(['residential', 'commercial', 'industrial']);
 const REPEAT_MS = 250;
+
+/** Share of a coverage radius where one building at full strength serves (cover ≥ SERVED). */
+const SERVED_SHARE = 1 - SERVED / 255;
+/**
+ * Tools whose building reaches around it: the radius in tiles, and the share
+ * of it the disc fills (where coverage counts as served). Land-value
+ * landmarks fill the whole circle, since their boost just fades out.
+ */
+const REACH: Partial<Record<UiTool, { radius: number; served: number }>> = {
+  police: { radius: COVERAGE_RADIUS, served: SERVED_SHARE },
+  fire: { radius: COVERAGE_RADIUS, served: SERVED_SHARE },
+  waterTower: { radius: UTILITY.waterTower.radius, served: SERVED_SHARE },
+  landfill: { radius: UTILITY.landfill.radius, served: SERVED_SHARE },
+  ...Object.fromEntries(
+    Object.entries(LANDMARK_REACH).map(([name, reach]) => [name, { radius: reach.radius, served: name === 'hospital' || name === 'university' ? SERVED_SHARE : 1 }]),
+  ),
+};
 
 /** The gap beside a parallel road, in words for the cost tag. */
 function gapWords(gap: number): string {
@@ -107,6 +127,7 @@ export class ToolController {
       this.latestDryRun = -1;
       this.renderer.preview.clear();
       this.renderer.lotGuide.clear();
+      this.renderer.radiusGuide.clear();
       costTag.value = null;
       return;
     }
@@ -128,6 +149,16 @@ export class ToolController {
     }
     if (result.requestId !== this.latestDryRun || !activeTool.value) return;
     this.renderer.preview.show(result.tiles, result.bad, result.ok);
+    // Show where a station, utility or landmark would reach.
+    const reach = result.ok ? REACH[activeTool.value] : undefined;
+    if (reach && result.tiles.length > 0) {
+      const size = this.renderer.mirror.size;
+      const xs = result.tiles.map((i) => i % size);
+      const ys = result.tiles.map((i) => Math.floor(i / size));
+      const cx = (Math.min(...xs) + Math.max(...xs) + 1) / 2;
+      const cy = (Math.min(...ys) + Math.max(...ys) + 1) / 2;
+      this.renderer.radiusGuide.show(cx, cy, reach.radius, reach.served);
+    } else this.renderer.radiusGuide.clear();
     // Show the zone lots that would fit beside a road as it is drawn.
     if (result.ok && (activeTool.value === 'road' || (activeTool.value === 'block' && blockFill.value === null))) this.renderer.lotGuide.show(guideLots(this.renderer.mirror, result.tiles));
     else this.renderer.lotGuide.clear();
