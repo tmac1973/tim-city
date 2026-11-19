@@ -24,7 +24,7 @@ export function startEarthquake(state: CityState, rng: Rng): ActiveDisaster | nu
       }
       const roll = rng.nextFloat();
       if (roll < 0.15) destroy(state, x, y);
-      else if (roll < 0.18) ignite(state, rng, x, y);
+      else if (roll < 0.18) ignite(state, x, y);
     }
   }
   // Stays "active" briefly so the renderer can shake the camera.

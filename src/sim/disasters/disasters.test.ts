@@ -8,8 +8,8 @@ import { Simulation } from '../sim';
 import { Rng } from '../rng';
 import { CityState } from '../state';
 import { runTool } from '../tools';
-import { ignite, randomTile } from './common';
-import { updateFires } from './fire';
+import { BURN_TICKS, ignite, randomTile } from './common';
+import { crewDelay, updateFires } from './fire';
 import { rollRandomDisaster, triggerDisaster } from './index';
 import { radiationSystem } from './meltdown';
 
@@ -146,14 +146,42 @@ describe('fire', () => {
       let total = 0;
       for (let seed = 0; seed < 20; seed++) {
         const s = town(`fire-${String(seed)}`).state;
+        // A fire station a few tiles off, so crews arrive.
+        if (cover > 0) expect(runTool(s, tool('fire', 40, 48)).ok).toBe(true);
         s.field('fireCover').fill(cover);
-        ignite(s, s.random('test'), 30, 30);
+        ignite(s, 30, 30);
         for (let t = 0; t < 120; t++) updateFires(s);
         total += rubble(s);
       }
       return total;
     };
     expect(burnedWith(255)).toBeLessThan(burnedWith(0) / 2);
+  });
+});
+
+describe('fire crews', () => {
+  it('take time to arrive: one tick per tile from the nearest station', () => {
+    expect(crewDelay([[10, 10]], 10, 30)).toBe(20);
+    expect(crewDelay([[10, 10], [10, 28]], 10, 30)).toBe(2);
+    expect(crewDelay([], 10, 30)).toBe(Infinity);
+  });
+
+  it('never put a fire out before they could have arrived, and usually save the building after', () => {
+    let saved = 0;
+    for (let seed = 0; seed < 20; seed++) {
+      const s = town(`crew-${String(seed)}`).state;
+      // A station on open ground south of the homes, about 20 tiles from the fire.
+      expect(runTool(s, tool('fire', 40, 48)).ok).toBe(true);
+      s.field('fireCover').fill(255);
+      expect(ignite(s, 30, 30)).toBe(true);
+      const delay = crewDelay([[40, 48]], 30, 30);
+      for (let t = 0; t < BURN_TICKS; t++) {
+        updateFires(s);
+        if (t < delay - 1) expect(s.fireTicks[s.index(30, 30)]).toBeGreaterThan(0);
+      }
+      if (s.tiles[s.index(30, 30)] !== TileKind.Rubble) saved++;
+    }
+    expect(saved).toBeGreaterThan(15);
   });
 });
 

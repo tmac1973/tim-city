@@ -25,6 +25,11 @@ export class AgentLayer {
   readonly buses: BusLayer;
   /** While paused, everything holds still. */
   paused = false;
+  /**
+   * How fast the game clock runs against normal speed. Fire trucks and police
+   * keep pace with it, so a truck reaches a fire about when the sim's crews do.
+   */
+  clockScale = 1;
 
   constructor(
     mirror: CityMirror,
@@ -75,7 +80,7 @@ export class AgentLayer {
     this.trains.update(step);
     this.planes.update(step);
     this.ships.update(step);
-    this.emergency.update(step);
+    this.emergency.update(step * this.clockScale);
     this.buses.update(step);
     this.pedestrians.update(step, target, cameraDistance);
   }

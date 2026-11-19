@@ -11,6 +11,7 @@ import { computeLedger } from './systems/budget';
 import { DIFFICULTY } from '@/shared/difficulty';
 import type { BudgetInfo, FieldName } from '@/shared/protocol';
 import { previewTerrain } from './preview';
+import { takeCensus } from './systems/census';
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -120,6 +121,8 @@ function handle(message: MainToWorker): void {
       sim.state.difficulty = difficulty;
       sim.state.funds = DIFFICULTY[difficulty].funds;
       generateTerrain(sim.state, terrain);
+      // A first count, so the census knows about the map (its water) before the first month ends.
+      takeCensus(sim.state);
       post({ type: 'ready', name, seed, size });
       publish(sim);
       schedule();

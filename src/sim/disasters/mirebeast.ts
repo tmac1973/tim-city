@@ -66,7 +66,7 @@ export function startMirebeast(state: CityState): ActiveDisaster | null {
 export function stepMirebeast(state: CityState, d: ActiveDisaster, rng: Rng): boolean {
   if (d.age % 2 !== 0) return false;
   for (let dy = 0; dy <= 1; dy++) for (let dx = 0; dx <= 1; dx++) destroy(state, d.x + dx, d.y + dy);
-  for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 2; dx++) if (rng.nextFloat() < 0.1) ignite(state, rng, d.x + dx, d.y + dy);
+  for (let dy = -1; dy <= 2; dy++) for (let dx = -1; dx <= 2; dx++) if (rng.nextFloat() < 0.1) ignite(state, d.x + dx, d.y + dy);
   // Head for the target; once there, keep going the same way until off the map.
   const ex = d.targetX - d.x;
   const ey = d.targetY - d.y;

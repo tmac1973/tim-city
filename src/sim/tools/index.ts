@@ -5,6 +5,7 @@ import { AIRPORT_SIZE, LANDFILL_SIZE, LANDMARK_SIZES, PLANT_SIZE, SEAPORT_SIZE, 
 import type { CommandQueue } from '../commands';
 import type { CityState } from '../state';
 import { stopEntry } from '../systems/transit';
+import { takeCensus } from '../systems/census';
 import { planBlock } from './block';
 import { planLiftTrack, planSubway, planSubwayStation } from './subway';
 import { planBulldoze } from './bulldoze';
@@ -178,6 +179,10 @@ export function runTool(state: CityState, cmd: ToolCommand): ToolResult {
 
 export function registerToolCommands(queue: CommandQueue, emit: (event: SimEvent) => void): void {
   queue.on('tool', (state, cmd) => {
-    emit(runTool(state, cmd));
+    const result = runTool(state, cmd);
+    // Count the city again so menus that read the census (disasters, advisors) see a new
+    // building at once rather than at the end of the month.
+    if (result.ok && !cmd.dryRun) takeCensus(state);
+    emit(result);
   });
 }

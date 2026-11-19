@@ -1,5 +1,5 @@
 import { h, render } from 'preact';
-import { type MapSize, type Speed, START_YEAR, TICKS_PER_MONTH } from './shared/constants';
+import { type MapSize, type Speed, SPEED_MS_PER_MONTH, START_YEAR, TICKS_PER_MONTH } from './shared/constants';
 import type { DifficultyName } from './shared/difficulty';
 import { DEFAULT_TERRAIN, type FieldName, type TerrainOptions } from './shared/protocol';
 import type { CityAudio } from './audio';
@@ -184,6 +184,7 @@ async function start(): Promise<void> {
     // Agents, the clock and the weather hold still while the game is paused.
     speed.subscribe((s) => {
       r.agents.paused = s === 'paused' && !titleMode;
+      if (s !== 'paused') r.agents.clockScale = SPEED_MS_PER_MONTH.normal / SPEED_MS_PER_MONTH[s];
       r.buildings.paused = s === 'paused' && !titleMode;
       r.atmosphere.paused = s === 'paused' || titleMode;
     });

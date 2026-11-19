@@ -52,7 +52,7 @@ export const DEFS: Record<DisasterType, DisasterDef> = {
         (i) => (state.tiles[i] === TileKind.OilPlant ? OIL_FIRE_WEIGHT : 1),
       );
       if (!at) return null;
-      ignite(state, rng, at[0], at[1]);
+      ignite(state, at[0], at[1]);
       return { id: state.nextDisasterId++, type: 'fire', x: at[0], y: at[1], age: 0, duration: 1, heading: 0, targetX: at[0], targetY: at[1] };
     },
   },

@@ -51,4 +51,20 @@ describe('weather', () => {
     expect(dull.get('storm')).toBe((plain.get('storm') ?? 0) * 2);
     expect(dull.get('rain')).toBe(plain.get('rain'));
   });
+
+  it('lets each spell of rain fall harder or softer, and eases toward it', () => {
+    const w = new Weather(new VisualRng(9));
+    const seen: number[] = [];
+    for (let i = 0; i < 200; i++) {
+      w.change(6, 'rain');
+      seen.push(w.intensity);
+    }
+    expect(Math.min(...seen)).toBeGreaterThanOrEqual(0.35);
+    expect(Math.max(...seen)).toBeLessThanOrEqual(1);
+    expect(Math.max(...seen) - Math.min(...seen)).toBeGreaterThan(0.4);
+    w.change(6, 'rain');
+    w.intensity = 0.4;
+    for (let i = 0; i < 100; i++) w.step(1, 6, true);
+    expect(w.mix.rain).toBeCloseTo(0.7 * 0.4, 2);
+  });
 });

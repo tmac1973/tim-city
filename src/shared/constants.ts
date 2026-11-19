@@ -22,8 +22,8 @@ export const DEFAULT_FUNDS = 10_000;
 /** Real milliseconds per game month at each speed; 0 means paused. */
 export const SPEED_MS_PER_MONTH = {
   paused: 0,
-  slow: 8000,
-  normal: 4000,
-  fast: 1500,
+  slow: 20000,
+  normal: 10000,
+  fast: 4000,
 } as const;
 export type Speed = keyof typeof SPEED_MS_PER_MONTH;

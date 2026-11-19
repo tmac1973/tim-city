@@ -9,7 +9,7 @@ export type WeatherKind = 'clear' | 'overcast' | 'rain' | 'storm' | 'snow' | 'fo
  */
 export function odds(month: number, overcast = false): [WeatherKind, number][] {
   const base: [WeatherKind, number][] = isWinter(month)
-    ? [['clear', 30], ['overcast', 22], ['snow', 30], ['fog', 13], ['rain', 5]]
+    ? [['clear', 22], ['overcast', 20], ['snow', 45], ['fog', 10], ['rain', 3]]
     : (month >= 2 && month <= 4) || (month >= 8 && month <= 10)
       ? [['clear', 30], ['overcast', 20], ['rain', 30], ['storm', 10], ['fog', 10]]
       : [['clear', 50], ['overcast', 15], ['rain', 15], ['storm', 15], ['fog', 5]];
@@ -51,6 +51,11 @@ export class Weather {
 
   /** The sim says this month is overcast (solar farms give less). */
   overcast = false;
+  /**
+   * How hard this spell of rain, storm or snow comes down: 0.35 (a drizzle,
+   * light flurries) to 1 (a downpour, a blizzard). Picked at each change.
+   */
+  intensity = 1;
 
   /** Weather held fixed (benchmarks), or null to change normally. */
   private forced: WeatherKind | null = null;
@@ -58,6 +63,7 @@ export class Weather {
   forceWeather(kind: WeatherKind | null): void {
     this.forced = kind;
     if (kind) {
+      this.intensity = 1;
       this.kind = kind;
       Object.assign(this.mix, TARGETS[kind]);
     }
@@ -70,11 +76,16 @@ export class Weather {
     if (this.timer <= 0 || (this.kind === 'snow' && !isWinter(month))) this.change(month);
     const target = TARGETS[this.kind];
     const k = Math.min(1, dt / 8);
-    for (const key of Object.keys(target) as (keyof WeatherMix)[]) this.mix[key] += (target[key] - this.mix[key]) * k;
+    for (const key of Object.keys(target) as (keyof WeatherMix)[]) {
+      // Rain and snow fall as hard as this spell's intensity; cloud and storm stay as they are.
+      const goal = key === 'rain' || key === 'snow' ? target[key] * this.intensity : target[key];
+      this.mix[key] += (goal - this.mix[key]) * k;
+    }
   }
 
   change(month: number, kind?: WeatherKind): void {
     this.timer = this.rng.range(120, 360);
+    this.intensity = this.rng.range(0.35, 1);
     if (kind) {
       this.kind = kind;
       return;

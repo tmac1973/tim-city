@@ -24,7 +24,7 @@ export function startPlaneCrash(state: CityState, rng: Rng): ActiveDisaster | nu
     const y = Math.round(ay + (rng.nextFloat() * 2 - 1) * CRASH_RANGE);
     if (!state.inBounds(x, y) || !isLand(state, state.index(x, y))) continue;
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) destroy(state, x + dx, y + dy);
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (rng.nextFloat() < 0.5) ignite(state, rng, x + dx, y + dy);
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (rng.nextFloat() < 0.5) ignite(state, x + dx, y + dy);
     return begin(state, 'planeCrash', x, y, 16);
   }
   return null;

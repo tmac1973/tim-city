@@ -38,12 +38,19 @@ export function destroy(state: CityState, x: number, y: number): number {
   return tiles.length;
 }
 
-/** Set a flammable tile alight for 8–16 ticks. */
-export function ignite(state: CityState, rng: Rng, x: number, y: number): boolean {
+/** Ticks a fire burns before the tile (and its building) is lost: two months, about 8 s at normal speed. */
+export const BURN_TICKS = 32;
+
+/**
+ * Set a flammable tile alight for BURN_TICKS ticks. Every fire burns as long,
+ * so the fire system can tell how long one has burned (and whether crews
+ * have arrived) from the ticks left.
+ */
+export function ignite(state: CityState, x: number, y: number): boolean {
   if (!state.inBounds(x, y)) return false;
   const i = state.index(x, y);
   if ((state.fireTicks[i] ?? 0) > 0 || !isFlammable(state.tiles[i] ?? 0)) return false;
-  state.fireTicks[i] = 8 + rng.nextInt(9);
+  state.fireTicks[i] = BURN_TICKS;
   state.flags[i] = (state.flags[i] ?? 0) | TileFlag.BURNING;
   state.markDirty(x, y);
   return true;
