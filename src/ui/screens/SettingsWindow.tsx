@@ -4,6 +4,7 @@ import { effectiveUiScale, settings, settingsOpen, volumes } from '../store';
 const KEYS: [string, string][] = [
   ['W A S D / arrows', 'Pan the camera'],
   ['Right-drag', 'Rotate'],
+  ['Right-click', 'Bulldoze what is under the pointer'],
   ['Middle-drag', 'Tilt'],
   ['Wheel', 'Zoom'],
   ['Space, 1, 2, 3', 'Pause and game speed'],

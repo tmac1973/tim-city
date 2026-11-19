@@ -12,6 +12,8 @@ import { activeTool, blockFill, brush, undergroundView, costTag, formatMoney, qu
 
 const TERRAFORM = new Set<UiTool>(['raise', 'lower', 'level']);
 const ZONES = new Set<UiTool>(['residential', 'commercial', 'industrial']);
+/** Pixels a right click may move and still bulldoze rather than turn the camera. */
+const RIGHT_CLICK_SLOP = 4;
 const REPEAT_MS = 250;
 
 /** Share of a coverage radius where one building at full strength serves (cover ≥ SERVED). */
@@ -179,6 +181,20 @@ export class ToolController {
   }
 
   private listen(): void {
+    // A right click that doesn't move bulldozes the tile under it; a right drag still turns the camera.
+    let rightDown: { x: number; y: number } | null = null;
+    this.canvas.addEventListener('pointerdown', (e) => {
+      if (e.button === 2) rightDown = { x: e.clientX, y: e.clientY };
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (e.button !== 2 || !rightDown) return;
+      const moved = Math.hypot(e.clientX - rightDown.x, e.clientY - rightDown.y);
+      rightDown = null;
+      if (moved > RIGHT_CLICK_SLOP || !this.hovered || this.dragStart || e.target !== this.canvas) return;
+      const cmd = this.command('bulldoze', false);
+      if (cmd) this.sim.command(cmd);
+      this.refreshPreview();
+    });
     this.canvas.addEventListener('pointerdown', (e) => {
       const tool = activeTool.value;
       if (e.button !== 0 || !tool || !this.hovered) return;

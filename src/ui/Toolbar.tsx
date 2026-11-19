@@ -116,7 +116,7 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
   {
     label: 'Land',
     tools: [
-      { id: 'bulldoze', name: 'Bulldoze', key: 'B', code: 'KeyB', cost: price(COSTS.bulldoze, '/tile'), hint: 'Drag a box to clear trees, rubble and anything built.' },
+      { id: 'bulldoze', name: 'Bulldoze', key: 'B', code: 'KeyB', cost: price(COSTS.bulldoze, '/tile'), hint: 'Drag a box to clear trees, rubble and anything built. Or right-click one thing with any tool.' },
       { id: 'raise', name: 'Raise land', key: 'U', code: 'KeyU', cost: price(COSTS.terraform, '/step'), hint: 'Click or hold to raise the ground under the brush.' },
       { id: 'lower', name: 'Lower land', key: 'J', code: 'KeyJ', cost: price(COSTS.terraform, '/step'), hint: 'Click or hold to lower the ground. Low ground floods.' },
       { id: 'level', name: 'Level land', key: 'L', code: 'KeyL', cost: price(COSTS.terraform, '/step'), hint: 'Flatten the brush to the height of the tile you click.' },

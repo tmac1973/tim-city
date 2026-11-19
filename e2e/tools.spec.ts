@@ -44,6 +44,11 @@ test('building a road through the toolbar charges for it', async ({ page }) => {
   await page.mouse.down();
   await page.mouse.up();
   await expect.poll(async () => money(await page.getByTestId('funds').textContent())).toBe(before - 10);
+
+  // A right click that doesn't move bulldozes the road again, for $1.
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.up({ button: 'right' });
+  await expect.poll(async () => money(await page.getByTestId('funds').textContent())).toBe(before - 11);
   expect(errors).toEqual([]);
 });
 

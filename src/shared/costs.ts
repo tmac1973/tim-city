@@ -88,8 +88,8 @@ export const LANDMARK_APPROVAL: Partial<Record<LandmarkName, number>> = { cityHa
 export const MAX_LANDMARK_APPROVAL = 15;
 /** Reach (tiles) and capacity (zone levels served) of each utility building. */
 export const UTILITY = {
-  waterTower: { radius: 18, capacity: 300 },
-  landfill: { radius: 28, capacity: 500 },
+  waterTower: { radius: 24, capacity: 300 },
+  landfill: { radius: 34, capacity: 500 },
 } as const;
 
 /** Zoning one lot at low, medium and high density. */
