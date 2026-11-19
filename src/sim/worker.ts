@@ -176,12 +176,12 @@ function handle(message: MainToWorker): void {
         post({ type: 'event', event: queryTile(sim.state, x, y, requestId) });
         return;
       }
+      // Apply at once at every speed: a build that waited for the next tick
+      // (625 ms at Normal) felt sluggish. The next step() would apply it
+      // first anyway, so replays agree.
       sim.enqueue(message.command);
-      // While paused, apply at once so building still works.
-      if (speed === 'paused') {
-        sim.applyCommands();
-        publish(sim);
-      }
+      sim.applyCommands();
+      publish(sim);
       return;
   }
 }

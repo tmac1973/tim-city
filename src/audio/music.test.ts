@@ -28,12 +28,11 @@ describe('generative music', () => {
     }
   });
 
-  it('keeps the tempo between 70 and 90 BPM', () => {
+  it('keeps a steady tempo from song to song', () => {
     const c = new Composer(new VisualRng(11));
     for (let bar = 0; bar < 80; bar++) {
       c.nextBar(bar * 3);
-      expect(c.bpm).toBeGreaterThanOrEqual(70);
-      expect(c.bpm).toBeLessThanOrEqual(90);
+      expect(c.bpm).toBe(80);
     }
   });
 });

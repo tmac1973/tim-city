@@ -44,7 +44,8 @@ export function scaleNotes(mood: Mood): number[] {
  */
 export class Composer {
   mood: Mood = 'calm';
-  bpm = 80;
+  /** Steady: a tempo that drifted between songs sounded like the game lagging. */
+  readonly bpm = 80;
   private bar = 0;
   private progression: number[] = PROGRESSIONS[0] ?? [0];
   private melody = 0;
@@ -57,11 +58,8 @@ export class Composer {
 
   /** Notes for the bar starting at `start` (seconds on the audio clock). */
   nextBar(start: number): NoteEvent[] {
-    // Every 8 bars: a new progression and tempo.
-    if (this.bar % 8 === 0) {
-      this.progression = this.rng.pick(PROGRESSIONS) ?? this.progression;
-      this.bpm = Math.round(this.rng.range(70, 90));
-    }
+    // Every 8 bars: a new progression.
+    if (this.bar % 8 === 0) this.progression = this.rng.pick(PROGRESSIONS) ?? this.progression;
     const { root, steps } = SCALES[this.mood];
     const beat = 60 / this.bpm;
     const degree = this.progression[this.bar % this.progression.length] ?? 0;
