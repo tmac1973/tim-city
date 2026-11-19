@@ -162,13 +162,11 @@ export function planBuilding(
   rules: { maxSlope?: number; needsWaterEdge?: boolean } = {},
 ): ToolPlan {
   const offset = size === 1 ? 0 : 1;
+  if (rules.needsWaterEdge) return planShoreBuilding(state, cmd.x1 - offset, cmd.y1 - offset, kind, size, price, rules.maxSlope);
   const lot = lotAt(state, cmd.x1 - offset, cmd.y1 - offset, size);
   if (!lot) return fail('Too close to the edge');
   const checked = checkLot(state, lot, new Set(), rules.maxSlope);
   if ('reason' in checked) return fail(checked.reason, lot.tiles, lot.tiles);
-  if (rules.needsWaterEdge && waterSide(state, lot.x, lot.y, size) === null) {
-    return fail('Must face open water along one side', lot.tiles, lot.tiles);
-  }
   return {
     ok: true,
     cost: price + checked.clearing,
@@ -179,6 +177,39 @@ export function planBuilding(
       markBuilt(state, lot);
     },
   };
+}
+
+/** How far a shore building looks from the pointer for a spot that fits. */
+const SHORE_SEARCH = 6;
+
+/**
+ * A building that must stand on land with one whole side facing open water
+ * (the seaport). The pointer is often over the water itself, so try the
+ * lot at the pointer first, then the nearest one within a few tiles that
+ * fits, and build there.
+ */
+function planShoreBuilding(state: CityState, x: number, y: number, kind: number, size: number, price: number, maxSlope?: number): ToolPlan {
+  const offsets: [number, number][] = [];
+  for (let dy = -SHORE_SEARCH; dy <= SHORE_SEARCH; dy++) for (let dx = -SHORE_SEARCH; dx <= SHORE_SEARCH; dx++) offsets.push([dx, dy]);
+  offsets.sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]));
+  for (const [dx, dy] of offsets) {
+    const lot = lotAt(state, x + dx, y + dy, size);
+    if (!lot) continue;
+    const checked = checkLot(state, lot, new Set(), maxSlope);
+    if ('reason' in checked || waterSide(state, lot.x, lot.y, size) === null) continue;
+    return {
+      ok: true,
+      cost: price + checked.clearing,
+      tiles: lot.tiles,
+      bad: [],
+      apply: () => {
+        placeFootprint(state, lot.x, lot.y, kind);
+        markBuilt(state, lot);
+      },
+    };
+  }
+  const here = lotAt(state, x, y, size);
+  return fail(`Build on the shore: one whole side (${String(size)} tiles) must face open water`, here?.tiles ?? [], here?.tiles ?? []);
 }
 
 /**

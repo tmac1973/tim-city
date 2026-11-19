@@ -100,7 +100,7 @@ const GROUPS: { label: string; tools: ToolDef[] }[] = [
     label: 'Landmarks',
     tools: [
       { id: 'stadium', name: 'Stadium', key: '', code: '', cost: price(COSTS.stadium), hint: 'Homes stop growing past 50,000 residents without one. 4×4.' },
-      { id: 'seaport', name: 'Seaport', key: '', code: '', cost: price(COSTS.seaport), hint: 'Industry stops growing past 7,000 jobs without one. Place along open water. 4×4.' },
+      { id: 'seaport', name: 'Seaport', key: '', code: '', cost: price(COSTS.seaport), hint: 'Industry stops growing past 7,000 jobs without one. Point at the shore: it snaps to land where one whole side faces open water. 4×4.' },
       { id: 'airport', name: 'Airport', key: '', code: '', cost: price(COSTS.airport), hint: 'Commerce stops growing past 10,000 jobs without one. Needs flat ground. 6×6.' },
       { id: 'cityHall', name: 'City Hall', key: '', code: '', cost: price(COSTS.cityHall), hint: 'Approval +5. One per city. 3×3.' },
       { id: 'hospital', name: 'Hospital', key: '', code: '', cost: price(COSTS.hospital), hint: 'Health care within 24 tiles: homes there grow more readily. 3×3.' },

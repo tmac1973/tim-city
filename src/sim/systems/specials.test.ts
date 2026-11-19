@@ -69,10 +69,20 @@ describe('demand caps', () => {
 describe('placing landmarks', () => {
   it('puts a seaport only along open water', () => {
     const s = flatCity();
-    expect(runTool(s, tool('seaport', 40, 40))).toMatchObject({ ok: false, reason: 'Must face open water along one side' });
+    expect(runTool(s, tool('seaport', 40, 40))).toMatchObject({ ok: false, reason: 'Build on the shore: one whole side (4 tiles) must face open water' });
     // Water along the south edge of the lot (tiles 39–42 on row 43).
     for (let x = 30; x < 50; x++) for (let y = 43; y < 48; y++) s.tiles[s.index(x, y)] = TileKind.Water;
     expect(runTool(s, tool('seaport', 40, 40)).ok).toBe(true);
+  });
+
+  it('snaps a seaport to the shore when the pointer is over the water', () => {
+    const s = flatCity();
+    // Water from row 43 down; the pointer two tiles out on it.
+    for (let x = 20; x < 60; x++) for (let y = 43; y < 60; y++) s.tiles[s.index(x, y)] = TileKind.Water;
+    expect(runTool(s, tool('seaport', 40, 45)).ok).toBe(true);
+    // The port stands on the land rows 39–42, its south side on the water.
+    expect(s.tiles[s.index(40, 42)]).toBe(TileKind.Seaport);
+    expect(s.tiles[s.index(40, 43)]).toBe(TileKind.Water);
   });
 
   it('needs nearly flat ground for an airport', () => {
