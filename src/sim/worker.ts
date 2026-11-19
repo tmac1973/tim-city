@@ -21,7 +21,7 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 /** The block field the main thread wants, and whether to send it on the next publish. */
 let subscribed: FieldName | null = null;
 let fieldDue = false;
-/** Agents always need traffic; send it with the first tick after (re)starting. */
+/** Agents always need traffic; send it with the first tick after each new or loaded city. */
 let trafficDue = true;
 
 function post(message: WorkerToMain, transfer: Transferable[] = []): void {
@@ -123,6 +123,7 @@ function handle(message: MainToWorker): void {
       generateTerrain(sim.state, terrain);
       // A first count, so the census knows about the map (its water) before the first month ends.
       takeCensus(sim.state);
+      trafficDue = true;
       post({ type: 'ready', name, seed, size });
       publish(sim);
       schedule();
@@ -131,6 +132,8 @@ function handle(message: MainToWorker): void {
     case 'load': {
       const state = deserialize(message.bytes);
       sim = new Simulation({ name: state.name, seed: state.seed, size: state.size }, state);
+      // A loaded city keeps its traffic; send it now so a paused city shows its cars.
+      trafficDue = true;
       post({ type: 'ready', name: state.name, seed: state.seed, size: state.size });
       publish(sim);
       schedule();

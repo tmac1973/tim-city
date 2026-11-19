@@ -81,6 +81,8 @@ export class CarLayer {
   private readonly lights: InstancePool;
   private readonly lightMaterial = new MeshBasicMaterial({ vertexColors: true });
   private night = 0;
+  /** Set until the first cars are placed, so a city loaded paused still shows its traffic. */
+  private unprimed = true;
 
   constructor(
     private readonly mirror: CityMirror,
@@ -115,7 +117,13 @@ export class CarLayer {
 
   update(dt: number): void {
     this.clock += dt;
-    if (this.clock >= 1) {
+    if (this.unprimed && this.traffic) {
+      // First traffic for this city: fill the roads at once, already faded in.
+      this.rebalance();
+      for (const car of this.cars) car.scale = 1;
+      // Wait for the roads if the traffic came before them.
+      this.unprimed = this.roadBlocks.length === 0;
+    } else if (this.clock >= 1) {
       this.clock = 0;
       this.rebalance();
     }

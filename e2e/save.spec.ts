@@ -34,6 +34,17 @@ test('a saved city loads back with the same date and population', async ({ page 
   await expect(page.locator('.topbar .stat').first()).toHaveText(date ?? '');
   await expect(population).toHaveText(pop ?? '');
   await expect(page.getByRole('button', { name: 'Pause' })).toHaveAttribute('aria-pressed', 'true');
+
+  // A city loaded paused still shows its traffic.
+  await page.goto(`${page.url()}&debug&quality=low`);
+  await expect(page.locator('html[data-rendered="true"]')).toHaveCount(1, { timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Pause' })).toHaveAttribute('aria-pressed', 'true');
+  const cars = () =>
+    page.evaluate(() => {
+      const tim = (window as unknown as { __tim: { renderer: { agents: { cars: { cars: { alive: boolean; scale: number }[] } } } } }).__tim;
+      return tim.renderer.agents.cars.cars.filter((c) => c.alive && c.scale > 0).length;
+    });
+  await expect.poll(cars, { timeout: 10_000 }).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 
